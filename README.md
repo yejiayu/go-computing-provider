@@ -49,6 +49,10 @@ wget -c https://golang.org/dl/go1.21.7.linux-amd64.tar.gz -O - | sudo tar -xz -C
 
 echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc && source ~/.bashrc
 ```
+ - Install python:
+```bash
+./install.sh
+```
 
 ## Install the Kubernetes
 The Kubernetes version should be `v1.24.0+`
