@@ -196,8 +196,8 @@ func RedeployJob(c *gin.Context) {
 
 func ReNewJob(c *gin.Context) {
 	var jobData struct {
-		SpaceUuid string `json:"space_uuid"`
-		Duration  int    `json:"duration"`
+		TaskUuid string `json:"task_uuid"`
+		Duration int    `json:"duration"`
 	}
 
 	if err := c.ShouldBindJSON(&jobData); err != nil {
@@ -206,8 +206,8 @@ func ReNewJob(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("renew Job received: %+v", jobData)
 
-	if strings.TrimSpace(jobData.SpaceUuid) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: space_uuid"})
+	if strings.TrimSpace(jobData.TaskUuid) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: task_uuid"})
 		return
 	}
 
@@ -216,13 +216,29 @@ func ReNewJob(c *gin.Context) {
 		return
 	}
 
-	redisKey := constants.REDIS_FULL_PREFIX + jobData.SpaceUuid
-	spaceDetail, err := RetrieveJobMetadata(redisKey)
+	conn := redisPool.Get()
+	prefix := constants.REDIS_FULL_PREFIX + "*"
+	keys, err := redis.Strings(conn.Do("KEYS", prefix))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "not found data"})
+		logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
 		return
 	}
 
+	var spaceDetail models.CacheSpaceDetail
+	for _, key := range keys {
+		jobMetadata, err := RetrieveJobMetadata(key)
+		if err != nil {
+			logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
+			return
+		}
+		if strings.EqualFold(jobMetadata.TaskUuid, jobData.TaskUuid) {
+			spaceDetail = jobMetadata
+			break
+		}
+	}
+
+	redisKey := constants.REDIS_FULL_PREFIX + spaceDetail.SpaceUuid
 	leftTime := spaceDetail.ExpireTime - time.Now().Unix()
 	if leftTime < 0 {
 		c.JSON(http.StatusOK, map[string]string{
@@ -250,33 +266,9 @@ func ReNewJob(c *gin.Context) {
 		defer redisConn.Close()
 
 		redisConn.Do("HSET", fullArgs...)
-		redisConn.Do("SET", jobData.SpaceUuid, "wait-delete", "EX", int(leftTime)+jobData.Duration)
+		redisConn.Do("SET", spaceDetail.SpaceUuid, "wait-delete", "EX", int(leftTime)+jobData.Duration)
 	}
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
-}
-
-func DeleteJob(c *gin.Context) {
-	spaceUuid := c.Query("space_uuid")
-
-	if spaceUuid == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "space_uuid is required"})
-		return
-	}
-
-	redisKey := constants.REDIS_FULL_PREFIX + spaceUuid
-	jobDetail, err := RetrieveJobMetadata(redisKey)
-	if err != nil {
-		if stErr.Is(err, NotFoundRedisKey) {
-			c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
-			return
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
-			return
-		}
-	}
-	k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobDetail.WalletAddress)
-	deleteJob(k8sNameSpace, spaceUuid)
-	c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
 }
 
 func CancelJob(c *gin.Context) {
