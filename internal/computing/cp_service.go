@@ -60,19 +60,12 @@ func ReceiveJob(c *gin.Context) {
 		logHost = "log." + conf.GetConfig().API.Domain
 	}
 
-	delayTask, err := celeryService.DelayTask(constants.TASK_DEPLOY, jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID)
+	_, err := celeryService.DelayTask(constants.TASK_DEPLOY, jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
 		return
 	}
-	go func() {
-		result, err := delayTask.Get(180 * time.Second)
-		if err != nil {
-			logs.GetLogger().Errorf("Failed get sync task result, error: %v", err)
-			return
-		}
-		logs.GetLogger().Infof("Job_uuid: %s, service running successfully, job_result_url: %s", jobData.UUID, result.(string))
-	}()
+
 	jobData.JobResultURI = fmt.Sprintf("https://%s", hostName)
 
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")

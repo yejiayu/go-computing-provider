@@ -34,9 +34,10 @@ type LOG struct {
 }
 
 type HUB struct {
-	WalletAddress string
-	ServerUrl     string
-	AccessToken   string
+	WalletAddress    string
+	ServerUrl        string
+	AccessToken      string
+	BalanceThreshold float64
 }
 
 type MCS struct {
