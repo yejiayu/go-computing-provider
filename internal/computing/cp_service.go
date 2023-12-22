@@ -47,11 +47,7 @@ func ReceiveJob(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	reqBody, err := json.Marshal(jobData)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
-	}
-	logs.GetLogger().Infof("Job received Data: %s", string(reqBody))
+	logs.GetLogger().Infof("Job received Data: %+v", jobData)
 
 	available, err := checkResourceAvailable(jobData.JobSourceURI)
 	if err != nil {
