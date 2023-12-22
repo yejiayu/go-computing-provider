@@ -17,7 +17,6 @@ import (
 	"time"
 )
 
-var runTaskGpuResource sync.Map
 var deployingChan = make(chan models2.Job)
 
 type ScheduleTask struct {

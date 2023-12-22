@@ -315,7 +315,7 @@ func (s *K8sService) ListNamespace(ctx context.Context) ([]string, error) {
 }
 
 func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeResource, error) {
-	activePods, err := allActivePods(s.k8sClient)
+	activePods, err := s.GetAllActivePod(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +333,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 	}
 
 	for _, node := range nodes.Items {
-		nodeGpu, _, nodeResource := getNodeResource(activePods, &node)
+		nodeGpu, _, nodeResource := GetNodeResource(activePods, &node)
 
 		collectGpu := make(map[string]collectGpuInfo)
 		if gpu, ok := nodeGpuInfoMap[node.Name]; ok {
@@ -361,10 +361,6 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 
 			for name, info := range collectGpu {
 				runCount := int(nodeGpu[name])
-				if num, ok := runTaskGpuResource.Load(name); ok {
-					runCount += num.(int)
-				}
-
 				if runCount < info.count {
 					info.remainNum = info.count - runCount
 				} else {
@@ -510,6 +506,48 @@ func (s *K8sService) PodDoCommand(namespace, podName, containerName string, podC
 	}
 
 	return nil
+}
+
+func (s *K8sService) GetNodeGpuSummary(ctx context.Context) (map[string]map[string]int64, error) {
+	nodeGpuInfoMap, err := s.GetPodLog(ctx)
+	if err != nil {
+		logs.GetLogger().Errorf("Collect cluster gpu info Failed, if have available gpu, please check resource-exporter. error: %+v", err)
+		return map[string]map[string]int64{}, err
+	}
+
+	var nodeGpuSummary = make(map[string]map[string]int64)
+	for nodeName, gpuDetailStr := range nodeGpuInfoMap {
+		var gpuInfo struct {
+			Gpu models.Gpu `json:"gpu"`
+		}
+		if err := json.Unmarshal([]byte(gpuDetailStr.String()), &gpuInfo); err != nil {
+			logs.GetLogger().Error("nodeName: %s, error: %+v", nodeName, err)
+			continue
+		}
+
+		collectGpu := make(map[string]int64)
+		for _, gpuDetail := range gpuInfo.Gpu.Details {
+			gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
+			if v, ok := collectGpu[gpuName]; ok {
+				v += 1
+				collectGpu[gpuName] = v
+			} else {
+				collectGpu[gpuName] = 1
+			}
+		}
+		nodeGpuSummary[nodeName] = collectGpu
+	}
+	return nodeGpuSummary, nil
+}
+
+func (s *K8sService) GetAllActivePod(ctx context.Context) ([]coreV1.Pod, error) {
+	allPods, err := clientSet.CoreV1().Pods("").List(ctx, metaV1.ListOptions{
+		FieldSelector: "status.phase=Running",
+	})
+	if err != nil {
+		return nil, err
+	}
+	return allPods.Items, nil
 }
 
 func readLog(req *rest.Request) (*strings.Builder, error) {

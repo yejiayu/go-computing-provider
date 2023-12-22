@@ -31,7 +31,7 @@ func allActivePods(clientSet *kubernetes.Clientset) ([]corev1.Pod, error) {
 	return allPods.Items, nil
 }
 
-func getNodeResource(allPods []corev1.Pod, node *corev1.Node) (map[string]int64, map[string]int64, *models.NodeResource) {
+func GetNodeResource(allPods []corev1.Pod, node *corev1.Node) (map[string]int64, map[string]int64, *models.NodeResource) {
 	var (
 		usedCpu     int64
 		usedMem     int64
@@ -193,7 +193,7 @@ func checkClusterProviderStatus() (string, error) {
 	nodeGpu := make(map[string]int64)
 	nodeResource := make(map[string]int64)
 	for _, node := range nodes.Items {
-		gpuMap, remainderResource, _ := getNodeResource(activePods, &node)
+		gpuMap, remainderResource, _ := GetNodeResource(activePods, &node)
 		for k, v := range gpuMap {
 			nodeGpu[k] = nodeGpu[k] + v
 		}

@@ -55,6 +55,9 @@ const (
 	ProofParamError   = 8001
 	ProofReadLogError = 8002
 	ProofError        = 8003
+
+	CheckResourcesError     = 9001
+	CheckAvailableResources = 9002
 )
 
 var codeMsg = map[int]string{
@@ -62,4 +65,7 @@ var codeMsg = map[int]string{
 
 	ProofReadLogError: "An error occurred while read the log of proof",
 	ProofError:        "An error occurred while executing the calculation task",
+
+	CheckResourcesError:     "An error occurred while check resources available",
+	CheckAvailableResources: "No resources available",
 }
