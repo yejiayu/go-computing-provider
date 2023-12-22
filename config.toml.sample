@@ -15,6 +15,7 @@ KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"   # Your domain name SSL .key 
 ServerUrl = "https://swanhub-cali.swanchain.io"     # The swan hub API address
 AccessToken = ""                                    # The swan hub access token
 WalletAddress = ""                                  # The cp wallet address
+BalanceThreshold= 50                                # The cp cp’s collateral balance threshold
 
 [MCS]
 ApiKey = ""                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key

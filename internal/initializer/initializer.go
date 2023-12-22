@@ -64,6 +64,7 @@ func ProjectInit(cpRepoPath string) {
 
 	go computing.NewScheduleTask().Run()
 
+	computing.NewCronTask().RunTask()
 	computing.RunSyncTask(nodeID)
 	celeryService := computing.NewCeleryService()
 	celeryService.RegisterTask(constants.TASK_DEPLOY, computing.DeploySpaceTask)
