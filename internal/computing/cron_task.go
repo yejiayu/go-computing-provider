@@ -26,7 +26,7 @@ func NewCronTask() *CronTask {
 
 func (task *CronTask) RunTask() {
 	task.checkCollateralBalance()
-	task.cleanAbnormalDeployment()
+	//task.cleanAbnormalDeployment()
 }
 
 func (task *CronTask) checkCollateralBalance() {
