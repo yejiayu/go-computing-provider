@@ -123,7 +123,6 @@ func (task *CronTask) cleanAbnormalDeployment() {
 						}
 					}
 				}
-				logs.GetLogger().Infof("namespace: %s, Cleanup complete.", namespace)
 			}
 		}
 	})
