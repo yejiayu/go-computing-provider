@@ -26,7 +26,7 @@ func NewCronTask() *CronTask {
 
 func (task *CronTask) RunTask() {
 	task.checkCollateralBalance()
-	//task.cleanAbnormalDeployment()
+	task.cleanAbnormalDeployment()
 }
 
 func (task *CronTask) checkCollateralBalance() {
@@ -109,7 +109,7 @@ func (task *CronTask) cleanAbnormalDeployment() {
 					creationTimestamp := deployment.ObjectMeta.CreationTimestamp.Time
 					currentTime := time.Now()
 					age := currentTime.Sub(creationTimestamp)
-					if (deployment.Status.AvailableReplicas == 0 && age.Hours() > 3) || age.Hours() > 24*15 {
+					if (deployment.Status.AvailableReplicas == 0 && age.Hours() >= 1) || age.Hours() > 24*15 {
 						logs.GetLogger().Infof("Cleaning up deployment %s in namespace %s", deployment.Name, namespace)
 						err := k8sService.k8sClient.AppsV1().Deployments(namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{})
 						if err != nil {
