@@ -86,7 +86,7 @@ func ReceiveJob(c *gin.Context) {
 	if err = submitJob(&jobData); err != nil {
 		jobData.JobResultURI = ""
 	}
-
+	logs.GetLogger().Debugf("submit job detail: %+v", jobData)
 	c.JSON(http.StatusOK, jobData)
 }
 
