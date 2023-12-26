@@ -368,7 +368,6 @@ func GetSpaceLog(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "upgrading connection failed"})
 		return
 	}
-	defer conn.Close()
 	handleConnection(conn, spaceDetail, logType)
 }
 
