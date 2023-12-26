@@ -501,13 +501,12 @@ func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail,
 		buildLogPath := filepath.Join("build", spaceDetail.WalletAddress, "spaces", spaceDetail.SpaceName, BuildFileName)
 		if _, err := os.Stat(buildLogPath); err != nil {
 			logs.GetLogger().Errorf("not found build log file: %s", buildLogPath)
-			return
+			client.HandleLogs(strings.NewReader("not found build images logs"))
+		} else {
+			logFile, _ := os.Open(buildLogPath)
+			defer logFile.Close()
+			client.HandleLogs(logFile)
 		}
-		logFile, _ := os.Open(buildLogPath)
-		defer logFile.Close()
-
-		client.HandleLogs(logFile)
-
 	} else if logType == "container" {
 		k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(spaceDetail.WalletAddress)
 
