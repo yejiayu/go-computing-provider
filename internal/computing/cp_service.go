@@ -500,7 +500,7 @@ func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail,
 	if logType == "build" {
 		buildLogPath := filepath.Join("build", spaceDetail.WalletAddress, "spaces", spaceDetail.SpaceName, BuildFileName)
 		if _, err := os.Stat(buildLogPath); err != nil {
-			client.HandleLogs(strings.NewReader("A space is deployed starting from the image."))
+			client.HandleLogs(strings.NewReader("This space is deployed starting from a image."))
 		} else {
 			logFile, _ := os.Open(buildLogPath)
 			defer logFile.Close()
