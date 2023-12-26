@@ -500,8 +500,7 @@ func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail,
 	if logType == "build" {
 		buildLogPath := filepath.Join("build", spaceDetail.WalletAddress, "spaces", spaceDetail.SpaceName, BuildFileName)
 		if _, err := os.Stat(buildLogPath); err != nil {
-			logs.GetLogger().Errorf("not found build log file: %s", buildLogPath)
-			client.HandleLogs(strings.NewReader("not found build images logs"))
+			client.HandleLogs(strings.NewReader("A space is deployed starting from the image."))
 		} else {
 			logFile, _ := os.Open(buildLogPath)
 			defer logFile.Close()
