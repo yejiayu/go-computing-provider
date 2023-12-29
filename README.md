@@ -364,6 +364,29 @@ nohup computing-provider run >> cp.log 2>&1 &
 ```
 
 ## CLI of Computing Provider
+```bash
+computing-provider -h
+NAME:
+   computing-provider - A computing provider is an individual or organization that participates in the decentralized computing network by offering computational resources such as processing power (CPU and GPU), memory, storage, and bandwidth.
+
+USAGE:
+   computing-provider [global options] command [command options] [arguments...]
+
+VERSION:
+   0.3.0+git.4a9dba7
+
+COMMANDS:
+   run         Start a cp process
+   task        Manage tasks
+   wallet      Manage wallets
+   collateral  Manage the collateral amount to the hub
+   help, h     Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --cp-repo value  cp repo path (default: "~/.swan/computing") [$CP_PATH]
+   --help, -h       show help
+   --version, -v    print the version
+```
 * Check the current list of tasks running on CP, display detailed information for tasks using `-v`
 ```
 computing-provider task list 
@@ -376,6 +399,7 @@ computing-provider task get [space_uuid]
 ```
 computing-provider task delete [space_uuid]
 ```
+* 
 
 ## Getting Help
 
