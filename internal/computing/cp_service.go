@@ -777,14 +777,14 @@ func checkResourceAvailable(jobSourceURI string) (bool, error) {
 			} else if taskType == "GPU" {
 				gpuName := strings.ReplaceAll(hardwareDetail.Gpu.Unit, " ", "-")
 				logs.GetLogger().Infof("gpuName: %s, nodeGpu: %+v, nodeGpuSummary: %+v", gpuName, nodeGpu, nodeGpuSummary)
-				//usedCount, ok := nodeGpu[gpuName]
-				//if !ok {
-				//	continue
-				//}
-				//
-				//if usedCount+hardwareDetail.Gpu.Quantity <= nodeGpuSummary[node.Name][gpuName] {
-				//	return true, nil
-				//}
+				usedCount, ok := nodeGpu[gpuName]
+				if !ok {
+					usedCount = 0
+				}
+
+				if usedCount+hardwareDetail.Gpu.Quantity <= nodeGpuSummary[node.Name][gpuName] {
+					return true, nil
+				}
 				return true, nil
 			}
 		}
