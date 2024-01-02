@@ -519,12 +519,14 @@ func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail,
 		}
 
 		if len(pods.Items) > 0 {
+			line := int64(1000)
 			containerStatuses := pods.Items[0].Status.ContainerStatuses
 			lastIndex := len(containerStatuses) - 1
 			req := k8sService.k8sClient.CoreV1().Pods(k8sNameSpace).GetLogs(pods.Items[0].Name, &v1.PodLogOptions{
 				Container:  containerStatuses[lastIndex].Name,
 				Follow:     true,
 				Timestamps: true,
+				TailLines:  &line,
 			})
 
 			podLogs, err := req.Stream(context.Background())
