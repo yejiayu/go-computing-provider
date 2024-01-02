@@ -311,8 +311,17 @@ func CancelJob(c *gin.Context) {
 		c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
 		return
 	}
-	k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobDetail.WalletAddress)
-	deleteJob(k8sNameSpace, jobDetail.SpaceUuid)
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				logs.GetLogger().Errorf("task_uuid: %s, delete space request failed, error: %+v", taskUuid, err)
+				return
+			}
+		}()
+		k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobDetail.WalletAddress)
+		deleteJob(k8sNameSpace, jobDetail.SpaceUuid)
+	}()
+
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
 }
 
