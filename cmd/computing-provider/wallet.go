@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	cp_conf "github.com/lagrangedao/go-computing-provider/conf"
 	"github.com/lagrangedao/go-computing-provider/wallet"
 	"github.com/lagrangedao/go-computing-provider/wallet/conf"
 	"github.com/urfave/cli/v2"
@@ -325,7 +326,6 @@ var CollateralCmd = &cli.Command{
 		if cctx.NArg() != 2 {
 			return fmt.Errorf("need two params: the from address and amount")
 		}
-
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
 			return fmt.Errorf("failed to parse chain: %s", chain)
@@ -366,6 +366,14 @@ var collateralInfoCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
+
+		cpPath, exit := os.LookupEnv("CP_PATH")
+		if !exit {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		}
+		if err := cp_conf.InitConfig(cpPath); err != nil {
+			return fmt.Errorf("load config file failed, error: %+v", err)
+		}
 
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
