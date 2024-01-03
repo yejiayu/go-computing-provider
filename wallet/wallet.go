@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
@@ -11,12 +12,15 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
+	cp_conf "github.com/lagrangedao/go-computing-provider/conf"
 	"github.com/lagrangedao/go-computing-provider/wallet/conf"
 	"github.com/lagrangedao/go-computing-provider/wallet/contract/collateral"
 	"github.com/lagrangedao/go-computing-provider/wallet/contract/swan_token"
 	"github.com/lagrangedao/go-computing-provider/wallet/tablewriter"
 	"golang.org/x/xerrors"
+	"io"
 	"math/big"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -394,6 +398,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 	addressKey := "Address"
 	balanceKey := "Balance"
 	collateralKey := "Collateral"
+	frozenKey := "Frozen"
 	errorKey := "Error"
 
 	chainRpc, err := conf.GetRpcByName(chainName)
@@ -419,6 +424,8 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 			collateralBalance, err = collateralStub.Balances()
 		}
 
+		frozenCollateral, err := getFrozenCollateral(addr)
+
 		var errmsg string
 		if err != nil {
 			errmsg = err.Error()
@@ -428,6 +435,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 			addressKey:    addr,
 			balanceKey:    balance,
 			collateralKey: collateralBalance,
+			frozenKey:     frozenCollateral,
 			errorKey:      errmsg,
 		}
 		wallets = append(wallets, wallet)
@@ -437,6 +445,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 		tablewriter.Col(addressKey),
 		tablewriter.Col(balanceKey),
 		tablewriter.Col(collateralKey),
+		tablewriter.Col(frozenKey),
 		tablewriter.NewLineCol(errorKey))
 
 	for _, wallet := range wallets {
@@ -510,4 +519,43 @@ func convertToWei(ethValue string) (*big.Int, error) {
 		return nil, fmt.Errorf("conversion to Wei failed")
 	}
 	return weiInt, nil
+}
+
+func getFrozenCollateral(walletAddress string) (string, error) {
+	url := fmt.Sprintf("%s/check_frozen_collateral/%s", cp_conf.GetConfig().HUB.ServerUrl, walletAddress)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("create request failed: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+cp_conf.GetConfig().HUB.AccessToken)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	var frozenResp struct {
+		Data struct {
+			FrozenCollateral big.Int `json:"Frozen_Collateral"`
+		} `json:"data"`
+		Message string `json:"message"`
+		Status  string `json:"status"`
+	}
+
+	if err = json.Unmarshal(body, &frozenResp); err != nil {
+	}
+	fbalance := new(big.Float)
+	fbalance.SetString(frozenResp.Data.FrozenCollateral.String())
+	etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
+	ethValue := etherQuotient.Text('f', 5)
+	return ethValue, nil
 }
