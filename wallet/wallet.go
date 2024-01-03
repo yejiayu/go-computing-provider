@@ -424,7 +424,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 			collateralBalance, err = collateralStub.Balances()
 		}
 
-		frozenCollateral, err := getFrozenCollateral(addr)
+		//frozenCollateral, err := getFrozenCollateral(addr)
 
 		var errmsg string
 		if err != nil {
@@ -435,7 +435,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 			addressKey:    addr,
 			balanceKey:    balance,
 			collateralKey: collateralBalance,
-			frozenKey:     frozenCollateral,
+			frozenKey:     "",
 			errorKey:      errmsg,
 		}
 		wallets = append(wallets, wallet)
