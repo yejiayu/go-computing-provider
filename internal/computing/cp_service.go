@@ -350,16 +350,19 @@ func GetSpaceLog(c *gin.Context) {
 	spaceUuid := c.Query("space_id")
 	logType := c.Query("type")
 	if strings.TrimSpace(spaceUuid) == "" {
+		logs.GetLogger().Errorf("get space log failed, space_id is empty: %s", spaceUuid)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: space_id"})
 		return
 	}
 
 	if strings.TrimSpace(logType) == "" {
+		logs.GetLogger().Errorf("get space log failed, type is empty: %s", logType)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: type"})
 		return
 	}
 
 	if strings.TrimSpace(logType) != "build" && strings.TrimSpace(logType) != "container" {
+		logs.GetLogger().Errorf("get space log failed, type is build or container, type:: %s", logType)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: type"})
 		return
 	}
