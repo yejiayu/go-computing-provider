@@ -370,6 +370,7 @@ func GetSpaceLog(c *gin.Context) {
 	redisKey := constants.REDIS_FULL_PREFIX + spaceUuid
 	spaceDetail, err := RetrieveJobMetadata(redisKey)
 	if err != nil {
+		logs.GetLogger().Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
 		return
 	}
