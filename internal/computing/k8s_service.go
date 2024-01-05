@@ -61,6 +61,8 @@ func NewK8sService() *K8sService {
 				return
 			}
 		}
+		config.QPS = 30
+		config.Burst = 50
 		clientSet, err = kubernetes.NewForConfig(config)
 		if err != nil {
 			logs.GetLogger().Errorf("Failed create k8s clientset, error: %v", err)
