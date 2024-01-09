@@ -85,7 +85,7 @@ var walletList = &cli.Command{
 
 var walletExport = &cli.Command{
 	Name:      "export",
-	Usage:     "export keys",
+	Usage:     "Export keys",
 	ArgsUsage: "[address]",
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
@@ -115,7 +115,7 @@ var walletExport = &cli.Command{
 
 var walletImport = &cli.Command{
 	Name:      "import",
-	Usage:     "import keys",
+	Usage:     "Import keys",
 	ArgsUsage: "[<path> (optional, will read from stdin if omitted)]",
 	Flags:     []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
@@ -213,7 +213,7 @@ var walletSign = &cli.Command{
 
 var walletVerify = &cli.Command{
 	Name:      "verify",
-	Usage:     "verify the signature of a message",
+	Usage:     "Verify the signature of a message",
 	ArgsUsage: "<signing address>  <signature> <rawMessage>",
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
@@ -308,7 +308,7 @@ var walletSend = &cli.Command{
 
 var CollateralCmd = &cli.Command{
 	Name:      "collateral",
-	Usage:     "Manage the collateral amount to the hub",
+	Usage:     "Manage the collateral amount",
 	ArgsUsage: "[fromAddress] [amount]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -319,7 +319,21 @@ var CollateralCmd = &cli.Command{
 	},
 	Subcommands: []*cli.Command{
 		collateralInfoCmd,
+		collateralAddCmd,
 		collateralWithdrawCmd,
+	},
+}
+
+var collateralAddCmd = &cli.Command{
+	Name:      "add",
+	Usage:     "Send the collateral amount to the hub",
+	ArgsUsage: "add [targetAddress] [amount]",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "chain",
+			Usage: "Specify which rpc connection chain to use",
+			Value: conf.DefaultRpc,
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
