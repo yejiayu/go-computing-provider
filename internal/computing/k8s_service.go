@@ -554,7 +554,8 @@ func (s *K8sService) GetAllActivePod(ctx context.Context) ([]coreV1.Pod, error) 
 }
 
 func (s *K8sService) GetAPIServerEndpoint() string {
-	return s.config.Host
+	last := strings.LastIndex(s.config.Host, ":")
+	return s.config.Host[:last]
 }
 
 func (s *K8sService) CreateUbiTaskSecret(ctx context.Context, namespace, name string, data string) error {
