@@ -16,7 +16,6 @@ type ComputingProvider struct {
 	NodeId        string `json:"node_id"`
 	MultiAddress  string `json:"multi_address"`
 	Autobid       int    `json:"autobid"`
-	WalletAddress int    `json:"wallet_address"`
 	Status        string `json:"status"`
 	PublicAddress string `json:"public_address"`
 }

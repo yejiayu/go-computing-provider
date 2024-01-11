@@ -18,8 +18,10 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/itsjamie/gin-cors v0.0.0-20220228161158-ef28d3d2a0a8
 	github.com/olekukonko/tablewriter v0.0.5
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/urfave/cli/v2 v2.24.4
+	github.com/valyala/gozstd v1.20.1
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 	gopkg.in/errgo.v2 v2.1.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -107,7 +109,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
-	github.com/robfig/cron/v3 v3.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b // indirect
 	github.com/shirou/gopsutil v3.21.4-0.20210419000835-c7a38de76ee5+incompatible // indirect

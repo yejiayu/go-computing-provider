@@ -52,9 +52,13 @@ const (
 	SuccessCode = 200
 	JsonError   = 400
 
-	ProofParamError   = 8001
-	ProofReadLogError = 8002
-	ProofError        = 8003
+	ProofParamError   = 7001
+	ProofReadLogError = 7002
+	ProofError        = 7003
+
+	UbiTaskParamError   = 8001
+	UbiTaskReadLogError = 8002
+	UbiTaskError        = 8003
 
 	CheckResourcesError     = 9001
 	CheckAvailableResources = 9002

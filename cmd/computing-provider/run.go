@@ -64,4 +64,6 @@ func cpManager(router *gin.RouterGroup) {
 	router.POST("/lagrange/jobs/renew", computing.ReNewJob)
 	router.GET("/lagrange/spaces/log", computing.GetSpaceLog)
 	router.POST("/lagrange/cp/proof", computing.DoProof)
+	router.POST("/lagrange/cp/ubi", computing.DoUbiProof)
+	router.POST("/lagrange/cp/receive/ubi", computing.ReceiveProof)
 }

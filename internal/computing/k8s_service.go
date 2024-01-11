@@ -552,6 +552,23 @@ func (s *K8sService) GetAllActivePod(ctx context.Context) ([]coreV1.Pod, error) 
 	return allPods.Items, nil
 }
 
+func (s *K8sService) CreateUbiTaskSecret(ctx context.Context, namespace, name string, data string) error {
+	inputSecret := &coreV1.Secret{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		StringData: map[string]string{
+			"input.json": data,
+		},
+	}
+	_, err := s.k8sClient.CoreV1().Secrets(namespace).Create(ctx, inputSecret, metaV1.CreateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func readLog(req *rest.Request) (*strings.Builder, error) {
 	podLogs, err := req.Stream(context.TODO())
 	if err != nil {
