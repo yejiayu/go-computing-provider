@@ -579,7 +579,7 @@ func DoUbiProof(c *gin.Context) {
 		}
 
 		urlSplits := strings.Split(conf.GetConfig().API.MultiAddress, "/")
-		receiveUrl := fmt.Sprintf("https://%s:%s/api/v1/computing/lagrange/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), urlSplits[4])
+		receiveUrl := fmt.Sprintf("%s:%s/api/v1/computing/lagrange/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), urlSplits[4])
 
 		execCommand := []string{"ubi-bench", "c2"}
 
