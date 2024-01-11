@@ -76,7 +76,7 @@ func NewWallet(keystore KeyStore) (*LocalWallet, error) {
 }
 
 func (w *LocalWallet) WalletSign(ctx context.Context, addr string, msg []byte) (string, error) {
-	ki, err := w.findKey(addr)
+	ki, err := w.FindKey(addr)
 	if err != nil {
 		return "", err
 	}
@@ -93,7 +93,7 @@ func (w *LocalWallet) WalletSign(ctx context.Context, addr string, msg []byte) (
 func (w *LocalWallet) WalletVerify(ctx context.Context, addr string, sigByte []byte, data string) (bool, error) {
 	hash := crypto.Keccak256Hash([]byte(data))
 
-	ki, err := w.findKey(addr)
+	ki, err := w.FindKey(addr)
 	if err != nil {
 		return false, err
 	}
@@ -104,7 +104,7 @@ func (w *LocalWallet) WalletVerify(ctx context.Context, addr string, sigByte []b
 	return Verify(ki.PrivateKey, sigByte, hash.Bytes())
 }
 
-func (w *LocalWallet) findKey(addr string) (*KeyInfo, error) {
+func (w *LocalWallet) FindKey(addr string) (*KeyInfo, error) {
 	w.lk.Lock()
 	defer w.lk.Unlock()
 
@@ -113,7 +113,7 @@ func (w *LocalWallet) findKey(addr string) (*KeyInfo, error) {
 		return k, nil
 	}
 	if w.keystore == nil {
-		log.Warn("findKey didn't find the key in in-memory wallet")
+		log.Warn("FindKey didn't find the key in in-memory wallet")
 		return nil, nil
 	}
 
@@ -143,7 +143,7 @@ func (w *LocalWallet) tryFind(key string) (KeyInfo, error) {
 }
 
 func (w *LocalWallet) WalletExport(ctx context.Context, addr string) (*KeyInfo, error) {
-	k, err := w.findKey(addr)
+	k, err := w.FindKey(addr)
 	if err != nil {
 		return nil, xerrors.Errorf("failed to find key to export: %w", err)
 	}
@@ -264,7 +264,7 @@ func (w *LocalWallet) WalletNew(ctx context.Context) (string, error) {
 }
 
 func (w *LocalWallet) walletDelete(ctx context.Context, addr string) error {
-	k, err := w.findKey(addr)
+	k, err := w.FindKey(addr)
 
 	if err != nil {
 		return xerrors.Errorf("failed to delete key %s : %w", addr, err)
@@ -297,7 +297,7 @@ func (w *LocalWallet) WalletSend(ctx context.Context, chainName string, from, to
 	if err != nil {
 		return "", err
 	}
-	ki, err := w.findKey(from)
+	ki, err := w.FindKey(from)
 	if err != nil {
 		return "", err
 	}
@@ -333,7 +333,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 	if err != nil {
 		return "", err
 	}
-	ki, err := w.findKey(from)
+	ki, err := w.FindKey(from)
 	if err != nil {
 		return "", err
 	}
@@ -465,7 +465,7 @@ func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, 
 		return "", err
 	}
 
-	ki, err := w.findKey(to)
+	ki, err := w.FindKey(to)
 	if err != nil {
 		return "", err
 	}

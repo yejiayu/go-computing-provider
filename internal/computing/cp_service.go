@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	stErr "errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
@@ -14,13 +15,17 @@ import (
 	"github.com/lagrangedao/go-computing-provider/conf"
 	"github.com/lagrangedao/go-computing-provider/constants"
 	"github.com/lagrangedao/go-computing-provider/internal/models"
+	ubi "github.com/lagrangedao/go-computing-provider/ubi/contract"
 	"github.com/lagrangedao/go-computing-provider/util"
+	"github.com/lagrangedao/go-computing-provider/wallet"
+	wallet_conf "github.com/lagrangedao/go-computing-provider/wallet/conf"
 	"io"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"math/big"
 	"math/rand"
 	"net/http"
 	"os"
@@ -574,7 +579,7 @@ func DoUbiProof(c *gin.Context) {
 		}
 
 		urlSplits := strings.Split(conf.GetConfig().API.MultiAddress, "/")
-		receiveUrl := fmt.Sprintf("https://%s:%s/api/v1/computing/lagrange/cp/receive/ubi", urlSplits[2], urlSplits[4])
+		receiveUrl := fmt.Sprintf("https://%s:%s/api/v1/computing/lagrange/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), urlSplits[4])
 
 		execCommand := []string{"ubi-bench", "c2"}
 
@@ -678,6 +683,48 @@ func ReceiveProof(c *gin.Context) {
 		return
 	}
 	logs.GetLogger().Infof("task_uuid: %s, C2 proof out received: %+v", c2Proof.TaskUuid, c2Proof)
+
+	chainUrl, err := wallet_conf.GetRpcByName(wallet_conf.DefaultRpc)
+	if err != nil {
+		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+		return
+	}
+
+	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+	if err != nil {
+		logs.GetLogger().Errorf("setup wallet ubi failed, error: %v,", err)
+		return
+	}
+
+	ki, err := localWallet.FindKey(c2Proof.CpAddress)
+	if err != nil || ki == nil {
+		logs.GetLogger().Errorf("the address: %s, private key %w,", c2Proof.CpAddress, wallet.ErrKeyInfoNotFound)
+		return
+	}
+
+	client, err := ethclient.Dial(chainUrl)
+	if err != nil {
+		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+		return
+	}
+	defer client.Close()
+
+	taskStub, err := ubi.NewTaskStub(client, ubi.WithPrivateKey(ki.PrivateKey))
+	if err != nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		return
+	}
+
+	var bigIntValue big.Int
+	bigIntValue.SetInt64(int64(c2Proof.TaskId))
+
+	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.NodeId, c2Proof.TaskUuid, &bigIntValue, uint8(c2Proof.TaskType), c2Proof.Proof)
+	if err != nil {
+		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
+		return
+	}
+	fmt.Printf("submitUBIProofTx: %s", submitUBIProofTx)
+
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 

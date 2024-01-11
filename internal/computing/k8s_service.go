@@ -1,5 +1,6 @@
 package computing
 
+import "C"
 import (
 	"context"
 	"encoding/json"
@@ -550,6 +551,10 @@ func (s *K8sService) GetAllActivePod(ctx context.Context) ([]coreV1.Pod, error) 
 		return nil, err
 	}
 	return allPods.Items, nil
+}
+
+func (s *K8sService) GetAPIServerEndpoint() string {
+	return s.config.Host
 }
 
 func (s *K8sService) CreateUbiTaskSecret(ctx context.Context, namespace, name string, data string) error {
