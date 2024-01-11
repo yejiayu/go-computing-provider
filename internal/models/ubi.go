@@ -33,19 +33,10 @@ type Seed struct {
 }
 
 type Commit2Proof struct {
-	TaskUuid string `json:"task_uuid"`
-
-	SealProof             int64       `json:"SealProof"`
-	Miner                 uint64      `json:"Miner"`
-	Number                uint64      `json:"Number"`
-	DealIDs               interface{} `json:"DealIDs"`
-	Randomness            string      `json:"Randomness"`
-	InteractiveRandomness string      `json:"InteractiveRandomness"`
-	Proof                 string      `json:"Proof"`
-	SealedCID             struct {
-		Field1 string `json:"/"`
-	} `json:"SealedCID"`
-	UnsealedCID struct {
-		Field1 string `json:"/"`
-	} `json:"UnsealedCID"`
+	TaskUuid  string `json:"task_uuid"`
+	CpAddress string `json:"cp_address"`
+	NodeId    string `json:"node_id"`
+	TaskId    int    `json:"task_id"`
+	TaskType  int    `json:"task_type"`
+	Proof     string `json:"proof"`
 }

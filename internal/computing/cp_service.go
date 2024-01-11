@@ -512,6 +512,7 @@ func DoUbiProof(c *gin.Context) {
 		Wallet   string `json:"wallet"`
 		NodeId   string `json:"node_id"`
 		TaskUuid string `json:"task_uuid"`
+		TaskId   int    `json:"task_id"`
 		Task     string `json:"task"`
 		TaskType int    `json:"task_type"`
 		TaskName string `json:"task_name"`
@@ -588,6 +589,7 @@ func DoUbiProof(c *gin.Context) {
 						//NodeSelector: map[string]string{
 						//
 						//},
+
 						Containers: []v1.Container{
 							{
 								Name:  "ubi-task-" + generateString(5),
@@ -598,7 +600,23 @@ func DoUbiProof(c *gin.Context) {
 										Value: receiveUrl,
 									},
 									{
+										Name:  "WALLET",
+										Value: ubiTask.Wallet,
+									},
+									{
+										Name:  "NODE_ID",
+										Value: ubiTask.NodeId,
+									},
+									{
+										Name:  "TASKID",
+										Value: strconv.Itoa(ubiTask.TaskId),
+									},
+									{
 										Name:  "TASK_UUID",
+										Value: ubiTask.TaskUuid,
+									},
+									{
+										Name:  "TASK_TYPE",
 										Value: ubiTask.TaskUuid,
 									},
 								},
