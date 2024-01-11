@@ -644,7 +644,7 @@ func DoUbiProof(c *gin.Context) {
 		*job.Spec.BackoffLimit = 1
 		*job.Spec.TTLSecondsAfterFinished = 30
 
-		if _, err = k8sService.k8sClient.BatchV1().Jobs(metaV1.NamespaceDefault).Create(context.TODO(), job, metaV1.CreateOptions{}); err != nil {
+		if _, err = k8sService.k8sClient.BatchV1().Jobs(namespace).Create(context.TODO(), job, metaV1.CreateOptions{}); err != nil {
 			logs.GetLogger().Errorf("Failed creating ubi task job: %v", err)
 			return
 		}
