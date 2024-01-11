@@ -575,7 +575,7 @@ func DoUbiProof(c *gin.Context) {
 		urlSplits := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 		receiveUrl := fmt.Sprintf("https://%s:%s/api/v1/computing/lagrange/cp/receive/ubi", urlSplits[2], urlSplits[4])
 
-		execCommand := []string{"/bin/sh", "-c", "ubi-bench", "c2"}
+		execCommand := []string{"ubi-bench", " c2"}
 
 		job := &batchv1.Job{
 			ObjectMeta: metaV1.ObjectMeta{
