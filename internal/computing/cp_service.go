@@ -579,7 +579,8 @@ func DoUbiProof(c *gin.Context) {
 
 		job := &batchv1.Job{
 			ObjectMeta: metaV1.ObjectMeta{
-				Name: "ubi-fil-c2-" + generateString(5),
+				Name:      "ubi-fil-c2-" + generateString(5),
+				Namespace: namespace,
 			},
 			Spec: batchv1.JobSpec{
 				Template: v1.PodTemplateSpec{
