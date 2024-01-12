@@ -732,6 +732,58 @@ func ReceiveProof(c *gin.Context) {
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
+func SendTask(c *gin.Context) {
+	var taskInfo struct {
+		TaskUuid string `json:"task_uuid"`
+		Address  string `json:"address"`
+		NodeId   string `json:"node_id"`
+		TaskUrl  string `json:"task_url"`
+	}
+	if err := c.ShouldBindJSON(&taskInfo); err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
+	}
+
+	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+	if err != nil {
+		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+		return
+	}
+
+	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+	if err != nil {
+		logs.GetLogger().Errorf("setup wallet ubi failed, error: %v,", err)
+		return
+	}
+
+	ki, err := localWallet.FindKey(taskInfo.Address)
+	if err != nil || ki == nil {
+		logs.GetLogger().Errorf("the address: %s, private key %w,", taskInfo.Address, wallet.ErrKeyInfoNotFound)
+		return
+	}
+
+	client, err := ethclient.Dial(chainUrl)
+	if err != nil {
+		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+		return
+	}
+	defer client.Close()
+
+	taskStub, err := ubi.NewTaskStub(client, ubi.WithPrivateKey(ki.PrivateKey))
+	if err != nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		return
+	}
+
+	assignUBITaskTx, err := taskStub.AssignUBITask(taskInfo.TaskUuid, taskInfo.Address, taskInfo.TaskUrl)
+	if err != nil {
+		logs.GetLogger().Errorf("assign ubi task tx failed, error: %v,", err)
+		return
+	}
+	fmt.Printf("submitUBIProofTx: %s", assignUBITaskTx)
+
+	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
+}
 func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail, logType string) {
 	client := NewWsClient(conn)
 

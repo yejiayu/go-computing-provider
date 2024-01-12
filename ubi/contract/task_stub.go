@@ -63,6 +63,24 @@ func (s *Stub) SubmitUBIProof(nodeID string, taskUid string, taskId *big.Int, ta
 	return transaction.Hash().String(), nil
 }
 
+func (s *Stub) AssignUBITask(nodeID string, taskUid string, taskUrl string) (string, error) {
+	publicAddress, err := s.privateKeyToPublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	txOptions, err := s.createTransactOpts()
+	if err != nil {
+		return "", fmt.Errorf("address: %s, task client create transaction, error: %+v", publicAddress, err)
+	}
+
+	transaction, err := s.UbiTask.AssignUBITask(txOptions, taskUid, publicAddress, nodeID, taskUrl)
+	if err != nil {
+		return "", fmt.Errorf("address: %s, task client create AssignUBITask tx error: %+v", publicAddress, err)
+	}
+	return transaction.Hash().String(), nil
+}
+
 func (s *Stub) privateKeyToPublicKey() (common.Address, error) {
 	if len(strings.TrimSpace(s.privateK)) == 0 {
 		return common.Address{}, fmt.Errorf("wallet address private key must be not empty")
