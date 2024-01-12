@@ -51,13 +51,7 @@ func SetupWallet(dir string) (*LocalWallet, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	wallet, err := NewWallet(kstore)
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet, nil
+	return NewWallet(kstore), nil
 }
 
 type LocalWallet struct {
@@ -67,12 +61,12 @@ type LocalWallet struct {
 	lk sync.Mutex
 }
 
-func NewWallet(keystore KeyStore) (*LocalWallet, error) {
+func NewWallet(keystore KeyStore) *LocalWallet {
 	w := &LocalWallet{
 		keys:     make(map[string]*KeyInfo),
 		keystore: keystore,
 	}
-	return w, nil
+	return w
 }
 
 func (w *LocalWallet) WalletSign(ctx context.Context, addr string, msg []byte) (string, error) {

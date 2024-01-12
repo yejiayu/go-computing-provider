@@ -5,13 +5,19 @@ import (
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
 	"os"
+	"sync"
 )
+
+var mutex = &sync.Mutex{}
 
 type DiskKeyStore struct {
 	db *leveldb.DB
 }
 
 func OpenOrInitKeystore(p string) (*DiskKeyStore, error) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	_, err := os.Stat(p)
 	if err != nil {
 		if !os.IsNotExist(err) {
