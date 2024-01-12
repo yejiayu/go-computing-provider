@@ -36,6 +36,7 @@ type API struct {
 	RedisPassword string
 	Domain        string
 	NodeName      string
+	UbiTask       bool
 }
 
 type LOG struct {
