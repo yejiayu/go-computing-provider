@@ -8,33 +8,34 @@ import (
 	"sync"
 )
 
-var mutex = &sync.Mutex{}
+var diskKeyStore *DiskKeyStore
+var once sync.Once
 
 type DiskKeyStore struct {
 	db *leveldb.DB
 }
 
 func OpenOrInitKeystore(p string) (*DiskKeyStore, error) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	_, err := os.Stat(p)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		} else {
-			if err := os.Mkdir(p, 0700); err != nil {
-				return nil, err
+	var err error
+	once.Do(func() {
+		_, err = os.Stat(p)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return
+			} else {
+				if err = os.Mkdir(p, 0700); err != nil {
+					return
+				}
 			}
 		}
-	}
 
-	db, err := leveldb.OpenFile(p, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return &DiskKeyStore{db}, nil
+		db, err := leveldb.OpenFile(p, nil)
+		if err != nil {
+			return
+		}
+		diskKeyStore = &DiskKeyStore{db}
+	})
+	return diskKeyStore, err
 }
 
 // List lists all the keys stored in the KeyStore

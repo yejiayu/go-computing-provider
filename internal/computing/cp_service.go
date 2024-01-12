@@ -807,8 +807,15 @@ func DoUbiTask(c *gin.Context) {
 		//}
 
 		k8sService := NewK8sService()
-		namespace := "ubi-task"
 		filC2SecretName := ubiTask.Name
+		var namespace = "ubi-task"
+		k8sNamespace := &v1.Namespace{
+			ObjectMeta: metaV1.ObjectMeta{
+				Name: namespace,
+			},
+		}
+		k8sService.CreateNameSpace(context.TODO(), k8sNamespace, metaV1.CreateOptions{})
+
 		if err = k8sService.CreateUbiTaskSecret(context.TODO(), namespace, filC2SecretName, inputParamTaskJson); err != nil {
 			logs.GetLogger().Errorf("create ubi task configmap failed, error: %v", err)
 			return
