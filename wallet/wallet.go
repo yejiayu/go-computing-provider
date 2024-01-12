@@ -12,8 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-	cp_conf "github.com/lagrangedao/go-computing-provider/conf"
-	"github.com/lagrangedao/go-computing-provider/wallet/conf"
+	"github.com/lagrangedao/go-computing-provider/conf"
 	"github.com/lagrangedao/go-computing-provider/wallet/contract/collateral"
 	"github.com/lagrangedao/go-computing-provider/wallet/contract/swan_token"
 	"github.com/lagrangedao/go-computing-provider/wallet/tablewriter"
@@ -516,7 +515,7 @@ func convertToWei(ethValue string) (*big.Int, error) {
 }
 
 func getFrozenCollateral(walletAddress string) (string, error) {
-	url := fmt.Sprintf("%s/check_frozen_collateral/%s", cp_conf.GetConfig().HUB.ServerUrl, walletAddress)
+	url := fmt.Sprintf("%s/check_frozen_collateral/%s", conf.GetConfig().HUB.ServerUrl, walletAddress)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -524,7 +523,7 @@ func getFrozenCollateral(walletAddress string) (string, error) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+cp_conf.GetConfig().HUB.AccessToken)
+	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
 
 	resp, err := client.Do(req)
 	if err != nil {

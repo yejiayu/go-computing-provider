@@ -8,16 +8,16 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/lagrangedao/go-computing-provider/wallet/conf"
+	"github.com/lagrangedao/go-computing-provider/conf"
 	"math/big"
 	"strings"
 )
 
 type Stub struct {
-	client     *ethclient.Client
-	collateral *Main
-	privateK   string
-	publicK    string
+	client   *ethclient.Client
+	UbiTask  *Main
+	privateK string
+	publicK  string
 }
 
 type Option func(*Stub)
@@ -34,17 +34,13 @@ func NewTaskStub(client *ethclient.Client, options ...Option) (*Stub, error) {
 		option(stub)
 	}
 
-	collateralAddr, err := conf.GetContractAddressByName(conf.CollateralContract)
+	taskUbiAddress := common.HexToAddress(conf.GetConfig().CONTRACT.UbiTask)
+	taskClient, err := NewMain(taskUbiAddress, client)
 	if err != nil {
-		return nil, fmt.Errorf("cannot found collateral contract address")
-	}
-	collateralAddress := common.HexToAddress(collateralAddr)
-	collateralClient, err := NewMain(collateralAddress, client)
-	if err != nil {
-		return nil, fmt.Errorf("create collateral contract client, error: %+v", err)
+		return nil, fmt.Errorf("create task contract client, error: %+v", err)
 	}
 
-	stub.collateral = collateralClient
+	stub.UbiTask = taskClient
 	stub.client = client
 	return stub, nil
 }
@@ -60,9 +56,9 @@ func (s *Stub) SubmitUBIProof(nodeID string, taskUid string, taskId *big.Int, ta
 		return "", fmt.Errorf("address: %s, task client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.collateral.SubmitUBIProof(txOptions, publicAddress, nodeID, taskUid, taskId, taskType, proof)
+	transaction, err := s.UbiTask.SubmitUBIProof(txOptions, publicAddress, nodeID, taskUid, taskId, taskType, proof)
 	if err != nil {
-		return "", fmt.Errorf("address: %s, task client create deposit tx error: %+v", publicAddress, err)
+		return "", fmt.Errorf("address: %s, task client create SubmitUBIProof tx error: %+v", publicAddress, err)
 	}
 	return transaction.Hash().String(), nil
 }

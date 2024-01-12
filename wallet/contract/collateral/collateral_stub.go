@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/lagrangedao/go-computing-provider/wallet/conf"
+	"github.com/lagrangedao/go-computing-provider/conf"
 	"math/big"
 	"strings"
 )
@@ -40,11 +40,7 @@ func NewCollateralStub(client *ethclient.Client, options ...Option) (*Stub, erro
 		option(stub)
 	}
 
-	collateralAddr, err := conf.GetContractAddressByName(conf.CollateralContract)
-	if err != nil {
-		return nil, fmt.Errorf("cannot found collateral contract address")
-	}
-	collateralAddress := common.HexToAddress(collateralAddr)
+	collateralAddress := common.HexToAddress(conf.GetConfig().CONTRACT.Collateral)
 	collateralClient, err := NewMain(collateralAddress, client)
 	if err != nil {
 		return nil, fmt.Errorf("create collateral contract client, error: %+v", err)

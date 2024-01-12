@@ -18,7 +18,6 @@ import (
 	ubi "github.com/lagrangedao/go-computing-provider/ubi/contract"
 	"github.com/lagrangedao/go-computing-provider/util"
 	"github.com/lagrangedao/go-computing-provider/wallet"
-	wallet_conf "github.com/lagrangedao/go-computing-provider/wallet/conf"
 	"io"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -684,7 +683,7 @@ func ReceiveProof(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("task_uuid: %s, C2 proof out received: %+v", c2Proof.TaskUuid, c2Proof)
 
-	chainUrl, err := wallet_conf.GetRpcByName(wallet_conf.DefaultRpc)
+	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
 		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
 		return

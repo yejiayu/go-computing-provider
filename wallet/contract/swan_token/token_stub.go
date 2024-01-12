@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/lagrangedao/go-computing-provider/wallet/conf"
+	"github.com/lagrangedao/go-computing-provider/conf"
 	"math/big"
 	"strings"
 )
@@ -40,11 +40,7 @@ func NewTokenStub(client *ethclient.Client, options ...Option) (*Stub, error) {
 		option(stub)
 	}
 
-	tokenAddr, err := conf.GetContractAddressByName(conf.TokenContract)
-	if err != nil {
-		return nil, fmt.Errorf("cannot found collateral contract address")
-	}
-	tokenAddress := common.HexToAddress(tokenAddr)
+	tokenAddress := common.HexToAddress(conf.GetConfig().CONTRACT.SwanToken)
 	tokenClient, err := NewMain(tokenAddress, client)
 	if err != nil {
 		return nil, fmt.Errorf("create collateral contract client, error: %+v", err)
@@ -89,11 +85,7 @@ func (s *Stub) Approve(amount *big.Int) (string, error) {
 		return "", fmt.Errorf("address: %s, collateral client create transaction, error: %+v", publicAddress, err)
 	}
 
-	collateralAddr, err := conf.GetContractAddressByName(conf.CollateralContract)
-	if err != nil {
-		return "", fmt.Errorf("cannot found collateral contract address")
-	}
-	collateralAddress := common.HexToAddress(collateralAddr)
+	collateralAddress := common.HexToAddress(conf.GetConfig().CONTRACT.Collateral)
 
 	transaction, err := s.token.Approve(txOptions, collateralAddress, amount)
 	if err != nil {
