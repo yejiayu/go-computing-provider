@@ -55,8 +55,6 @@ var runCmd = &cli.Command{
 }
 
 func cpManager(router *gin.RouterGroup) {
-	router.GET("/cp/info", computing.GetCpInfo)
-
 	router.GET("/host/info", computing.GetServiceProviderInfo)
 	router.POST("/lagrange/jobs", computing.ReceiveJob)
 	router.POST("/lagrange/jobs/redeploy", computing.RedeployJob)
@@ -69,6 +67,8 @@ func cpManager(router *gin.RouterGroup) {
 	router.POST("/lagrange/cp/receive/ubi", computing.ReceiveProof)
 	router.POST("/lagrange/cp/test/ubi", computing.SendTask)
 
+	router.GET("/cp", computing.StatisticalSources)
+	router.GET("/cp/info", computing.GetCpInfo)
 	router.POST("/cp/ubi", computing.DoUbiTask)
 	router.POST("/cp/receive/ubi", computing.ReceiveUbiProof)
 
