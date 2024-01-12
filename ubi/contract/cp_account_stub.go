@@ -13,31 +13,31 @@ import (
 	"strings"
 )
 
-type TaskStub struct {
+type CpStub struct {
 	client   *ethclient.Client
-	UbiTask  *Main
+	UbiTask  *Cpaccount
 	privateK string
 	publicK  string
 }
 
-type TaskOption func(*TaskStub)
+type CpOption func(*CpStub)
 
-func WithTaskPrivateKey(pk string) TaskOption {
-	return func(obj *TaskStub) {
+func WithCpPrivateKey(pk string) CpOption {
+	return func(obj *CpStub) {
 		obj.privateK = pk
 	}
 }
 
-func NewTaskStub(client *ethclient.Client, options ...TaskOption) (*TaskStub, error) {
-	stub := &TaskStub{}
+func NewCpStub(client *ethclient.Client, options ...CpOption) (*CpStub, error) {
+	stub := &CpStub{}
 	for _, option := range options {
 		option(stub)
 	}
 
-	taskUbiAddress := common.HexToAddress(conf.GetConfig().CONTRACT.UbiTask)
-	taskClient, err := NewMain(taskUbiAddress, client)
+	cpAccountAddress := common.HexToAddress(conf.GetConfig().CONTRACT.CpAccount)
+	taskClient, err := NewCpaccount(cpAccountAddress, client)
 	if err != nil {
-		return nil, fmt.Errorf("create task contract client, error: %+v", err)
+		return nil, fmt.Errorf("create cpAccount contract client, error: %+v", err)
 	}
 
 	stub.UbiTask = taskClient
@@ -45,7 +45,7 @@ func NewTaskStub(client *ethclient.Client, options ...TaskOption) (*TaskStub, er
 	return stub, nil
 }
 
-func (s *TaskStub) SubmitUBIProof(nodeID string, taskUid string, taskId *big.Int, taskType uint8, proof string) (string, error) {
+func (s *CpStub) SubmitUBIProof(taskId string, taskType uint8, proof string) (string, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {
 		return "", err
@@ -53,35 +53,17 @@ func (s *TaskStub) SubmitUBIProof(nodeID string, taskUid string, taskId *big.Int
 
 	txOptions, err := s.createTransactOpts()
 	if err != nil {
-		return "", fmt.Errorf("address: %s, task client create transaction, error: %+v", publicAddress, err)
+		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.UbiTask.SubmitUBIProof(txOptions, publicAddress, nodeID, taskUid, taskId, taskType, proof)
+	transaction, err := s.UbiTask.SubmitUBIProof(txOptions, taskId, taskType, proof)
 	if err != nil {
-		return "", fmt.Errorf("address: %s, task client create SubmitUBIProof tx error: %+v", publicAddress, err)
+		return "", fmt.Errorf("address: %s, cpAccount client create SubmitUBIProof tx error: %+v", publicAddress, err)
 	}
 	return transaction.Hash().String(), nil
 }
 
-func (s *TaskStub) AssignUBITask(nodeID string, taskUid string, taskUrl string) (string, error) {
-	publicAddress, err := s.privateKeyToPublicKey()
-	if err != nil {
-		return "", err
-	}
-
-	txOptions, err := s.createTransactOpts()
-	if err != nil {
-		return "", fmt.Errorf("address: %s, task client create transaction, error: %+v", publicAddress, err)
-	}
-
-	transaction, err := s.UbiTask.AssignUBITask(txOptions, taskUid, publicAddress, nodeID, taskUrl)
-	if err != nil {
-		return "", fmt.Errorf("address: %s, task client create AssignUBITask tx error: %+v", publicAddress, err)
-	}
-	return transaction.Hash().String(), nil
-}
-
-func (s *TaskStub) privateKeyToPublicKey() (common.Address, error) {
+func (s *CpStub) privateKeyToPublicKey() (common.Address, error) {
 	if len(strings.TrimSpace(s.privateK)) == 0 {
 		return common.Address{}, fmt.Errorf("wallet address private key must be not empty")
 	}
@@ -99,7 +81,7 @@ func (s *TaskStub) privateKeyToPublicKey() (common.Address, error) {
 	return crypto.PubkeyToAddress(*publicKeyECDSA), nil
 }
 
-func (s *TaskStub) createTransactOpts() (*bind.TransactOpts, error) {
+func (s *CpStub) createTransactOpts() (*bind.TransactOpts, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {
 		return nil, err

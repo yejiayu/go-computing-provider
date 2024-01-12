@@ -729,7 +729,7 @@ func ReceiveProof(c *gin.Context) {
 	}
 	defer client.Close()
 
-	taskStub, err := ubi.NewTaskStub(client, ubi.WithPrivateKey(ki.PrivateKey))
+	taskStub, err := ubi.NewTaskStub(client, ubi.WithTaskPrivateKey(ki.PrivateKey))
 	if err != nil {
 		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
 		return
@@ -744,6 +744,218 @@ func ReceiveProof(c *gin.Context) {
 	}
 
 	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.NodeId, c2Proof.TaskUuid, &bigIntValue, uint8(taskType), c2Proof.Proof)
+	if err != nil {
+		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
+		return
+	}
+	fmt.Printf("submitUBIProofTx: %s", submitUBIProofTx)
+
+	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
+}
+
+func DoUbiTask(c *gin.Context) {
+	var ubiTask struct {
+		ID         int    `json:"id"`
+		Name       string `json:"name,omitempty"`
+		Type       int    `json:"type"`
+		ZkType     string `json:"zk_type"`
+		InputParam string `json:"input_param"`
+	}
+
+	if err := c.ShouldBindJSON(&ubiTask); err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
+	}
+	logs.GetLogger().Infof("receive ubi task received: %+v", ubiTask)
+
+	if ubiTask.ID == 0 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: id"))
+		return
+	}
+	if strings.TrimSpace(ubiTask.Name) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: name"))
+		return
+	}
+
+	if ubiTask.Type != 0 && ubiTask.Type != 1 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of task_type is 0 or 1"))
+		return
+	}
+	if strings.TrimSpace(ubiTask.ZkType) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: zk_type"))
+		return
+	}
+
+	if strings.TrimSpace(ubiTask.InputParam) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: input_param"))
+		return
+	}
+
+	inputParamTaskJson, err := util.GetMcsFileByUrl(ubiTask.InputParam)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "the value of task_type is 0 or 1"))
+		return
+	}
+
+	go func() {
+		//var envFilePath string
+		//envFilePath = filepath.Join(os.Getenv("CP_PATH"), "fil-c2.env")
+		//envVars, err := godotenv.Read(envFilePath)
+		//if err != nil {
+		//	logs.GetLogger().Errorf("reading fil-c2-env.env")
+		//	return
+		//}
+
+		k8sService := NewK8sService()
+		namespace := "ubi-task"
+		filC2SecretName := ubiTask.Name
+		if err = k8sService.CreateUbiTaskSecret(context.TODO(), namespace, filC2SecretName, inputParamTaskJson); err != nil {
+			logs.GetLogger().Errorf("create ubi task configmap failed, error: %v", err)
+			return
+		}
+
+		urlSplits := strings.Split(conf.GetConfig().API.MultiAddress, "/")
+		receiveUrl := fmt.Sprintf("%s:%s/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), urlSplits[4])
+
+		execCommand := []string{"ubi-bench", "c2"}
+
+		job := &batchv1.Job{
+			ObjectMeta: metaV1.ObjectMeta{
+				Name:      "ubi-fil-c2-" + generateString(5),
+				Namespace: namespace,
+			},
+			Spec: batchv1.JobSpec{
+				Template: v1.PodTemplateSpec{
+					Spec: v1.PodSpec{
+						//NodeSelector: map[string]string{
+						//
+						//},
+
+						Containers: []v1.Container{
+							{
+								Name:  "ubi-task-" + generateString(5),
+								Image: "filswan/ubi-worker:v1.0",
+								Env: []v1.EnvVar{
+									{
+										Name:  "RECEIVE_PROOF_URL",
+										Value: receiveUrl,
+									},
+									{
+										Name:  "TASKID",
+										Value: strconv.Itoa(ubiTask.ID),
+									},
+									{
+										Name:  "TASK_TYPE",
+										Value: strconv.Itoa(ubiTask.Type),
+									},
+								},
+								VolumeMounts: []v1.VolumeMount{
+									{
+										Name:      "fil-c2-input-volume",
+										MountPath: "/var/tmp/fil-c2-param",
+									},
+									{
+										Name:      "proof-params",
+										MountPath: "/var/tmp/filecoin-proof-parameters",
+									},
+								},
+								Command: execCommand,
+							},
+						},
+						Volumes: []v1.Volume{
+							{
+								Name: "proof-params",
+								VolumeSource: v1.VolumeSource{
+									HostPath: &v1.HostPathVolumeSource{
+										Path: "/data/filecoin-proof-parameters",
+									},
+								},
+							},
+							{
+								Name: "fil-c2-input-volume",
+								VolumeSource: v1.VolumeSource{
+									Secret: &v1.SecretVolumeSource{
+										SecretName: filC2SecretName,
+									},
+								},
+							},
+						},
+						RestartPolicy: "Never",
+					},
+				},
+				BackoffLimit:            new(int32),
+				TTLSecondsAfterFinished: new(int32),
+			},
+		}
+
+		*job.Spec.BackoffLimit = 1
+		*job.Spec.TTLSecondsAfterFinished = 3000
+
+		if _, err = k8sService.k8sClient.BatchV1().Jobs(namespace).Create(context.TODO(), job, metaV1.CreateOptions{}); err != nil {
+			logs.GetLogger().Errorf("Failed creating ubi task job: %v", err)
+			return
+		}
+	}()
+
+	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
+}
+
+func ReceiveUbiProof(c *gin.Context) {
+
+	var c2Proof struct {
+		TaskId   string `json:"task_id"`
+		TaskType string `json:"task_type"`
+		Proof    string `json:"proof"`
+	}
+
+	if err := c.ShouldBindJSON(&c2Proof); err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
+	}
+	logs.GetLogger().Infof("task_id: %s, C2 proof out received: %+v", c2Proof.TaskId, c2Proof)
+
+	k8sService := NewK8sService()
+	namespace := "ubi-task"
+	k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metaV1.DeleteOptions{})
+
+	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+	if err != nil {
+		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+		return
+	}
+
+	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+	if err != nil {
+		logs.GetLogger().Errorf("setup wallet ubi failed, error: %v,", err)
+		return
+	}
+
+	ki, err := localWallet.FindKey(conf.GetConfig().HUB.WalletAddress)
+	if err != nil || ki == nil {
+		logs.GetLogger().Errorf("the address: %s, private key %w,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
+		return
+	}
+
+	client, err := ethclient.Dial(chainUrl)
+	if err != nil {
+		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+		return
+	}
+	defer client.Close()
+
+	taskStub, err := ubi.NewCpStub(client, ubi.WithCpPrivateKey(ki.PrivateKey))
+	if err != nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		return
+	}
+
+	taskType, err := strconv.ParseUint(c2Proof.TaskType, 10, 8)
+	if err != nil {
+		logs.GetLogger().Errorf("Conversion to uint8 error: %v", err)
+		return
+	}
+
+	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return
@@ -790,7 +1002,7 @@ func SendTask(c *gin.Context) {
 	}
 	defer client.Close()
 
-	taskStub, err := ubi.NewTaskStub(client, ubi.WithPrivateKey(ki.PrivateKey))
+	taskStub, err := ubi.NewTaskStub(client, ubi.WithTaskPrivateKey(ki.PrivateKey))
 	if err != nil {
 		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
 		return
@@ -805,6 +1017,7 @@ func SendTask(c *gin.Context) {
 
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
+
 func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail, logType string) {
 	client := NewWsClient(conn)
 

@@ -68,4 +68,8 @@ func cpManager(router *gin.RouterGroup) {
 	router.POST("/lagrange/cp/ubi", computing.DoUbiProof)
 	router.POST("/lagrange/cp/receive/ubi", computing.ReceiveProof)
 	router.POST("/lagrange/cp/test/ubi", computing.SendTask)
+
+	router.POST("/cp/ubi", computing.DoUbiTask)
+	router.POST("/cp/receive/ubi", computing.ReceiveUbiProof)
+
 }
