@@ -622,7 +622,7 @@ func DoUbiProof(c *gin.Context) {
 									},
 									{
 										Name:  "TASK_TYPE",
-										Value: ubiTask.TaskUuid,
+										Value: strconv.Itoa(ubiTask.TaskType),
 									},
 								},
 								VolumeMounts: []v1.VolumeMount{
@@ -716,9 +716,14 @@ func ReceiveProof(c *gin.Context) {
 	}
 
 	var bigIntValue big.Int
-	bigIntValue.SetInt64(int64(c2Proof.TaskId))
+	bigIntValue.SetString(c2Proof.TaskId, 10)
+	taskType, err := strconv.ParseUint(c2Proof.TaskType, 10, 8)
+	if err != nil {
+		logs.GetLogger().Errorf("Conversion to uint8 error: %v", err)
+		return
+	}
 
-	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.NodeId, c2Proof.TaskUuid, &bigIntValue, uint8(c2Proof.TaskType), c2Proof.Proof)
+	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.NodeId, c2Proof.TaskUuid, &bigIntValue, uint8(taskType), c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return

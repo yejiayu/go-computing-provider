@@ -36,7 +36,7 @@ type Commit2Proof struct {
 	TaskUuid  string `json:"task_uuid"`
 	CpAddress string `json:"cp_address"`
 	NodeId    string `json:"node_id"`
-	TaskId    int    `json:"task_id"`
-	TaskType  int    `json:"task_type"`
+	TaskId    string `json:"task_id"`
+	TaskType  string `json:"task_type"`
 	Proof     string `json:"proof"`
 }
