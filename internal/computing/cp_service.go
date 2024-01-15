@@ -808,6 +808,19 @@ func DoUbiTask(c *gin.Context) {
 				Name: namespace,
 			},
 		}
+
+		if _, err = k8sService.GetNameSpace(context.TODO(), namespace, metaV1.GetOptions{}); err != nil {
+			if errors.IsNotFound(err) {
+				k8sNamespace = &v1.Namespace{
+					ObjectMeta: metaV1.ObjectMeta{
+						Name: namespace,
+					},
+				}
+
+				k8sService.CreateNameSpace(context.TODO(), k8sNamespace, metaV1.CreateOptions{})
+			}
+		}
+
 		k8sService.CreateNameSpace(context.TODO(), k8sNamespace, metaV1.CreateOptions{})
 
 		if err = k8sService.CreateUbiTaskSecret(context.TODO(), namespace, filC2SecretName, inputParamTaskJson); err != nil {
