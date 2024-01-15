@@ -25,6 +25,9 @@ func main() {
 			},
 		},
 		Commands: []*cli.Command{
+			initCmd,
+			changeMultiAddressCmd,
+			ChangeOwnerAddressCmd,
 			runCmd,
 			taskCmd,
 			walletCmd,

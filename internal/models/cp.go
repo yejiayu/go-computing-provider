@@ -114,3 +114,20 @@ type CacheSpaceDetail struct {
 	Url           string
 	TaskUuid      string
 }
+
+type UBITaskReq struct {
+	ID         int           `json:"id"`
+	Name       string        `json:"name,omitempty"`
+	Type       int           `json:"type"`
+	ZkType     string        `json:"zk_type"`
+	InputParam string        `json:"input_param"`
+	Signature  string        `json:"signature"`
+	Resource   *TaskResource `json:"resource"`
+}
+
+type TaskResource struct {
+	CPU     string `json:"cpu"`
+	GPU     string `json:"gpu"`
+	Memory  string `json:"memory"`
+	Storage string `json:"storage"`
+}

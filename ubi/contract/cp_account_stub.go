@@ -63,6 +63,60 @@ func (s *CpStub) SubmitUBIProof(taskId string, taskType uint8, proof string) (st
 	return transaction.Hash().String(), nil
 }
 
+func (s *CpStub) ChangeMultiAddress(newMultiAddress []string) (string, error) {
+	publicAddress, err := s.privateKeyToPublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	txOptions, err := s.createTransactOpts()
+	if err != nil {
+		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
+	}
+
+	transaction, err := s.UbiTask.ChangeMultiaddrs(txOptions, newMultiAddress)
+	if err != nil {
+		return "", fmt.Errorf("address: %s, cpAccount client create ChangeMultiaddrs tx error: %+v", publicAddress, err)
+	}
+	return transaction.Hash().String(), nil
+}
+
+func (s *CpStub) ChangeOwnerAddress(newOwner common.Address) (string, error) {
+	publicAddress, err := s.privateKeyToPublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	txOptions, err := s.createTransactOpts()
+	if err != nil {
+		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
+	}
+
+	transaction, err := s.UbiTask.ChangeOwnerAddress(txOptions, newOwner)
+	if err != nil {
+		return "", fmt.Errorf("address: %s, cpAccount client create ChangeOwnerAddress tx error: %+v", publicAddress, err)
+	}
+	return transaction.Hash().String(), nil
+}
+
+func (s *CpStub) ChangeBeneficiary(newBeneficiary common.Address, newQuota *big.Int, newExpiration *big.Int) (string, error) {
+	publicAddress, err := s.privateKeyToPublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	txOptions, err := s.createTransactOpts()
+	if err != nil {
+		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
+	}
+
+	transaction, err := s.UbiTask.ChangeBeneficiary(txOptions, newBeneficiary, newQuota, newExpiration)
+	if err != nil {
+		return "", fmt.Errorf("address: %s, cpAccount client create ChangeBeneficiary tx error: %+v", publicAddress, err)
+	}
+	return transaction.Hash().String(), nil
+}
+
 func (s *CpStub) privateKeyToPublicKey() (common.Address, error) {
 	if len(strings.TrimSpace(s.privateK)) == 0 {
 		return common.Address{}, fmt.Errorf("wallet address private key must be not empty")

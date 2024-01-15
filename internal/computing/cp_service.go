@@ -754,14 +754,8 @@ func ReceiveProof(c *gin.Context) {
 }
 
 func DoUbiTask(c *gin.Context) {
-	var ubiTask struct {
-		ID         int    `json:"id"`
-		Name       string `json:"name,omitempty"`
-		Type       int    `json:"type"`
-		ZkType     string `json:"zk_type"`
-		InputParam string `json:"input_param"`
-	}
 
+	var ubiTask models.UBITaskReq
 	if err := c.ShouldBindJSON(&ubiTask); err != nil {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
@@ -825,10 +819,10 @@ func DoUbiTask(c *gin.Context) {
 		receiveUrl := fmt.Sprintf("%s:%s/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), urlSplits[4])
 
 		execCommand := []string{"ubi-bench", "c2"}
-
+		JobName := ubiTask.ZkType + "-" + strconv.Itoa(ubiTask.ID)
 		job := &batchv1.Job{
 			ObjectMeta: metaV1.ObjectMeta{
-				Name:      "ubi-fil-c2-" + generateString(5),
+				Name:      JobName,
 				Namespace: namespace,
 			},
 			Spec: batchv1.JobSpec{
@@ -840,7 +834,7 @@ func DoUbiTask(c *gin.Context) {
 
 						Containers: []v1.Container{
 							{
-								Name:  "ubi-task-" + generateString(5),
+								Name:  JobName + generateString(5),
 								Image: "filswan/ubi-worker:v1.0",
 								Env: []v1.EnvVar{
 									{
@@ -896,7 +890,7 @@ func DoUbiTask(c *gin.Context) {
 		}
 
 		*job.Spec.BackoffLimit = 1
-		*job.Spec.TTLSecondsAfterFinished = 3000
+		*job.Spec.TTLSecondsAfterFinished = 120
 
 		if _, err = k8sService.k8sClient.BatchV1().Jobs(namespace).Create(context.TODO(), job, metaV1.CreateOptions{}); err != nil {
 			logs.GetLogger().Errorf("Failed creating ubi task job: %v", err)
