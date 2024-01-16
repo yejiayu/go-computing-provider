@@ -1,4 +1,4 @@
-package ubi
+package account
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 
 type CpStub struct {
 	client   *ethclient.Client
-	UbiTask  *Cpaccount
+	account  *Account
 	privateK string
 	publicK  string
 }
@@ -28,24 +28,24 @@ func WithCpPrivateKey(pk string) CpOption {
 	}
 }
 
-func NewCpStub(client *ethclient.Client, options ...CpOption) (*CpStub, error) {
+func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, error) {
 	stub := &CpStub{}
 	for _, option := range options {
 		option(stub)
 	}
 
 	cpAccountAddress := common.HexToAddress(conf.GetConfig().CONTRACT.CpAccount)
-	taskClient, err := NewCpaccount(cpAccountAddress, client)
+	taskClient, err := NewAccount(cpAccountAddress, client)
 	if err != nil {
-		return nil, fmt.Errorf("create cpAccount contract client, error: %+v", err)
+		return nil, fmt.Errorf("create cp account contract client, error: %+v", err)
 	}
 
-	stub.UbiTask = taskClient
+	stub.account = taskClient
 	stub.client = client
 	return stub, nil
 }
 
-func (s *CpStub) SubmitUBIProof(taskId string, taskType uint8, proof string) (string, error) {
+func (s *CpStub) SubmitUBIProof(taskId string, taskType uint8, zkType, proof string) (string, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {
 		return "", err
@@ -56,7 +56,7 @@ func (s *CpStub) SubmitUBIProof(taskId string, taskType uint8, proof string) (st
 		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.UbiTask.SubmitUBIProof(txOptions, taskId, taskType, proof)
+	transaction, err := s.account.SubmitUBIProof(txOptions, taskId, taskType, zkType, proof)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, cpAccount client create SubmitUBIProof tx error: %+v", publicAddress, err)
 	}
@@ -74,7 +74,7 @@ func (s *CpStub) ChangeMultiAddress(newMultiAddress []string) (string, error) {
 		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.UbiTask.ChangeMultiaddrs(txOptions, newMultiAddress)
+	transaction, err := s.account.ChangeMultiaddrs(txOptions, newMultiAddress)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, cpAccount client create ChangeMultiaddrs tx error: %+v", publicAddress, err)
 	}
@@ -92,7 +92,7 @@ func (s *CpStub) ChangeOwnerAddress(newOwner common.Address) (string, error) {
 		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.UbiTask.ChangeOwnerAddress(txOptions, newOwner)
+	transaction, err := s.account.ChangeOwnerAddress(txOptions, newOwner)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, cpAccount client create ChangeOwnerAddress tx error: %+v", publicAddress, err)
 	}
@@ -110,11 +110,19 @@ func (s *CpStub) ChangeBeneficiary(newBeneficiary common.Address, newQuota *big.
 		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.UbiTask.ChangeBeneficiary(txOptions, newBeneficiary, newQuota, newExpiration)
+	transaction, err := s.account.ChangeBeneficiary(txOptions, newBeneficiary, newQuota, newExpiration)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, cpAccount client create ChangeBeneficiary tx error: %+v", publicAddress, err)
 	}
 	return transaction.Hash().String(), nil
+}
+
+func (s *CpStub) GetOwner() (string, error) {
+	ownerAddress, err := s.account.GetOwner(&bind.CallOpts{})
+	if err != nil {
+		return "", fmt.Errorf("cpAccount client create GetOwner tx error: %+v", err)
+	}
+	return ownerAddress.Hex(), nil
 }
 
 func (s *CpStub) privateKeyToPublicKey() (common.Address, error) {

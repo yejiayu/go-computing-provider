@@ -28,6 +28,7 @@ func main() {
 			initCmd,
 			changeMultiAddressCmd,
 			ChangeOwnerAddressCmd,
+			ChangeBeneficiaryAddressCmd,
 			runCmd,
 			taskCmd,
 			walletCmd,
