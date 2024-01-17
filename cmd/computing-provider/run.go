@@ -87,9 +87,6 @@ var infoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "Print computing-provider info",
 	Action: func(cctx *cli.Context) error {
-		if cctx.NArg() != 1 {
-			return fmt.Errorf("incorrect number of arguments, got %d, missing args: space_uuid", cctx.NArg())
-		}
 
 		cpPath, exit := os.LookupEnv("CP_PATH")
 		if !exit {
