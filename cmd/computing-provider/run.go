@@ -18,6 +18,8 @@ import (
 	"github.com/lagrangedao/go-computing-provider/internal/initializer"
 	"github.com/lagrangedao/go-computing-provider/util"
 	"github.com/lagrangedao/go-computing-provider/wallet"
+	"github.com/lagrangedao/go-computing-provider/wallet/contract/collateral"
+	"github.com/lagrangedao/go-computing-provider/wallet/contract/swan_token"
 	"github.com/urfave/cli/v2"
 	"math/big"
 	"os"
@@ -104,14 +106,47 @@ var infoCmd = &cli.Command{
 			return err
 		}
 
+		chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
+		if err != nil {
+			return err
+		}
+		client, err := ethclient.Dial(chainRpc)
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		var balance, collateralBalance string
+
+		cpStub, err := account.NewAccountStub(client)
+		if err != nil {
+			logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+			return err
+		}
+
+		owner, err := cpStub.GetOwner()
+		if err != nil {
+			return fmt.Errorf("get ownerAddress faile, error: %v", err)
+		}
+
+		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPrivateKey(owner))
+		if err == nil {
+			balance, err = tokenStub.BalanceOf()
+		}
+
+		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPrivateKey(owner))
+		if err == nil {
+			collateralBalance, err = collateralStub.Balances()
+		}
+
 		var taskData [][]string
 		taskData = append(taskData, []string{"Multi-Address:", conf.GetConfig().API.MultiAddress})
 		taskData = append(taskData, []string{"Node ID:", nodeID})
 		taskData = append(taskData, []string{"Domain:", conf.GetConfig().API.Domain})
 		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
-		//taskData = append(taskData, []string{"Wallet address:", jobDetail.Hardware})
-		//taskData = append(taskData, []string{"Available balance（Swan-ETH）:", status})
-		//taskData = append(taskData, []string{"Collateral Balance（SWAN）:", rtd})
+
+		taskData = append(taskData, []string{"Available balance（Swan-ETH）:", balance})
+		taskData = append(taskData, []string{"Collateral Balance（SWAN）:", collateralBalance})
 
 		header := []string{"Name:", conf.GetConfig().API.NodeName}
 		NewVisualTable(header, taskData, []RowColor{}).Generate()
