@@ -131,3 +131,13 @@ type TaskResource struct {
 	Memory  string `json:"memory"`
 	Storage string `json:"storage"`
 }
+
+type CacheUbiTaskDetail struct {
+	TaskId     string `json:"task_id"`
+	TaskType   string `json:"task_type"`
+	ZkType     string `json:"zk_type"`
+	Tx         string `json:"tx"`
+	Status     string `json:"status"`
+	Reward     string `json:"reward"`
+	CreateTime string `json:"create_time"`
+}

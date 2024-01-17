@@ -83,6 +83,45 @@ func cpManager(router *gin.RouterGroup) {
 
 }
 
+var infoCmd = &cli.Command{
+	Name:  "info",
+	Usage: "Print computing-provider info",
+	Action: func(cctx *cli.Context) error {
+		if cctx.NArg() != 1 {
+			return fmt.Errorf("incorrect number of arguments, got %d, missing args: space_uuid", cctx.NArg())
+		}
+
+		cpPath, exit := os.LookupEnv("CP_PATH")
+		if !exit {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		}
+		if err := conf.InitConfig(cpPath); err != nil {
+			return fmt.Errorf("load config file failed, error: %+v", err)
+		}
+
+		nodeID := computing.InitComputingProvider(cpPath)
+
+		k8sService := computing.NewK8sService()
+		count, err := k8sService.GetDeploymentActiveCount()
+		if err != nil {
+			return err
+		}
+
+		var taskData [][]string
+		taskData = append(taskData, []string{"Multi-Address:", conf.GetConfig().API.MultiAddress})
+		taskData = append(taskData, []string{"Node ID:", nodeID})
+		taskData = append(taskData, []string{"Domain:", conf.GetConfig().API.Domain})
+		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
+		//taskData = append(taskData, []string{"Wallet address:", jobDetail.Hardware})
+		//taskData = append(taskData, []string{"Available balance（Swan-ETH）:", status})
+		//taskData = append(taskData, []string{"Collateral Balance（SWAN）:", rtd})
+
+		header := []string{"Name:", conf.GetConfig().API.NodeName}
+		NewVisualTable(header, taskData, []RowColor{}).Generate()
+		return nil
+	},
+}
+
 var initCmd = &cli.Command{
 	Name:  "init",
 	Usage: "Initialize a new cp",

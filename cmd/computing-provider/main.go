@@ -25,6 +25,7 @@ func main() {
 			},
 		},
 		Commands: []*cli.Command{
+			infoCmd,
 			initCmd,
 			changeMultiAddressCmd,
 			changeOwnerAddressCmd,
@@ -33,6 +34,7 @@ func main() {
 			taskCmd,
 			walletCmd,
 			collateralCmd,
+			ubiTaskCmd,
 		},
 	}
 	app.Setup()

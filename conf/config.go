@@ -11,11 +11,8 @@ import (
 var config *ComputeNode
 
 const (
-	TaskUbiContract    = "ubi_task"
-	TokenContract      = "swan_token"
-	CollateralContract = "swan_collateral"
-	DefaultRpc         = "swan"
-	BaseRpc            = "goerli"
+	DefaultRpc = "swan"
+	BaseRpc    = "goerli"
 )
 
 // ComputeNode is a compute node config
@@ -76,7 +73,6 @@ type RPC struct {
 type CONTRACT struct {
 	SwanToken  string `toml:"SWAN_CONTRACT"`
 	Collateral string `toml:"SWAN_COLLATERAL_CONTRACT"`
-	UbiTask    string `toml:"UBI_TASK_CONTRACT"`
 	CpAccount  string `toml:"CP_ACCOUNT_CONTRACT"`
 }
 

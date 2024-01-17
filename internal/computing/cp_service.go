@@ -1215,6 +1215,66 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 	}, nil
 }
 
+func RetrieveUbiTaskMetadata(key string) (models.CacheUbiTaskDetail, error) {
+	redisConn := redisPool.Get()
+	defer redisConn.Close()
+
+	exist, err := redis.Int(redisConn.Do("EXISTS", key))
+	if err != nil {
+		return models.CacheUbiTaskDetail{}, err
+	}
+	if exist == 0 {
+		return models.CacheUbiTaskDetail{}, NotFoundRedisKey
+	}
+
+	type CacheUbiTaskDetail struct {
+		TaskId     string `json:"task_id"`
+		TaskType   string `json:"task_type"`
+		ZkType     string `json:"zk_type"`
+		Tx         string `json:"tx"`
+		Status     string `json:"status"`
+		Reward     string `json:"reward"`
+		CreateTime string `json:"create_time"`
+	}
+
+	args := append([]interface{}{key}, "task_id", "task_type", "zk_type", "tx", "status", "reward", "create_time")
+	valuesStr, err := redis.Strings(redisConn.Do("HMGET", args...))
+	if err != nil {
+		logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
+		return models.CacheUbiTaskDetail{}, err
+	}
+
+	var (
+		taskId     string
+		taskType   string
+		zkType     string
+		tx         string
+		status     string
+		reward     string
+		createTime string
+	)
+
+	if len(valuesStr) >= 6 {
+		taskId = valuesStr[0]
+		taskType = valuesStr[1]
+		zkType = valuesStr[2]
+		tx = valuesStr[3]
+		status = valuesStr[4]
+		reward = valuesStr[5]
+		createTime = valuesStr[6]
+	}
+
+	return models.CacheUbiTaskDetail{
+		TaskId:     taskId,
+		TaskType:   taskType,
+		ZkType:     zkType,
+		Tx:         tx,
+		Status:     status,
+		Reward:     reward,
+		CreateTime: createTime,
+	}, nil
+}
+
 func verifySignature(pubKStr, data, signature string) (bool, error) {
 	hash := crypto.Keccak256Hash([]byte(data))
 	valid := crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), []byte(signature))

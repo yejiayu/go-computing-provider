@@ -558,6 +558,35 @@ func (s *K8sService) GetAPIServerEndpoint() string {
 	return s.config.Host[:last]
 }
 
+func (s *K8sService) GetDeploymentActiveCount() (int, error) {
+	namespaces, err := s.ListNamespace(context.TODO())
+	if err != nil {
+		logs.GetLogger().Errorf("Failed get all namespace, error: %+v", err)
+		return 0, err
+	}
+
+	var total int
+	for _, namespace := range namespaces {
+		if strings.HasPrefix(namespace, constants.K8S_NAMESPACE_NAME_PREFIX) {
+			deployments, err := s.k8sClient.AppsV1().Deployments(namespace).List(context.TODO(), metaV1.ListOptions{})
+			if err != nil {
+				logs.GetLogger().Errorf("Error getting deployments in namespace %s: %v\n", namespace, err)
+				continue
+			}
+
+			for _, deployment := range deployments.Items {
+				creationTimestamp := deployment.ObjectMeta.CreationTimestamp.Time
+				currentTime := time.Now()
+				age := currentTime.Sub(creationTimestamp)
+				if deployment.Status.AvailableReplicas > 0 && age.Hours() > 0 {
+					total++
+				}
+			}
+		}
+	}
+	return total, nil
+}
+
 func (s *K8sService) CreateUbiTaskSecret(ctx context.Context, namespace, name string, data string) error {
 	inputSecret := &coreV1.Secret{
 		ObjectMeta: metaV1.ObjectMeta{
