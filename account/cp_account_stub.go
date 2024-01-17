@@ -8,8 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/lagrangedao/go-computing-provider/conf"
 	"math/big"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -34,7 +35,22 @@ func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, err
 		option(stub)
 	}
 
-	cpAccountAddress := common.HexToAddress(conf.GetConfig().CONTRACT.CpAccount)
+	cpPath, exit := os.LookupEnv("CP_PATH")
+	if !exit {
+		return nil, fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+	}
+
+	accountFileName := filepath.Join(cpPath, "account")
+	if _, err := os.Stat(accountFileName); err != nil {
+		return nil, fmt.Errorf("please use the init command to initialize the account of CP")
+	}
+
+	accountAddress, err := os.ReadFile(filepath.Join(cpPath, "account"))
+	if err != nil {
+		return nil, fmt.Errorf("get cp account contract address failed, error: %v", err)
+	}
+
+	cpAccountAddress := common.HexToAddress(string(accountAddress))
 	taskClient, err := NewAccount(cpAccountAddress, client)
 	if err != nil {
 		return nil, fmt.Errorf("create cp account contract client, error: %+v", err)

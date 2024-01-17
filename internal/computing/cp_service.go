@@ -580,7 +580,7 @@ func DoUbiTask(c *gin.Context) {
 
 		k8sService := NewK8sService()
 		filC2SecretName := ubiTask.Name
-		var namespace = "ubi-task"
+		var namespace = "ubi-task-" + strconv.Itoa(ubiTask.ID)
 		k8sNamespace := &v1.Namespace{
 			ObjectMeta: metaV1.ObjectMeta{
 				Name: namespace,
@@ -644,6 +644,10 @@ func DoUbiTask(c *gin.Context) {
 										Name:  "ZK_TYPE",
 										Value: ubiTask.ZkType,
 									},
+									{
+										Name:  "NAME_SPACE",
+										Value: namespace,
+									},
 								},
 								VolumeMounts: []v1.VolumeMount{
 									{
@@ -697,23 +701,26 @@ func DoUbiTask(c *gin.Context) {
 }
 
 func ReceiveUbiProof(c *gin.Context) {
-
 	var c2Proof struct {
-		TaskId   string `json:"task_id"`
-		TaskType string `json:"task_type"`
-		Proof    string `json:"proof"`
-		ZkType   string `json:"zk_type"`
+		TaskId    string `json:"task_id"`
+		TaskType  string `json:"task_type"`
+		Proof     string `json:"proof"`
+		ZkType    string `json:"zk_type"`
+		NameSpace string `json:"name_space"`
 	}
+
+	defer func() {
+		if strings.TrimSpace(c2Proof.NameSpace) != "" {
+			k8sService := NewK8sService()
+			k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), c2Proof.NameSpace, metaV1.DeleteOptions{})
+		}
+	}()
 
 	if err := c.ShouldBindJSON(&c2Proof); err != nil {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
 	logs.GetLogger().Infof("task_id: %s, C2 proof out received: %+v", c2Proof.TaskId, c2Proof)
-
-	k8sService := NewK8sService()
-	namespace := "ubi-task"
-	k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metaV1.DeleteOptions{})
 
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {

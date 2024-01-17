@@ -21,6 +21,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"math/big"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -170,6 +171,11 @@ var initCmd = &cli.Command{
 		contractAddress, tx, _, err := account.DeployAccount(auth, client, publicAddress, nodeID, []string{multiAddresses}, ubiTaskFlag, publicAddress)
 		if err != nil {
 			return fmt.Errorf("deploy cp account contract failed, error: %v", err)
+		}
+
+		err = os.WriteFile(filepath.Join(cpRepoPath, "account"), []byte(contractAddress.Hex()), 0666)
+		if err != nil {
+			return fmt.Errorf("write cp account contract address failed, error: %v", err)
 		}
 
 		fmt.Printf("Contract deployed! Address: %s\n", contractAddress.Hex())

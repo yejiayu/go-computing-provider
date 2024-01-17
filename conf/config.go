@@ -75,7 +75,6 @@ type CONTRACT struct {
 	SwanToken  string `toml:"SWAN_CONTRACT"`
 	Collateral string `toml:"SWAN_COLLATERAL_CONTRACT"`
 	UbiTask    string `toml:"UBI_TASK_CONTRACT"`
-	CpAccount  string `toml:"CP_ACCOUNT_CONTRACT"`
 }
 
 func GetRpcByName(rpcName string) (string, error) {
