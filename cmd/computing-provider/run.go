@@ -129,12 +129,12 @@ var infoCmd = &cli.Command{
 			return fmt.Errorf("get ownerAddress faile, error: %v", err)
 		}
 
-		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPrivateKey(owner))
+		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(owner))
 		if err == nil {
 			balance, err = tokenStub.BalanceOf()
 		}
 
-		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPrivateKey(owner))
+		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(owner))
 		if err == nil {
 			collateralBalance, err = collateralStub.Balances()
 		}
