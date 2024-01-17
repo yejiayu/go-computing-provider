@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	stErr "errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gin-gonic/gin"
@@ -563,6 +564,27 @@ func DoUbiTask(c *gin.Context) {
 		return
 	}
 
+	if strings.TrimSpace(ubiTask.Signature) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		return
+	}
+
+	ubiHubPk := conf.GetConfig().API.UbiHubPk
+
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	nodeID := InitComputingProvider(cpRepoPath)
+
+	signature, err := verifySignature(ubiHubPk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		return
+	}
+	if !signature {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		return
+	}
+	logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
+
 	inputParamTaskJson, err := util.GetMcsFileByUrl(ubiTask.InputParam)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "the value of task_type is 0 or 1"))
@@ -581,25 +603,17 @@ func DoUbiTask(c *gin.Context) {
 		k8sService := NewK8sService()
 		filC2SecretName := ubiTask.Name
 		var namespace = "ubi-task-" + strconv.Itoa(ubiTask.ID)
-		k8sNamespace := &v1.Namespace{
-			ObjectMeta: metaV1.ObjectMeta{
-				Name: namespace,
-			},
-		}
 
 		if _, err = k8sService.GetNameSpace(context.TODO(), namespace, metaV1.GetOptions{}); err != nil {
 			if errors.IsNotFound(err) {
-				k8sNamespace = &v1.Namespace{
+				k8sNamespace := &v1.Namespace{
 					ObjectMeta: metaV1.ObjectMeta{
 						Name: namespace,
 					},
 				}
-
 				k8sService.CreateNameSpace(context.TODO(), k8sNamespace, metaV1.CreateOptions{})
 			}
 		}
-
-		k8sService.CreateNameSpace(context.TODO(), k8sNamespace, metaV1.CreateOptions{})
 
 		if err = k8sService.CreateUbiTaskSecret(context.TODO(), namespace, filC2SecretName, inputParamTaskJson); err != nil {
 			logs.GetLogger().Errorf("create ubi task configmap failed, error: %v", err)
@@ -610,7 +624,7 @@ func DoUbiTask(c *gin.Context) {
 		receiveUrl := fmt.Sprintf("%s:%s/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), urlSplits[4])
 
 		execCommand := []string{"ubi-bench", "c2"}
-		JobName := ubiTask.ZkType + "-" + strconv.Itoa(ubiTask.ID)
+		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
 		job := &batchv1.Job{
 			ObjectMeta: metaV1.ObjectMeta{
 				Name:      JobName,
@@ -747,7 +761,7 @@ func ReceiveUbiProof(c *gin.Context) {
 	}
 	defer client.Close()
 
-	taskStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
+	accountStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
 	if err != nil {
 		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
 		return
@@ -759,7 +773,7 @@ func ReceiveUbiProof(c *gin.Context) {
 		return
 	}
 
-	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
+	submitUBIProofTx, err := accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return
@@ -1199,4 +1213,10 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 		Url:           url,
 		TaskUuid:      taskUuid,
 	}, nil
+}
+
+func verifySignature(pubKStr, data, signature string) (bool, error) {
+	hash := crypto.Keccak256Hash([]byte(data))
+	valid := crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), []byte(signature))
+	return valid, nil
 }

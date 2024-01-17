@@ -6,7 +6,11 @@ NodeName = ""                                   # The computing-provider node na
 
 RedisUrl = "redis://127.0.0.1:6379"           # The redis server address
 RedisPassword = ""                            # The redis server access password
+
+
 UbiTask = false
+UbiHubPk = ""
+SwanHubPk = ""
 
 [LOG]
 CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"   # Your domain name SSL .crt file path

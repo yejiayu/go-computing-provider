@@ -37,6 +37,8 @@ type API struct {
 	Domain        string
 	NodeName      string
 	UbiTask       bool
+	UbiHubPk      string
+	SwanHubPk     string
 }
 
 type LOG struct {
