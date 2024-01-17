@@ -305,7 +305,7 @@ var walletSend = &cli.Command{
 	},
 }
 
-var CollateralCmd = &cli.Command{
+var collateralCmd = &cli.Command{
 	Name:      "collateral",
 	Usage:     "Manage the collateral amount",
 	ArgsUsage: "[fromAddress] [amount]",

@@ -27,12 +27,12 @@ func main() {
 		Commands: []*cli.Command{
 			initCmd,
 			changeMultiAddressCmd,
-			ChangeOwnerAddressCmd,
-			ChangeBeneficiaryAddressCmd,
+			changeOwnerAddressCmd,
+			changeBeneficiaryAddressCmd,
 			runCmd,
 			taskCmd,
 			walletCmd,
-			CollateralCmd,
+			collateralCmd,
 		},
 	}
 	app.Setup()

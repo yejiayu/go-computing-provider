@@ -263,7 +263,7 @@ var changeMultiAddressCmd = &cli.Command{
 	},
 }
 
-var ChangeOwnerAddressCmd = &cli.Command{
+var changeOwnerAddressCmd = &cli.Command{
 	Name:      "change-owner-addr",
 	Usage:     "Update CP of OwnerAddress",
 	ArgsUsage: "[oldOwnerAddress] newOwnerAddress",
@@ -343,7 +343,7 @@ var ChangeOwnerAddressCmd = &cli.Command{
 	},
 }
 
-var ChangeBeneficiaryAddressCmd = &cli.Command{
+var changeBeneficiaryAddressCmd = &cli.Command{
 	Name:      "changeBeneficiaryAddress",
 	Usage:     "Update CP of beneficiaryAddress",
 	ArgsUsage: "[beneficiaryAddress]",
