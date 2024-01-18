@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/lagrangedao/go-computing-provider/conf"
+	"github.com/lagrangedao/go-computing-provider/internal/models"
 	"math/big"
 	"strings"
 )
@@ -132,12 +133,20 @@ func (s *CpStub) ChangeBeneficiary(newBeneficiary common.Address, newQuota *big.
 	return transaction.Hash().String(), nil
 }
 
-func (s *CpStub) GetOwner() (string, error) {
-	ownerAddress, err := s.account.GetOwner(&bind.CallOpts{})
+func (s *CpStub) GetCpAccountInfo() (models.Account, error) {
+	ownerAddress, nodeId, multiAddresses, ubiFlag, beneficiaryAddress, quota, expiration, err := s.account.GetAccount(&bind.CallOpts{})
 	if err != nil {
-		return "", fmt.Errorf("cpAccount client create GetOwner tx error: %+v", err)
+		return models.Account{}, fmt.Errorf("cpAccount client create GetCpAccountInfo tx error: %+v", err)
 	}
-	return ownerAddress.Hex(), nil
+	var account models.Account
+	account.OwnerAddress = ownerAddress.Hex()
+	account.NodeId = nodeId
+	account.MultiAddresses = multiAddresses
+	account.UbiFlag = ubiFlag
+	account.Beneficiary.BeneficiaryAddress = beneficiaryAddress.Hex()
+	account.Beneficiary.Quota = quota
+	account.Beneficiary.Expiration = expiration
+	return account, nil
 }
 
 func (s *CpStub) privateKeyToPublicKey() (common.Address, error) {
