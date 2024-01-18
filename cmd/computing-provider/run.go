@@ -305,7 +305,7 @@ var accountCmd = &cli.Command{
 
 var changeMultiAddressCmd = &cli.Command{
 	Name:      "changeMultiAddress",
-	Usage:     "Update CP of MultiAddress",
+	Usage:     "Update MultiAddress of CP",
 	ArgsUsage: "[multiAddress] example: /ip4/<public_ip>/tcp/<port>.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{

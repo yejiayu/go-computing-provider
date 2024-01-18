@@ -78,12 +78,23 @@ func updateProviderInfo(nodeID, peerID, address string, status string) {
 func InitComputingProvider(cpRepoPath string) string {
 	nodeID, peerID, address := GenerateNodeID(cpRepoPath)
 
-	//logs.GetLogger().Infof("Node ID :%s Peer ID:%s address:%s",
-	//	nodeID,
-	//	peerID, address)
+	logs.GetLogger().Infof("Node ID :%s Peer ID:%s address:%s",
+		nodeID,
+		peerID, address)
 	updateProviderInfo(nodeID, peerID, address, models.ActiveStatus)
 	return nodeID
 }
+
+func GetNodeId(cpRepoPath string) string {
+	nodeID, peerID, address := GenerateNodeID(cpRepoPath)
+
+	logs.GetLogger().Infof("Node ID :%s Peer ID:%s address:%s",
+		nodeID,
+		peerID, address)
+	updateProviderInfo(nodeID, peerID, address, models.ActiveStatus)
+	return nodeID
+}
+
 func GenerateNodeID(cpRepoPath string) (string, string, string) {
 	privateKeyPath := filepath.Join(cpRepoPath, "private_key")
 	var privateKeyBytes []byte
