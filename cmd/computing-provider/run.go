@@ -282,6 +282,7 @@ var initCmd = &cli.Command{
 
 				if receipt != nil && receipt.Status == types.ReceiptStatusSuccessful {
 					blockNumber = receipt.BlockNumber.String()
+					fmt.Printf("The height of the block: %s\n", blockNumber)
 					DoSend(contractAddress.Hex(), blockNumber)
 					return nil
 				} else if receipt != nil && receipt.Status == 0 {
