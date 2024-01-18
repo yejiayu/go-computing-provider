@@ -33,7 +33,7 @@ var ubiTaskList = &cli.Command{
 		}
 
 		conn := computing.GetRedisClient()
-		prefix := constants.REDIS_FULL_PREFIX + "*"
+		prefix := constants.REDIS_UBI_C2_PERFIX + "*"
 		keys, err := redis.Strings(conn.Do("KEYS", prefix))
 		if err != nil {
 			return fmt.Errorf("failed get redis %s prefix, error: %+v", prefix, err)

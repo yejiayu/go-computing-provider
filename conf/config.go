@@ -12,7 +12,6 @@ var config *ComputeNode
 
 const (
 	DefaultRpc = "swan"
-	BaseRpc    = "goerli"
 )
 
 // ComputeNode is a compute node config
@@ -48,6 +47,7 @@ type HUB struct {
 	ServerUrl        string
 	AccessToken      string
 	BalanceThreshold float64
+	UbiUrl           string
 }
 
 type MCS struct {
@@ -65,7 +65,6 @@ type Registry struct {
 }
 
 type RPC struct {
-	GoerliUrl   string `toml:"GOERLI_URL"`
 	SwanTestnet string `toml:"SWAN_TESTNET"`
 	SwanMainnet string `toml:"SWAN_MAINNET"`
 }
@@ -79,9 +78,6 @@ type CONTRACT struct {
 func GetRpcByName(rpcName string) (string, error) {
 	var rpc string
 	switch rpcName {
-	case BaseRpc:
-		rpc = GetConfig().RPC.GoerliUrl
-		break
 	case DefaultRpc:
 		rpc = GetConfig().RPC.SwanTestnet
 		break

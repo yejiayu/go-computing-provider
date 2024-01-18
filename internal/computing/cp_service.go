@@ -243,7 +243,7 @@ func ReNewJob(c *gin.Context) {
 	}
 
 	conn := redisPool.Get()
-	prefix := constants.REDIS_FULL_PREFIX + "*"
+	prefix := constants.REDIS_SPACE_PREFIX + "*"
 	keys, err := redis.Strings(conn.Do("KEYS", prefix))
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
@@ -264,7 +264,7 @@ func ReNewJob(c *gin.Context) {
 		}
 	}
 
-	redisKey := constants.REDIS_FULL_PREFIX + spaceDetail.SpaceUuid
+	redisKey := constants.REDIS_SPACE_PREFIX + spaceDetail.SpaceUuid
 	leftTime := spaceDetail.ExpireTime - time.Now().Unix()
 	if leftTime < 0 {
 		c.JSON(http.StatusOK, map[string]string{
@@ -311,7 +311,7 @@ func CancelJob(c *gin.Context) {
 	}
 
 	conn := redisPool.Get()
-	prefix := constants.REDIS_FULL_PREFIX + "*"
+	prefix := constants.REDIS_SPACE_PREFIX + "*"
 	keys, err := redis.Strings(conn.Do("KEYS", prefix))
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
@@ -392,7 +392,7 @@ func GetSpaceLog(c *gin.Context) {
 		return
 	}
 
-	redisKey := constants.REDIS_FULL_PREFIX + spaceUuid
+	redisKey := constants.REDIS_SPACE_PREFIX + spaceUuid
 	spaceDetail, err := RetrieveJobMetadata(redisKey)
 	if err != nil {
 		logs.GetLogger().Error(err)
@@ -750,7 +750,7 @@ func ReceiveUbiProof(c *gin.Context) {
 
 	ki, err := localWallet.FindKey(conf.GetConfig().HUB.WalletAddress)
 	if err != nil || ki == nil {
-		logs.GetLogger().Errorf("the address: %s, private key %w,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
+		logs.GetLogger().Errorf("the address: %s, private key %v,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
 		return
 	}
 
@@ -778,8 +778,16 @@ func ReceiveUbiProof(c *gin.Context) {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return
 	}
-	fmt.Printf("submitUBIProofTx: %s", submitUBIProofTx)
+	var ubiTask models.CacheUbiTaskDetail
+	ubiTask.TaskId = c2Proof.TaskId
+	ubiTask.TaskType = c2Proof.TaskType
+	ubiTask.ZkType = c2Proof.ZkType
+	ubiTask.Tx = submitUBIProofTx
+	ubiTask.Status = "success"
+	ubiTask.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+	SaveUbiTaskMetadata(ubiTask)
 
+	fmt.Printf("submitUBIProofTx: %s", submitUBIProofTx)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
@@ -860,7 +868,7 @@ func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string
 	spaceHardware := spaceDetail.Data.Space.ActiveOrder.Config
 
 	conn := redisPool.Get()
-	fullArgs := []interface{}{constants.REDIS_FULL_PREFIX + spaceUuid}
+	fullArgs := []interface{}{constants.REDIS_SPACE_PREFIX + spaceUuid}
 	fields := map[string]string{
 		"wallet_address": walletAddress,
 		"space_name":     spaceName,
@@ -1215,6 +1223,29 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 	}, nil
 }
 
+func SaveUbiTaskMetadata(ubiTask models.CacheUbiTaskDetail) {
+	redisConn := redisPool.Get()
+	defer redisConn.Close()
+
+	key := constants.REDIS_SPACE_PREFIX + ubiTask.TaskId
+	redisConn.Do("DEL", redis.Args{}.AddFlat(key)...)
+
+	fullArgs := []interface{}{key}
+	fields := map[string]string{
+		"task_id":     ubiTask.TaskId,
+		"task_type":   ubiTask.TaskType,
+		"zk_type":     ubiTask.ZkType,
+		"tx":          ubiTask.Tx,
+		"status":      ubiTask.Status,
+		"create_time": ubiTask.CreateTime,
+	}
+
+	for k, val := range fields {
+		fullArgs = append(fullArgs, k, val)
+	}
+	_, _ = redisConn.Do("HSET", fullArgs...)
+}
+
 func RetrieveUbiTaskMetadata(key string) (models.CacheUbiTaskDetail, error) {
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
@@ -1237,7 +1268,7 @@ func RetrieveUbiTaskMetadata(key string) (models.CacheUbiTaskDetail, error) {
 		CreateTime string `json:"create_time"`
 	}
 
-	args := append([]interface{}{key}, "task_id", "task_type", "zk_type", "tx", "status", "reward", "create_time")
+	args := append([]interface{}{key}, "task_id", "task_type", "zk_type", "tx", "status", "create_time")
 	valuesStr, err := redis.Strings(redisConn.Do("HMGET", args...))
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
@@ -1250,7 +1281,6 @@ func RetrieveUbiTaskMetadata(key string) (models.CacheUbiTaskDetail, error) {
 		zkType     string
 		tx         string
 		status     string
-		reward     string
 		createTime string
 	)
 
@@ -1260,8 +1290,7 @@ func RetrieveUbiTaskMetadata(key string) (models.CacheUbiTaskDetail, error) {
 		zkType = valuesStr[2]
 		tx = valuesStr[3]
 		status = valuesStr[4]
-		reward = valuesStr[5]
-		createTime = valuesStr[6]
+		createTime = valuesStr[5]
 	}
 
 	return models.CacheUbiTaskDetail{
@@ -1270,7 +1299,6 @@ func RetrieveUbiTaskMetadata(key string) (models.CacheUbiTaskDetail, error) {
 		ZkType:     zkType,
 		Tx:         tx,
 		Status:     status,
-		Reward:     reward,
 		CreateTime: createTime,
 	}, nil
 }

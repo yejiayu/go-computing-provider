@@ -1,5 +1,7 @@
 package models
 
+import "math/big"
+
 type BidStatus string
 
 const (
@@ -140,4 +142,16 @@ type CacheUbiTaskDetail struct {
 	Status     string `json:"status"`
 	Reward     string `json:"reward"`
 	CreateTime string `json:"create_time"`
+}
+
+type Account struct {
+	OwnerAddress   string
+	NodeId         string
+	MultiAddresses []string
+	UbiFlag        uint8
+	Beneficiary    struct {
+		BeneficiaryAddress string
+		Quota              *big.Int
+		Expiration         *big.Int
+	}
 }

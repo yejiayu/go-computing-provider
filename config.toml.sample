@@ -17,6 +17,7 @@ CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"   # Your domain name SSL .crt 
 KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"   # Your domain name SSL .key file path
 
 [HUB]
+UbiUrl =""
 ServerUrl = "https://swanhub-cali.swanchain.io"     # The swan hub API address
 AccessToken = ""                                    # The swan hub access token
 WalletAddress = ""                                  # The cp wallet address

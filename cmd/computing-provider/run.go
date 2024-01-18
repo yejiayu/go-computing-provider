@@ -1,11 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
@@ -22,6 +27,7 @@ import (
 	"github.com/lagrangedao/go-computing-provider/wallet/contract/swan_token"
 	"github.com/urfave/cli/v2"
 	"math/big"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -124,17 +130,17 @@ var infoCmd = &cli.Command{
 			return err
 		}
 
-		owner, err := cpStub.GetOwner()
+		cpAccount, err := cpStub.GetCpAccountInfo()
 		if err != nil {
-			return fmt.Errorf("get ownerAddress faile, error: %v", err)
+			return fmt.Errorf("get cpAccount faile, error: %v", err)
 		}
 
-		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(owner))
+		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(cpAccount.OwnerAddress))
 		if err == nil {
 			balance, err = tokenStub.BalanceOf()
 		}
 
-		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(owner))
+		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(cpAccount.OwnerAddress))
 		if err == nil {
 			collateralBalance, err = collateralStub.Balances()
 		}
@@ -145,7 +151,7 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Domain:", conf.GetConfig().API.Domain})
 		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
 
-		taskData = append(taskData, []string{"Available balance（Swan-ETH）:", balance})
+		taskData = append(taskData, []string{"Available balance（SWAN）:", balance})
 		taskData = append(taskData, []string{"Collateral Balance（SWAN）:", collateralBalance})
 
 		header := []string{"Name:", conf.GetConfig().API.NodeName}
@@ -172,6 +178,11 @@ var initCmd = &cli.Command{
 		ownerAddress := cctx.String("ownerAddress")
 		if strings.TrimSpace(ownerAddress) == "" {
 			return fmt.Errorf("ownerAddress is not empty")
+		}
+
+		beneficiaryAddress := cctx.String("beneficiaryAddress")
+		if strings.TrimSpace(beneficiaryAddress) == "" {
+			beneficiaryAddress = ownerAddress
 		}
 
 		cpRepoPath := cctx.String(FlagCpRepo)
@@ -239,7 +250,8 @@ var initCmd = &cli.Command{
 		if conf.GetConfig().API.UbiTask {
 			ubiTaskFlag = 1
 		}
-		contractAddress, tx, _, err := account.DeployAccount(auth, client, publicAddress, nodeID, []string{multiAddresses}, ubiTaskFlag, publicAddress)
+
+		contractAddress, tx, _, err := account.DeployAccount(auth, client, publicAddress, nodeID, []string{multiAddresses}, ubiTaskFlag, common.HexToAddress(beneficiaryAddress))
 		if err != nil {
 			return fmt.Errorf("deploy cp account contract failed, error: %v", err)
 		}
@@ -251,7 +263,42 @@ var initCmd = &cli.Command{
 
 		fmt.Printf("Contract deployed! Address: %s\n", contractAddress.Hex())
 		fmt.Printf("Transaction hash: %s\n", tx.Hash().Hex())
-		return nil
+
+		var blockNumber string
+		timeout := time.After(3 * time.Minute)
+		ticker := time.Tick(3 * time.Second)
+		for {
+			select {
+			case <-timeout:
+				return fmt.Errorf("timeout waiting for transaction confirmation, tx: %s", tx.Hash().Hex())
+			case <-ticker:
+				receipt, err := client.TransactionReceipt(context.Background(), tx.Hash())
+				if err != nil {
+					if errors.Is(err, ethereum.NotFound) {
+						continue
+					}
+					return err
+				}
+
+				if receipt != nil && receipt.Status == types.ReceiptStatusSuccessful {
+					blockNumber = receipt.BlockNumber.String()
+					DoSend(contractAddress.Hex(), blockNumber)
+					return nil
+				} else if receipt != nil && receipt.Status == 0 {
+					return err
+				}
+			}
+		}
+	},
+}
+
+var accountCmd = &cli.Command{
+	Name:  "account",
+	Usage: "Manage account info of CP",
+	Subcommands: []*cli.Command{
+		changeMultiAddressCmd,
+		changeOwnerAddressCmd,
+		changeBeneficiaryAddressCmd,
 	},
 }
 
@@ -315,12 +362,12 @@ var changeMultiAddressCmd = &cli.Command{
 			return err
 		}
 
-		owner, err := cpStub.GetOwner()
+		cpAccount, err := cpStub.GetCpAccountInfo()
 		if err != nil {
-			return fmt.Errorf("get ownerAddress faile, error: %v", err)
+			return fmt.Errorf("get cpAccount faile, error: %v", err)
 		}
-		if !strings.EqualFold(owner, ownerAddress) {
-			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", owner, ownerAddress)
+		if !strings.EqualFold(cpAccount.OwnerAddress, ownerAddress) {
+			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
 		}
 
 		submitUBIProofTx, err := cpStub.ChangeMultiAddress([]string{multiAddr})
@@ -335,8 +382,8 @@ var changeMultiAddressCmd = &cli.Command{
 }
 
 var changeOwnerAddressCmd = &cli.Command{
-	Name:      "change-owner-addr",
-	Usage:     "Update CP of OwnerAddress",
+	Name:      "changeOwnerAddress",
+	Usage:     "Update OwnerAddress of CP",
 	ArgsUsage: "[oldOwnerAddress] newOwnerAddress",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -395,12 +442,12 @@ var changeOwnerAddressCmd = &cli.Command{
 			return err
 		}
 
-		owner, err := cpStub.GetOwner()
+		cpAccount, err := cpStub.GetCpAccountInfo()
 		if err != nil {
-			return fmt.Errorf("get ownerAddress faile, error: %v", err)
+			return fmt.Errorf("get cpAccount faile, error: %v", err)
 		}
-		if !strings.EqualFold(owner, ownerAddress) {
-			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", owner, ownerAddress)
+		if !strings.EqualFold(cpAccount.OwnerAddress, ownerAddress) {
+			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
 		}
 
 		submitUBIProofTx, err := cpStub.ChangeOwnerAddress(common.HexToAddress(newOwnerAddr))
@@ -416,7 +463,7 @@ var changeOwnerAddressCmd = &cli.Command{
 
 var changeBeneficiaryAddressCmd = &cli.Command{
 	Name:      "changeBeneficiaryAddress",
-	Usage:     "Update CP of beneficiaryAddress",
+	Usage:     "Update beneficiaryAddress of CP",
 	ArgsUsage: "[beneficiaryAddress]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -475,12 +522,12 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 			return err
 		}
 
-		owner, err := cpStub.GetOwner()
+		cpAccount, err := cpStub.GetCpAccountInfo()
 		if err != nil {
-			return fmt.Errorf("get ownerAddress faile, error: %v", err)
+			return fmt.Errorf("get cpAccount faile, error: %v", err)
 		}
-		if !strings.EqualFold(owner, ownerAddress) {
-			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", owner, ownerAddress)
+		if !strings.EqualFold(cpAccount.OwnerAddress, ownerAddress) {
+			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
 		}
 		newQuota := big.NewInt(int64(0))
 		newExpiration := big.NewInt(int64(0))
@@ -492,4 +539,33 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 		fmt.Printf("changeBeneficiaryAddress Transaction hash: %s", changeBeneficiaryAddressTx)
 		return nil
 	},
+}
+
+func DoSend(contractAddr, height string) {
+	type ContractReq struct {
+		Addr   string `json:"addr"`
+		Height int    `json:"height"`
+	}
+	h, _ := strconv.ParseInt(height, 10, 64)
+	var contractReq ContractReq
+	contractReq.Addr = contractAddr
+	contractReq.Height = int(h)
+
+	jsonData, err := json.Marshal(contractReq)
+	if err != nil {
+		logs.GetLogger().Errorf("JSON encoding failed: %v", err)
+		return
+	}
+
+	url := conf.GetConfig().HUB.UbiUrl
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		logs.GetLogger().Errorf("POST request failed: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logs.GetLogger().Errorf("Request failed, status code: %d", resp.StatusCode)
+	}
 }

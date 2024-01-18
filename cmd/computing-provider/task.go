@@ -53,7 +53,7 @@ var taskList = &cli.Command{
 		}
 
 		conn := computing.GetRedisClient()
-		prefix := constants.REDIS_FULL_PREFIX + "*"
+		prefix := constants.REDIS_SPACE_PREFIX + "*"
 		keys, err := redis.Strings(conn.Do("KEYS", prefix))
 		if err != nil {
 			return fmt.Errorf("failed get redis %s prefix, error: %+v", prefix, err)
@@ -169,7 +169,7 @@ var taskDetail = &cli.Command{
 		}
 		computing.GetRedisClient()
 
-		spaceUuid := constants.REDIS_FULL_PREFIX + cctx.Args().First()
+		spaceUuid := constants.REDIS_SPACE_PREFIX + cctx.Args().First()
 		jobDetail, err := computing.RetrieveJobMetadata(spaceUuid)
 		if err != nil {
 			return fmt.Errorf("failed get job detail: %s, error: %+v", spaceUuid, err)
@@ -246,7 +246,7 @@ var taskDelete = &cli.Command{
 		computing.GetRedisClient()
 
 		spaceUuid := strings.ToLower(cctx.Args().First())
-		jobDetail, err := computing.RetrieveJobMetadata(constants.REDIS_FULL_PREFIX + spaceUuid)
+		jobDetail, err := computing.RetrieveJobMetadata(constants.REDIS_SPACE_PREFIX + spaceUuid)
 		if err != nil {
 			return fmt.Errorf("failed get job detail: %s, error: %+v", spaceUuid, err)
 		}
@@ -264,7 +264,7 @@ var taskDelete = &cli.Command{
 		}
 
 		conn := computing.GetRedisClient()
-		conn.Do("DEL", redis.Args{}.AddFlat(constants.REDIS_FULL_PREFIX+spaceUuid)...)
+		conn.Do("DEL", redis.Args{}.AddFlat(constants.REDIS_SPACE_PREFIX+spaceUuid)...)
 
 		return nil
 	},
