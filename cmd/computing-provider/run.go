@@ -164,11 +164,11 @@ var initCmd = &cli.Command{
 	Name:  "init",
 	Usage: "Initialize a new cp",
 	Flags: []cli.Flag{
-		&cli.BoolFlag{
+		&cli.StringFlag{
 			Name:  "ownerAddress",
 			Usage: "Specify a OwnerAddress",
 		},
-		&cli.BoolFlag{
+		&cli.StringFlag{
 			Name:  "beneficiaryAddress",
 			Usage: "Specify a beneficiaryAddress to receive rewards. If not specified, use the same address as ownerAddress",
 		},
