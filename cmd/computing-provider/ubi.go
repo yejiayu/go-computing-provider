@@ -54,7 +54,7 @@ var ubiTaskList = &cli.Command{
 				taskType = "GPU"
 			}
 			taskData = append(taskData,
-				[]string{ubiTask.TaskId, taskType, ubiTask.Tx, ubiTask.Status, status, "2", ubiTask.CreateTime})
+				[]string{ubiTask.TaskId, taskType, ubiTask.ZkType, ubiTask.Tx, ubiTask.Status, status, "2", ubiTask.CreateTime})
 
 			var rowColor []tablewriter.Colors
 			if ubiTask.Status == "success" {
