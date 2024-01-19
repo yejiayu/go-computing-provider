@@ -150,7 +150,10 @@ var infoCmd = &cli.Command{
 			domain = domain[1:]
 		}
 		var taskData [][]string
+
+		taskData = append(taskData, []string{"Contract Address:", cpStub.ContractAddress})
 		taskData = append(taskData, []string{"Multi-Address:", conf.GetConfig().API.MultiAddress})
+		taskData = append(taskData, []string{"Name:", conf.GetConfig().API.NodeName})
 		taskData = append(taskData, []string{"Node ID:", nodeID})
 		taskData = append(taskData, []string{"Domain:", domain})
 		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
@@ -165,7 +168,7 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"UBI FLAG:", ubiFlag})
 		taskData = append(taskData, []string{"Beneficiary Address:", cpAccount.Beneficiary.BeneficiaryAddress})
 
-		header := []string{"Name:", conf.GetConfig().API.NodeName}
+		header := []string{"Owner:", cpAccount.OwnerAddress}
 		NewVisualTable(header, taskData, []RowColor{}).Generate()
 		return nil
 	},

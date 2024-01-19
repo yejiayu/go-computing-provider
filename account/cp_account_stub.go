@@ -16,10 +16,11 @@ import (
 )
 
 type CpStub struct {
-	client   *ethclient.Client
-	account  *Account
-	privateK string
-	publicK  string
+	client          *ethclient.Client
+	account         *Account
+	privateK        string
+	publicK         string
+	ContractAddress string
 }
 
 type CpOption func(*CpStub)
@@ -59,6 +60,7 @@ func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, err
 
 	stub.account = taskClient
 	stub.client = client
+	stub.ContractAddress = string(accountAddress)
 	return stub, nil
 }
 
