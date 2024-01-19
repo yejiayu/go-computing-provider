@@ -12,6 +12,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 	"github.com/lagrangedao/go-computing-provider/account"
 	"github.com/lagrangedao/go-computing-provider/build"
 	"github.com/lagrangedao/go-computing-provider/conf"
@@ -569,21 +570,21 @@ func DoUbiTask(c *gin.Context) {
 		return
 	}
 
-	//ubiHubPk := conf.GetConfig().API.UbiHubPk
-	//
-	//cpRepoPath, _ := os.LookupEnv("CP_PATH")
-	//nodeID := InitComputingProvider(cpRepoPath)
-	//
-	//signature, err := verifySignature(ubiHubPk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
-	//if err != nil {
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
-	//	return
-	//}
-	//if !signature {
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
-	//	return
-	//}
-	//logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
+	ubiHubPk := conf.GetConfig().API.UbiHubPk
+
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	nodeID := InitComputingProvider(cpRepoPath)
+
+	signature, err := verifySignature(ubiHubPk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		return
+	}
+	if !signature {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		return
+	}
+	logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
 
 	inputParamTaskJson, err := util.GetMcsFileByUrl(ubiTask.InputParam)
 	if err != nil {
@@ -592,13 +593,15 @@ func DoUbiTask(c *gin.Context) {
 	}
 
 	go func() {
-		//var envFilePath string
-		//envFilePath = filepath.Join(os.Getenv("CP_PATH"), "fil-c2.env")
-		//envVars, err := godotenv.Read(envFilePath)
-		//if err != nil {
-		//	logs.GetLogger().Errorf("reading fil-c2-env.env")
-		//	return
-		//}
+		var envFilePath string
+		envFilePath = filepath.Join(os.Getenv("CP_PATH"), "fil-c2.env")
+		envVars, err := godotenv.Read(envFilePath)
+		if err != nil {
+			logs.GetLogger().Errorf("reading fil-c2-env.env")
+			return
+		}
+		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
+		delete(envVars, "FIL_PROOFS_PARAMETER_CACHE")
 
 		k8sService := NewK8sService()
 		filC2SecretName := ubiTask.Name
@@ -681,7 +684,7 @@ func DoUbiTask(c *gin.Context) {
 								Name: "proof-params",
 								VolumeSource: v1.VolumeSource{
 									HostPath: &v1.HostPathVolumeSource{
-										Path: "/data/filecoin-proof-parameters",
+										Path: filC2Param,
 									},
 								},
 							},
@@ -1227,7 +1230,7 @@ func SaveUbiTaskMetadata(ubiTask models.CacheUbiTaskDetail) {
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
-	key := constants.REDIS_SPACE_PREFIX + ubiTask.TaskId
+	key := constants.REDIS_UBI_C2_PERFIX + ubiTask.TaskId
 	redisConn.Do("DEL", redis.Args{}.AddFlat(key)...)
 
 	fullArgs := []interface{}{key}

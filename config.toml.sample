@@ -7,9 +7,8 @@ NodeName = ""                                   # The computing-provider node na
 RedisUrl = "redis://127.0.0.1:6379"           # The redis server address
 RedisPassword = ""                            # The redis server access password
 
-
 UbiTask = false
-UbiHubPk = ""
+UbiHubPk = "0xf5b7F848FaB22bdFD689Fedf26AA31bD5e890fCD"
 SwanHubPk = ""
 
 [LOG]
