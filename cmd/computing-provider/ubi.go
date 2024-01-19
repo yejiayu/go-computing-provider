@@ -48,13 +48,13 @@ var ubiTaskList = &cli.Command{
 				return fmt.Errorf("failed get ubi task: %s, error: %+v", key, err)
 			}
 
-			var status, taskType string
+			var taskType string
 			taskType = "CPU"
 			if ubiTask.TaskType == "1" {
 				taskType = "GPU"
 			}
 			taskData = append(taskData,
-				[]string{ubiTask.TaskId, taskType, ubiTask.ZkType, ubiTask.Tx, ubiTask.Status, status, "2.0", ubiTask.CreateTime})
+				[]string{ubiTask.TaskId, taskType, ubiTask.ZkType, ubiTask.Tx, ubiTask.Status, "2.0", ubiTask.CreateTime})
 
 			var rowColor []tablewriter.Colors
 			if ubiTask.Status == "success" {
@@ -72,7 +72,7 @@ var ubiTaskList = &cli.Command{
 			number++
 		}
 
-		header := []string{"TASK ID", "TASK TYPE", "ZK TYPE", "TRANSACTION HASH", "STATUS", "REWARD", "CREATE TIME"}
+		header := []string{"TASK ID", "TASK TYPE", "ZK TYPE", "TRANSACTION HASH", "STATUS", "REWARD", "         CREATE TIME"}
 		NewVisualTable(header, taskData, rowColorList).Generate()
 
 		return nil
