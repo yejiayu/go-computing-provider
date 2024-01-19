@@ -145,10 +145,14 @@ var infoCmd = &cli.Command{
 			collateralBalance, err = collateralStub.Balances()
 		}
 
+		var domain = conf.GetConfig().API.Domain
+		if strings.HasPrefix(domain, ".") {
+			domain = domain[1:]
+		}
 		var taskData [][]string
 		taskData = append(taskData, []string{"Multi-Address:", conf.GetConfig().API.MultiAddress})
 		taskData = append(taskData, []string{"Node ID:", nodeID})
-		taskData = append(taskData, []string{"Domain:", conf.GetConfig().API.Domain})
+		taskData = append(taskData, []string{"Domain:", domain})
 		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
 
 		taskData = append(taskData, []string{"Available balance（SWAN）:", balance})
