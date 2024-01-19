@@ -48,10 +48,13 @@ var ubiTaskList = &cli.Command{
 				return fmt.Errorf("failed get ubi task: %s, error: %+v", key, err)
 			}
 
-			var status string
-
+			var status, taskType string
+			taskType = "CPU"
+			if ubiTask.TaskType == "1" {
+				taskType = "GPU"
+			}
 			taskData = append(taskData,
-				[]string{ubiTask.TaskId, ubiTask.TaskType, ubiTask.ZkType, ubiTask.Tx, ubiTask.Status, status, ubiTask.Reward, ubiTask.CreateTime})
+				[]string{ubiTask.TaskId, taskType, ubiTask.Tx, ubiTask.Status, status, "2", ubiTask.CreateTime})
 
 			var rowColor []tablewriter.Colors
 			if ubiTask.Status == "success" {
