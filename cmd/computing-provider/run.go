@@ -154,6 +154,13 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Available balance（SWAN）:", balance})
 		taskData = append(taskData, []string{"Collateral Balance（SWAN）:", collateralBalance})
 
+		var ubiFlag = "Reject"
+		if cpAccount.UbiFlag == 1 {
+			ubiFlag = "Accept"
+		}
+		taskData = append(taskData, []string{"UBI FLAG:", ubiFlag})
+		taskData = append(taskData, []string{"Beneficiary Address:", cpAccount.Beneficiary.BeneficiaryAddress})
+
 		header := []string{"Name:", conf.GetConfig().API.NodeName}
 		NewVisualTable(header, taskData, []RowColor{}).Generate()
 		return nil
