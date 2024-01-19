@@ -104,7 +104,7 @@ var infoCmd = &cli.Command{
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
-		nodeID := computing.InitComputingProvider(cpPath)
+		nodeID := computing.GetNodeId(cpPath)
 
 		k8sService := computing.NewK8sService()
 		count, err := k8sService.GetDeploymentActiveCount()
