@@ -300,6 +300,7 @@ var accountCmd = &cli.Command{
 		changeMultiAddressCmd,
 		changeOwnerAddressCmd,
 		changeBeneficiaryAddressCmd,
+		changeUbiFlagCmd,
 	},
 }
 
@@ -346,7 +347,7 @@ var changeMultiAddressCmd = &cli.Command{
 
 		ki, err := localWallet.FindKey(ownerAddress)
 		if err != nil || ki == nil {
-			logs.GetLogger().Errorf("the address: %s, private key %w,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
+			logs.GetLogger().Errorf("the address: %s, private key %v,", ownerAddress, wallet.ErrKeyInfoNotFound)
 			return err
 		}
 
@@ -385,22 +386,22 @@ var changeMultiAddressCmd = &cli.Command{
 var changeOwnerAddressCmd = &cli.Command{
 	Name:      "changeOwnerAddress",
 	Usage:     "Update OwnerAddress of CP",
-	ArgsUsage: "[oldOwnerAddress] newOwnerAddress",
+	ArgsUsage: "[newOwnerAddress]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "ownerAddress",
+			Name:  "oldOwnerAddress",
 			Usage: "Specify a OwnerAddress",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
 
-		ownerAddress := cctx.String("ownerAddress")
+		ownerAddress := cctx.String("oldOwnerAddress")
 		if strings.TrimSpace(ownerAddress) == "" {
 			return fmt.Errorf("ownerAddress is not empty")
 		}
 
 		if cctx.NArg() != 1 {
-			return fmt.Errorf(" Requires a multiAddress")
+			return fmt.Errorf(" Requires a ownerAddress")
 		}
 
 		newOwnerAddr := cctx.Args().Get(0)
@@ -426,7 +427,7 @@ var changeOwnerAddressCmd = &cli.Command{
 
 		ki, err := localWallet.FindKey(ownerAddress)
 		if err != nil || ki == nil {
-			logs.GetLogger().Errorf("the address: %s, private key %w,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
+			logs.GetLogger().Errorf("the old owner address: %s, private key %v,", ownerAddress, wallet.ErrKeyInfoNotFound)
 			return err
 		}
 
@@ -506,7 +507,7 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 
 		ki, err := localWallet.FindKey(ownerAddress)
 		if err != nil || ki == nil {
-			logs.GetLogger().Errorf("the address: %s, private key %v. Please import the address into the wallet", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
+			logs.GetLogger().Errorf("the address: %s, private key %v. Please import the address into the wallet", ownerAddress, wallet.ErrKeyInfoNotFound)
 			return err
 		}
 
@@ -538,6 +539,91 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 			return err
 		}
 		fmt.Printf("changeBeneficiaryAddress Transaction hash: %s", changeBeneficiaryAddressTx)
+		return nil
+	},
+}
+
+var changeUbiFlagCmd = &cli.Command{
+	Name:      "changeUbiFlag",
+	Usage:     "Update ubiFlag of CP",
+	ArgsUsage: "[ubiFlag]",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "ownerAddress",
+			Usage: "Specify a OwnerAddress",
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+
+		ownerAddress := cctx.String("ownerAddress")
+		if strings.TrimSpace(ownerAddress) == "" {
+			return fmt.Errorf("ownerAddress is not empty")
+		}
+
+		if cctx.NArg() != 1 {
+			return fmt.Errorf(" Requires a beneficiaryAddress")
+		}
+
+		ubiFlag := cctx.Args().Get(0)
+		if strings.TrimSpace(ubiFlag) == "" {
+			return fmt.Errorf("ubiFlag is not empty")
+		}
+
+		if strings.TrimSpace(ubiFlag) != "0" && strings.TrimSpace(ubiFlag) != "1" {
+			return fmt.Errorf("ubiFlag must be 0 or 1")
+		}
+
+		cpRepoPath := cctx.String(FlagCpRepo)
+		os.Setenv("CP_PATH", cpRepoPath)
+		initializer.ProjectInit(cpRepoPath)
+
+		chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+		if err != nil {
+			logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+			return err
+		}
+
+		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+		if err != nil {
+			logs.GetLogger().Errorf("setup wallet ubi failed, error: %v,", err)
+			return err
+		}
+
+		ki, err := localWallet.FindKey(ownerAddress)
+		if err != nil || ki == nil {
+			logs.GetLogger().Errorf("the address: %s, private key %v. Please import the address into the wallet", ownerAddress, wallet.ErrKeyInfoNotFound)
+			return err
+		}
+
+		client, err := ethclient.Dial(chainUrl)
+		if err != nil {
+			logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+			return err
+		}
+		defer client.Close()
+
+		cpStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
+		if err != nil {
+			logs.GetLogger().Errorf("create cp client failed, error: %v,", err)
+			return err
+		}
+
+		cpAccount, err := cpStub.GetCpAccountInfo()
+		if err != nil {
+			return fmt.Errorf("get cpAccount faile, error: %v", err)
+		}
+		if !strings.EqualFold(cpAccount.OwnerAddress, ownerAddress) {
+			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
+		}
+
+		newUbiFlag, _ := strconv.ParseUint(strings.TrimSpace(ubiFlag), 10, 64)
+
+		changeBeneficiaryAddressTx, err := cpStub.ChangeUbiFlag(uint8(newUbiFlag))
+		if err != nil {
+			logs.GetLogger().Errorf("change ubi flag tx failed, error: %v,", err)
+			return err
+		}
+		fmt.Printf("ChangeUbiFlag Transaction hash: %s", changeBeneficiaryAddressTx)
 		return nil
 	},
 }

@@ -134,6 +134,24 @@ func (s *CpStub) ChangeBeneficiary(newBeneficiary common.Address, newQuota *big.
 	return transaction.Hash().String(), nil
 }
 
+func (s *CpStub) ChangeUbiFlag(newUbiFlag uint8) (string, error) {
+	publicAddress, err := s.privateKeyToPublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	txOptions, err := s.createTransactOpts()
+	if err != nil {
+		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
+	}
+
+	transaction, err := s.account.ChangeUbiFlag(txOptions, newUbiFlag)
+	if err != nil {
+		return "", fmt.Errorf("address: %s, cpAccount client create ChangeOwnerAddress tx error: %+v", publicAddress, err)
+	}
+	return transaction.Hash().String(), nil
+}
+
 func (s *CpStub) GetCpAccountInfo() (models.Account, error) {
 	ownerAddress, nodeId, multiAddresses, ubiFlag, beneficiaryAddress, quota, expiration, err := s.account.GetAccount(&bind.CallOpts{})
 	if err != nil {
