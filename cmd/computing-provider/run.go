@@ -198,7 +198,9 @@ var initCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		initializer.ProjectInit(cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath); err != nil {
+			logs.GetLogger().Fatal(err)
+		}
 
 		chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 		if err != nil {
@@ -255,7 +257,7 @@ var initCmd = &cli.Command{
 		auth.GasFeeCap = suggestGasPrice
 		auth.Context = context.Background()
 
-		nodeID := computing.InitComputingProvider(cpRepoPath)
+		nodeID := computing.GetNodeId(cpRepoPath)
 		multiAddresses := conf.GetConfig().API.MultiAddress
 		var ubiTaskFlag uint8
 		if conf.GetConfig().API.UbiTask {
@@ -342,7 +344,9 @@ var changeMultiAddressCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		initializer.ProjectInit(cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath); err != nil {
+			logs.GetLogger().Fatal(err)
+		}
 
 		chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 		if err != nil {
@@ -422,7 +426,9 @@ var changeOwnerAddressCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		initializer.ProjectInit(cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath); err != nil {
+			logs.GetLogger().Fatal(err)
+		}
 
 		chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 		if err != nil {
@@ -502,7 +508,9 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		initializer.ProjectInit(cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath); err != nil {
+			logs.GetLogger().Fatal(err)
+		}
 
 		chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 		if err != nil {
@@ -586,7 +594,9 @@ var changeUbiFlagCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		initializer.ProjectInit(cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath); err != nil {
+			logs.GetLogger().Fatal(err)
+		}
 
 		chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 		if err != nil {

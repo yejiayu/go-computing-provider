@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	FlagCpRepo = "cp-repo"
+	FlagCpRepo = "repo"
 )
 
 func main() {

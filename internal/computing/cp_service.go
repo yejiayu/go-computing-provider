@@ -49,7 +49,7 @@ func GetCpInfo(c *gin.Context) {
 		return
 	}
 
-	info.NodeId = InitComputingProvider(cpPath)
+	info.NodeId = GetNodeId(cpPath)
 	info.MultiAddress = conf.GetConfig().API.MultiAddress
 	info.UbiTask = 0
 	if conf.GetConfig().API.UbiTask {

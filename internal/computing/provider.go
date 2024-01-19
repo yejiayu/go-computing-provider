@@ -86,12 +86,7 @@ func InitComputingProvider(cpRepoPath string) string {
 }
 
 func GetNodeId(cpRepoPath string) string {
-	nodeID, peerID, address := GenerateNodeID(cpRepoPath)
-
-	logs.GetLogger().Infof("Node ID :%s Peer ID:%s address:%s",
-		nodeID,
-		peerID, address)
-	updateProviderInfo(nodeID, peerID, address, models.ActiveStatus)
+	nodeID, _, _ := GenerateNodeID(cpRepoPath)
 	return nodeID
 }
 
