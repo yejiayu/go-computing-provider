@@ -17,6 +17,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/itsjamie/gin-cors v0.0.0-20220228161158-ef28d3d2a0a8
+	github.com/joho/godotenv v1.3.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
