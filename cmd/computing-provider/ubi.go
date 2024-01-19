@@ -72,7 +72,7 @@ var ubiTaskList = &cli.Command{
 			number++
 		}
 
-		header := []string{"TASK ID", "TASK TYPE", "ZK TYPE", "TRANSACTION HASH", "STATUS", "REWARD", "         CREATE TIME"}
+		header := []string{"TASK ID", "TASK TYPE", "ZK TYPE", "TRANSACTION HASH", "STATUS", "REWARD", "CREATE TIME"}
 		NewVisualTable(header, taskData, rowColorList).Generate()
 
 		return nil
