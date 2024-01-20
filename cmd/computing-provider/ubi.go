@@ -124,7 +124,7 @@ func getReward(nodeId, taskId string) (string, error) {
 		fbalance := new(big.Float)
 		fbalance.SetString(task.Amount)
 		etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
-		ethValue := etherQuotient.Text('f', 5)
+		ethValue := etherQuotient.Text('f', 1)
 		return ethValue, nil
 	} else {
 		return "0.0", nil
