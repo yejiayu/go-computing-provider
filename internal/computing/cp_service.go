@@ -588,11 +588,13 @@ func DoUbiTask(c *gin.Context) {
 	//}
 	//logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
 
+	var gpuFlag = "0"
 	var ubiTaskToRedis models.CacheUbiTaskDetail
 	ubiTaskToRedis.TaskId = strconv.Itoa(ubiTask.ID)
 	ubiTaskToRedis.TaskType = "CPU"
 	if ubiTask.Type == 1 {
 		ubiTaskToRedis.TaskType = "GPU"
+		gpuFlag = "1"
 	}
 	ubiTaskToRedis.ZkType = ubiTask.ZkType
 	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
@@ -625,25 +627,29 @@ func DoUbiTask(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
 	}
 
-	memQuantity, err := resource.ParseQuantity(fmt.Sprintf("%f%s", needMemory, strings.Split(strings.TrimSpace(ubiTask.Resource.Memory), " ")[1]))
+	mem := strings.Split(strings.TrimSpace(ubiTask.Resource.Memory), " ")[1]
+	memUnit := strings.ReplaceAll(mem, "B", "")
+	disk := strings.Split(strings.TrimSpace(ubiTask.Resource.Storage), " ")[1]
+	diskUnit := strings.ReplaceAll(disk, "B", "")
+	memQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needMemory, memUnit))
 	if err != nil {
 		logs.GetLogger().Error("get memory failed, error: %+v", err)
 		return
 	}
 
-	storageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%f%s", needStorage, strings.Split(strings.TrimSpace(ubiTask.Resource.Storage), " ")[1]))
+	storageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needStorage, diskUnit))
 	if err != nil {
 		logs.GetLogger().Error("get storage failed, error: %+v", err)
 		return
 	}
 
-	maxMemQuantity, err := resource.ParseQuantity(fmt.Sprintf("%f%s", needMemory*1.5, strings.Split(strings.TrimSpace(ubiTask.Resource.Memory), " ")[1]))
+	maxMemQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needMemory*2, memUnit))
 	if err != nil {
 		logs.GetLogger().Error("get memory failed, error: %+v", err)
 		return
 	}
 
-	maxStorageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%f%s", needStorage*1.5, strings.Split(strings.TrimSpace(ubiTask.Resource.Storage), " ")[1]))
+	maxStorageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needStorage*2, diskUnit))
 	if err != nil {
 		logs.GetLogger().Error("get storage failed, error: %+v", err)
 		return
@@ -654,13 +660,13 @@ func DoUbiTask(c *gin.Context) {
 			coreV1.ResourceCPU:              *resource.NewQuantity(needCpu*2, resource.DecimalSI),
 			coreV1.ResourceMemory:           maxMemQuantity,
 			coreV1.ResourceEphemeralStorage: maxStorageQuantity,
-			"nvidia.com/gpu":                resource.MustParse("1"),
+			"nvidia.com/gpu":                resource.MustParse(gpuFlag),
 		},
 		Requests: coreV1.ResourceList{
 			coreV1.ResourceCPU:              *resource.NewQuantity(needCpu, resource.DecimalSI),
 			coreV1.ResourceMemory:           memQuantity,
 			coreV1.ResourceEphemeralStorage: storageQuantity,
-			"nvidia.com/gpu":                resource.MustParse("1"),
+			"nvidia.com/gpu":                resource.MustParse(gpuFlag),
 		},
 	}
 
@@ -1166,7 +1172,7 @@ func checkResourceAvailableForSpace(jobSourceURI string) (bool, error) {
 	return false, nil
 }
 
-func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models.TaskResource) (string, int64, float64, float64, error) {
+func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models.TaskResource) (string, int64, int64, int64, error) {
 	k8sService := NewK8sService()
 	activePods, err := k8sService.GetAllActivePod(context.TODO())
 	if err != nil {
@@ -1185,13 +1191,13 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 	}
 
 	needCpu, _ := strconv.ParseInt(resource.CPU, 10, 64)
-	var needMemory, needStorage float64
+	var needMemory, needStorage int64
 	if len(strings.Split(strings.TrimSpace(resource.Memory), " ")) > 0 {
-		needMemory, err = strconv.ParseFloat(strings.Split(strings.TrimSpace(resource.Memory), " ")[0], 64)
+		needMemory, err = strconv.ParseInt(strings.Split(strings.TrimSpace(resource.Memory), " ")[0], 10, 64)
 
 	}
 	if len(strings.Split(strings.TrimSpace(resource.Storage), " ")) > 0 {
-		needStorage, err = strconv.ParseFloat(strings.Split(strings.TrimSpace(resource.Storage), " ")[0], 64)
+		needStorage, err = strconv.ParseInt(strings.Split(strings.TrimSpace(resource.Storage), " ")[0], 10, 64)
 
 	}
 
@@ -1203,7 +1209,7 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
 		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
 
-		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
+		if needCpu < remainderCpu && float64(needMemory) < remainderMemory && float64(needStorage) < remainderStorage {
 			if taskType == 0 {
 				return nodeName, needCpu, needMemory, needStorage, nil
 			} else if taskType == 1 {

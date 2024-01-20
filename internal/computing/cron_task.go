@@ -75,7 +75,7 @@ func (task *CronTask) checkCollateralBalance() {
 		result := collateral.Data.Balance / 1e18
 		result = math.Round(result*1000) / 1000
 		if result <= conf.GetConfig().HUB.BalanceThreshold {
-			logs.GetLogger().Warnf("No sufficient collateral Balance, the current collateralbalance is: %0.3f. Please run: computing-provider collateral [fromWalletAddress] [amount]", result)
+			logs.GetLogger().Warnf("No sufficient collateral Balance, the current collateral balance is: %0.3f. Please run: computing-provider collateral [fromWalletAddress] [amount]", result)
 		}
 	})
 	c.Start()
