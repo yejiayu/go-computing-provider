@@ -487,6 +487,43 @@ func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, 
 	return withdrawHash, nil
 }
 
+func (w *LocalWallet) CollateralSendCmd(ctx context.Context, from, to string, amount string) (string, error) {
+	withDrawAmount, err := convertToWei(amount)
+	if err != nil {
+		return "", err
+	}
+
+	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+	if err != nil {
+		return "", err
+	}
+
+	ki, err := w.FindKey(from)
+	if err != nil {
+		return "", err
+	}
+	if ki == nil {
+		return "", xerrors.Errorf("the address: %s, private key %w,", to, ErrKeyInfoNotFound)
+	}
+
+	client, err := ethclient.Dial(chainUrl)
+	if err != nil {
+		return "", err
+	}
+	defer client.Close()
+
+	collateralStub, err := swan_token.NewTokenStub(client, swan_token.WithPrivateKey(ki.PrivateKey))
+	if err != nil {
+		return "", err
+	}
+	withdrawHash, err := collateralStub.Transfer(to, withDrawAmount)
+	if err != nil {
+		return "", err
+	}
+
+	return withdrawHash, nil
+}
+
 func (w *LocalWallet) addressList(ctx context.Context) ([]string, error) {
 	all, err := w.keystore.List()
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"github.com/lagrangedao/go-computing-provider/conf"
 	"github.com/lagrangedao/go-computing-provider/constants"
 	"github.com/lagrangedao/go-computing-provider/internal/computing"
+	"github.com/lagrangedao/go-computing-provider/internal/models"
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
 	"os"
@@ -41,35 +42,37 @@ var ubiTaskList = &cli.Command{
 
 		var taskData [][]string
 		var rowColorList []RowColor
-		var number int
+		var taskList models.TaskList
 		for _, key := range keys {
 			ubiTask, err := computing.RetrieveUbiTaskMetadata(key)
 			if err != nil {
 				return fmt.Errorf("failed get ubi task: %s, error: %+v", key, err)
 			}
+			taskList = append(taskList, ubiTask)
+		}
 
+		for i, task := range taskList {
 			var taskType string
 			taskType = "CPU"
-			if ubiTask.TaskType == "1" {
+			if task.TaskType == "1" {
 				taskType = "GPU"
 			}
+
 			taskData = append(taskData,
-				[]string{ubiTask.TaskId, taskType, ubiTask.ZkType, ubiTask.Tx, ubiTask.Status, "2.0", ubiTask.CreateTime})
+				[]string{task.TaskId, taskType, task.ZkType, task.Tx, task.Status, "2.0", task.CreateTime})
 
 			var rowColor []tablewriter.Colors
-			if ubiTask.Status == "success" {
+			if task.Status == "success" {
 				rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
 			} else {
 				rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgRedColor}}
 			}
 
 			rowColorList = append(rowColorList, RowColor{
-				row:    number,
+				row:    i,
 				column: []int{4},
 				color:  rowColor,
 			})
-
-			number++
 		}
 
 		header := []string{"TASK ID", "TASK TYPE", "ZK TYPE", "TRANSACTION HASH", "STATUS", "REWARD", "CREATE TIME"}

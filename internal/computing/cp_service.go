@@ -22,8 +22,10 @@ import (
 	"github.com/lagrangedao/go-computing-provider/wallet"
 	"io"
 	batchv1 "k8s.io/api/batch/v1"
+	coreV1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"math/rand"
@@ -75,7 +77,7 @@ func ReceiveJob(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
 
-	available, err := checkResourceAvailable(jobData.JobSourceURI)
+	available, err := checkResourceAvailableForSpace(jobData.JobSourceURI)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
 	}
@@ -586,22 +588,84 @@ func DoUbiTask(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
 
+	var ubiTaskToRedis models.CacheUbiTaskDetail
+	ubiTaskToRedis.TaskId = strconv.Itoa(ubiTask.ID)
+	ubiTaskToRedis.TaskType = "CPU"
+	if ubiTask.Type == 1 {
+		ubiTaskToRedis.TaskType = "GPU"
+	}
+	ubiTaskToRedis.ZkType = ubiTask.ZkType
+	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+	SaveUbiTaskMetadata(ubiTaskToRedis)
+
 	inputParamTaskJson, err := util.GetMcsFileByUrl(ubiTask.InputParam)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "the value of task_type is 0 or 1"))
 		return
 	}
 
+	var envFilePath string
+	envFilePath = filepath.Join(os.Getenv("CP_PATH"), "fil-c2.env")
+	envVars, err := godotenv.Read(envFilePath)
+	if err != nil {
+		logs.GetLogger().Errorf("reading fil-c2-env.env failed, error: %v", err)
+		return
+	}
+
+	c2GpuConfig := envVars["RUST_GPU_TOOLS_CUSTOM_GPU"]
+	c2GpuConfig = strings.TrimSpace(c2GpuConfig)
+	nodeName, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.Type, strings.Split(c2GpuConfig, ":")[0], ubiTask.Resource)
+	if err != nil {
+		logs.GetLogger().Errorf("check resource failed, error: %v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
+		return
+	}
+
+	if nodeName == "" {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
+	}
+
+	memQuantity, err := resource.ParseQuantity(fmt.Sprintf("%f%s", needMemory, strings.Split(strings.TrimSpace(ubiTask.Resource.Memory), " ")[1]))
+	if err != nil {
+		logs.GetLogger().Error("get memory failed, error: %+v", err)
+		return
+	}
+
+	storageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%f%s", needStorage, strings.Split(strings.TrimSpace(ubiTask.Resource.Storage), " ")[1]))
+	if err != nil {
+		logs.GetLogger().Error("get storage failed, error: %+v", err)
+		return
+	}
+
+	maxMemQuantity, err := resource.ParseQuantity(fmt.Sprintf("%f%s", needMemory*1.5, strings.Split(strings.TrimSpace(ubiTask.Resource.Memory), " ")[1]))
+	if err != nil {
+		logs.GetLogger().Error("get memory failed, error: %+v", err)
+		return
+	}
+
+	maxStorageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%f%s", needStorage*1.5, strings.Split(strings.TrimSpace(ubiTask.Resource.Storage), " ")[1]))
+	if err != nil {
+		logs.GetLogger().Error("get storage failed, error: %+v", err)
+		return
+	}
+
+	resourceRequirements := coreV1.ResourceRequirements{
+		Limits: coreV1.ResourceList{
+			coreV1.ResourceCPU:              *resource.NewQuantity(needCpu*2, resource.DecimalSI),
+			coreV1.ResourceMemory:           maxMemQuantity,
+			coreV1.ResourceEphemeralStorage: maxStorageQuantity,
+			"nvidia.com/gpu":                resource.MustParse("1"),
+		},
+		Requests: coreV1.ResourceList{
+			coreV1.ResourceCPU:              *resource.NewQuantity(needCpu, resource.DecimalSI),
+			coreV1.ResourceMemory:           memQuantity,
+			coreV1.ResourceEphemeralStorage: storageQuantity,
+			"nvidia.com/gpu":                resource.MustParse("1"),
+		},
+	}
+
 	go func() {
-		var envFilePath string
-		envFilePath = filepath.Join(os.Getenv("CP_PATH"), "fil-c2.env")
-		envVars, err := godotenv.Read(envFilePath)
-		if err != nil {
-			logs.GetLogger().Errorf("reading fil-c2-env.env failed, error: %v", err)
-			return
-		}
 		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
-		delete(envVars, "FIL_PROOFS_PARAMETER_CACHE")
 
 		k8sService := NewK8sService()
 		filC2SecretName := ubiTask.Name
@@ -614,7 +678,11 @@ func DoUbiTask(c *gin.Context) {
 						Name: namespace,
 					},
 				}
-				k8sService.CreateNameSpace(context.TODO(), k8sNamespace, metaV1.CreateOptions{})
+				_, err = k8sService.CreateNameSpace(context.TODO(), k8sNamespace, metaV1.CreateOptions{})
+				if err != nil {
+					logs.GetLogger().Errorf("create namespace failed, error: %v", err)
+					return
+				}
 			}
 		}
 
@@ -636,10 +704,7 @@ func DoUbiTask(c *gin.Context) {
 			Spec: batchv1.JobSpec{
 				Template: v1.PodTemplateSpec{
 					Spec: v1.PodSpec{
-						//NodeSelector: map[string]string{
-						//
-						//},
-
+						NodeName: nodeName,
 						Containers: []v1.Container{
 							{
 								Name:  JobName + generateString(5),
@@ -676,7 +741,8 @@ func DoUbiTask(c *gin.Context) {
 										MountPath: "/var/tmp/filecoin-proof-parameters",
 									},
 								},
-								Command: execCommand,
+								Command:   execCommand,
+								Resources: resourceRequirements,
 							},
 						},
 						Volumes: []v1.Volume{
@@ -726,7 +792,22 @@ func ReceiveUbiProof(c *gin.Context) {
 		NameSpace string `json:"name_space"`
 	}
 
+	var submitUBIProofTx string
+	var err error
 	defer func() {
+		var ubiTask models.CacheUbiTaskDetail
+		ubiTask.TaskId = c2Proof.TaskId
+		ubiTask.TaskType = c2Proof.TaskType
+		ubiTask.ZkType = c2Proof.ZkType
+		ubiTask.Tx = submitUBIProofTx
+
+		ubiTask.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+		if err == nil {
+			ubiTask.Status = "success"
+		} else {
+			ubiTask.Status = "failed"
+		}
+		SaveUbiTaskMetadata(ubiTask)
 		if strings.TrimSpace(c2Proof.NameSpace) != "" {
 			k8sService := NewK8sService()
 			k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), c2Proof.NameSpace, metaV1.DeleteOptions{})
@@ -776,19 +857,11 @@ func ReceiveUbiProof(c *gin.Context) {
 		return
 	}
 
-	submitUBIProofTx, err := accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
+	submitUBIProofTx, err = accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return
 	}
-	var ubiTask models.CacheUbiTaskDetail
-	ubiTask.TaskId = c2Proof.TaskId
-	ubiTask.TaskType = c2Proof.TaskType
-	ubiTask.ZkType = c2Proof.ZkType
-	ubiTask.Tx = submitUBIProofTx
-	ubiTask.Status = "success"
-	ubiTask.CreateTime = time.Now().Format("2006-01-02 15:04:05")
-	SaveUbiTaskMetadata(ubiTask)
 
 	fmt.Printf("submitUBIProofTx: %s", submitUBIProofTx)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
@@ -1041,7 +1114,7 @@ func getSpaceDetail(jobSourceURI string) (models.SpaceJSON, error) {
 	return spaceJson, nil
 }
 
-func checkResourceAvailable(jobSourceURI string) (bool, error) {
+func checkResourceAvailableForSpace(jobSourceURI string) (bool, error) {
 	spaceDetail, err := getSpaceDetail(jobSourceURI)
 	if err != nil {
 		logs.GetLogger().Errorln(err)
@@ -1083,15 +1156,73 @@ func checkResourceAvailable(jobSourceURI string) (bool, error) {
 				if !ok {
 					usedCount = 0
 				}
-
 				if usedCount+hardwareDetail.Gpu.Quantity <= nodeGpuSummary[node.Name][gpuName] {
 					return true, nil
 				}
-				return true, nil
+				continue
 			}
 		}
 	}
 	return false, nil
+}
+
+func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models.TaskResource) (string, int64, float64, float64, error) {
+	k8sService := NewK8sService()
+	activePods, err := k8sService.GetAllActivePod(context.TODO())
+	if err != nil {
+		return "", 0, 0, 0, err
+	}
+
+	nodes, err := k8sService.k8sClient.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return "", 0, 0, 0, err
+	}
+
+	nodeGpuSummary, err := k8sService.GetNodeGpuSummary(context.TODO())
+	if err != nil {
+		logs.GetLogger().Errorf("Failed collect k8s gpu, error: %+v", err)
+		return "", 0, 0, 0, err
+	}
+
+	needCpu, _ := strconv.ParseInt(resource.CPU, 10, 64)
+	var needMemory, needStorage float64
+	if len(strings.Split(strings.TrimSpace(resource.Memory), " ")) > 0 {
+		needMemory, err = strconv.ParseFloat(strings.Split(strings.TrimSpace(resource.Memory), " ")[0], 64)
+
+	}
+	if len(strings.Split(strings.TrimSpace(resource.Storage), " ")) > 0 {
+		needStorage, err = strconv.ParseFloat(strings.Split(strings.TrimSpace(resource.Storage), " ")[0], 64)
+
+	}
+
+	var nodeName string
+	for _, node := range nodes.Items {
+		nodeName = node.Name
+		nodeGpu, remainderResource, _ := GetNodeResource(activePods, &node)
+		remainderCpu := remainderResource[ResourceCpu]
+		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
+		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
+
+		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
+			if taskType == 0 {
+				return nodeName, needCpu, needMemory, needStorage, nil
+			} else if taskType == 1 {
+				gpuName = strings.ReplaceAll(gpuName, " ", "-")
+				logs.GetLogger().Infof("gpuName: %s, nodeGpu: %+v, nodeGpuSummary: %+v", gpuName, nodeGpu, nodeGpuSummary)
+				usedCount, ok := nodeGpu[gpuName]
+				if !ok {
+					usedCount = 0
+				}
+
+				if usedCount+1 <= nodeGpuSummary[node.Name][gpuName] {
+					return nodeName, needCpu, needMemory, needStorage, nil
+				}
+				nodeName = ""
+				continue
+			}
+		}
+	}
+	return nodeName, needCpu, needMemory, needStorage, nil
 }
 
 func generateString(length int) string {
@@ -1310,4 +1441,23 @@ func verifySignature(pubKStr, data, signature string) (bool, error) {
 	hash := crypto.Keccak256Hash([]byte(data))
 	valid := crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), []byte(signature))
 	return valid, nil
+}
+
+func convertName(name string) string {
+	if strings.Contains(name, "NVIDIA") {
+		if strings.Contains(name, "Tesla") {
+			return strings.Replace(name, "Tesla ", "", 1)
+		}
+
+		if strings.Contains(name, "GeForce") {
+			name = strings.Replace(name, "GeForce ", "", 1)
+		}
+		return strings.Replace(name, "RTX ", "", 1)
+	} else {
+		if strings.Contains(name, "GeForce") {
+			cpName := strings.Replace(name, "GeForce ", "NVIDIA", 1)
+			return strings.Replace(cpName, "RTX", "", 1)
+		}
+	}
+	return name
 }

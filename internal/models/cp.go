@@ -1,6 +1,9 @@
 package models
 
-import "math/big"
+import (
+	"math/big"
+	"time"
+)
 
 type BidStatus string
 
@@ -154,4 +157,20 @@ type Account struct {
 		Quota              *big.Int
 		Expiration         *big.Int
 	}
+}
+
+type TaskList []CacheUbiTaskDetail
+
+func (t TaskList) Len() int {
+	return len(t)
+}
+
+func (t TaskList) Less(i, j int) bool {
+	timeI, _ := time.Parse("2006-01-02 15:04:05", t[i].CreateTime)
+	timeJ, _ := time.Parse("2006-01-02 15:04:05", t[j].CreateTime)
+	return timeI.Before(timeJ)
+}
+
+func (t TaskList) Swap(i, j int) {
+	t[i], t[j] = t[j], t[i]
 }
