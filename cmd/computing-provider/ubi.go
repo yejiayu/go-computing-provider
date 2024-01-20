@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"sort"
 )
 
 var ubiTaskCmd = &cli.Command{
@@ -58,6 +59,7 @@ var ubiTaskList = &cli.Command{
 			taskList = append(taskList, ubiTask)
 		}
 
+		sort.Sort(taskList)
 		for i, task := range taskList {
 			var taskType string
 			taskType = "CPU"
