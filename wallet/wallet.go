@@ -394,7 +394,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 	addressKey := "Address"
 	balanceKey := "Balance"
 	collateralKey := "Collateral"
-	frozenKey := "Frozen"
+	frozenKey := "Escrow"
 	errorKey := "Error"
 
 	chainRpc, err := conf.GetRpcByName(chainName)

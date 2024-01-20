@@ -564,27 +564,27 @@ func DoUbiTask(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: input_param"))
 		return
 	}
-	//
-	//if strings.TrimSpace(ubiTask.Signature) == "" {
-	//	c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
-	//	return
-	//}
-	//
-	//ubiHubPk := conf.GetConfig().API.UbiHubPk
-	//
-	//cpRepoPath, _ := os.LookupEnv("CP_PATH")
-	//nodeID := InitComputingProvider(cpRepoPath)
-	//
-	//signature, err := verifySignature(ubiHubPk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
-	//if err != nil {
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
-	//	return
-	//}
-	//if !signature {
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
-	//	return
-	//}
-	//logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
+
+	if strings.TrimSpace(ubiTask.Signature) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		return
+	}
+
+	ubiHubPk := conf.GetConfig().API.UbiHubPk
+
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	nodeID := InitComputingProvider(cpRepoPath)
+
+	signature, err := verifySignature(ubiHubPk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		return
+	}
+	if !signature {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		return
+	}
+	logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
 
 	inputParamTaskJson, err := util.GetMcsFileByUrl(ubiTask.InputParam)
 	if err != nil {
@@ -597,7 +597,7 @@ func DoUbiTask(c *gin.Context) {
 		envFilePath = filepath.Join(os.Getenv("CP_PATH"), "fil-c2.env")
 		envVars, err := godotenv.Read(envFilePath)
 		if err != nil {
-			logs.GetLogger().Errorf("reading fil-c2-env.env")
+			logs.GetLogger().Errorf("reading fil-c2-env.env failed, error: %v", err)
 			return
 		}
 		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]

@@ -298,8 +298,11 @@ var initCmd = &cli.Command{
 
 				if receipt != nil && receipt.Status == types.ReceiptStatusSuccessful {
 					blockNumber = receipt.BlockNumber.String()
-					fmt.Printf("The height of the block: %s\n", blockNumber)
-					DoSend(contractAddress.Hex(), blockNumber)
+					err := DoSend(contractAddress.Hex(), blockNumber)
+					if err != nil {
+						return err
+					}
+					fmt.Println("cp successfully initialized, you can now start it with 'computing-provider run'")
 					return nil
 				} else if receipt != nil && receipt.Status == 0 {
 					return err
@@ -322,12 +325,13 @@ var accountCmd = &cli.Command{
 
 var changeMultiAddressCmd = &cli.Command{
 	Name:      "changeMultiAddress",
-	Usage:     "Update MultiAddress of CP",
-	ArgsUsage: "[multiAddress] example: /ip4/<public_ip>/tcp/<port>.",
+	Usage:     "Update MultiAddress of CP (/ip4/<public_ip>/tcp/<port>)",
+	ArgsUsage: "[multiAddress]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "ownerAddress",
-			Usage: "Specify a OwnerAddress",
+			Name:     "ownerAddress",
+			Usage:    "Specify a OwnerAddress",
+			Required: true,
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -407,8 +411,9 @@ var changeOwnerAddressCmd = &cli.Command{
 	ArgsUsage: "[newOwnerAddress]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "oldOwnerAddress",
-			Usage: "Specify a OwnerAddress",
+			Name:     "ownerAddress",
+			Usage:    "Specify a OwnerAddress",
+			Required: true,
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -489,8 +494,9 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 	ArgsUsage: "[beneficiaryAddress]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "ownerAddress",
-			Usage: "Specify a OwnerAddress",
+			Name:     "ownerAddress",
+			Usage:    "Specify a OwnerAddress",
+			Required: true,
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -567,12 +573,13 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 
 var changeUbiFlagCmd = &cli.Command{
 	Name:      "changeUbiFlag",
-	Usage:     "Update ubiFlag of CP",
+	Usage:     "Update ubiFlag of CP (0:Reject, 1:Accept)",
 	ArgsUsage: "[ubiFlag]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "ownerAddress",
-			Usage: "Specify a OwnerAddress",
+			Name:     "ownerAddress",
+			Usage:    "Specify a OwnerAddress",
+			Required: true,
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -652,7 +659,7 @@ var changeUbiFlagCmd = &cli.Command{
 	},
 }
 
-func DoSend(contractAddr, height string) {
+func DoSend(contractAddr, height string) error {
 	type ContractReq struct {
 		Addr   string `json:"addr"`
 		Height int    `json:"height"`
@@ -665,18 +672,19 @@ func DoSend(contractAddr, height string) {
 	jsonData, err := json.Marshal(contractReq)
 	if err != nil {
 		logs.GetLogger().Errorf("JSON encoding failed: %v", err)
-		return
+		return err
 	}
 
 	url := conf.GetConfig().HUB.UbiUrl
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		logs.GetLogger().Errorf("POST request failed: %v", err)
-		return
+		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		logs.GetLogger().Errorf("Request failed, status code: %d", resp.StatusCode)
+		return fmt.Errorf("register cp to ubi hub failed")
 	}
+	return nil
 }
