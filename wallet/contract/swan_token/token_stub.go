@@ -94,6 +94,26 @@ func (s *Stub) Approve(amount *big.Int) (string, error) {
 	return transaction.Hash().String(), nil
 }
 
+func (s *Stub) Transfer(to string, amount *big.Int) (string, error) {
+	publicAddress, err := s.privateKeyToPublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	txOptions, err := s.createTransactOpts()
+	if err != nil {
+		return "", fmt.Errorf("address: %s, collateral client create transaction, error: %+v", publicAddress, err)
+	}
+
+	toAddress := common.HexToAddress(to)
+
+	transaction, err := s.token.Transfer(txOptions, toAddress, amount)
+	if err != nil {
+		return "", fmt.Errorf("address: %s, token contract transfer, error: %+v", publicAddress, err)
+	}
+	return transaction.Hash().String(), nil
+}
+
 func (s *Stub) privateKeyToPublicKey() (common.Address, error) {
 	if len(strings.TrimSpace(s.privateK)) == 0 {
 		return common.Address{}, fmt.Errorf("wallet address private key must be not empty")
