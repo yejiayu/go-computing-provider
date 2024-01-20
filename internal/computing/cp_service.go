@@ -572,21 +572,21 @@ func DoUbiTask(c *gin.Context) {
 		return
 	}
 
-	ubiHubPk := conf.GetConfig().API.UbiHubPk
-
-	cpRepoPath, _ := os.LookupEnv("CP_PATH")
-	nodeID := InitComputingProvider(cpRepoPath)
-
-	signature, err := verifySignature(ubiHubPk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
-		return
-	}
-	if !signature {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
-		return
-	}
-	logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
+	//ubiHubPk := conf.GetConfig().API.UbiHubPk
+	//
+	//cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	//nodeID := GetNodeId(cpRepoPath)
+	//
+	//signature, err := verifySignature(ubiHubPk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
+	//if err != nil {
+	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+	//	return
+	//}
+	//if !signature {
+	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+	//	return
+	//}
+	//logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
 
 	var ubiTaskToRedis models.CacheUbiTaskDetail
 	ubiTaskToRedis.TaskId = strconv.Itoa(ubiTask.ID)

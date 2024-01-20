@@ -446,8 +446,9 @@ var collateralSendCmd = &cli.Command{
 	ArgsUsage: "[targetAddress] [amount]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "from",
-			Usage: "optionally specify the account to send funds from",
+			Name:     "from",
+			Usage:    "optionally specify the account to send funds from",
+			Required: true,
 		},
 		&cli.Uint64Flag{
 			Name:  "nonce",
