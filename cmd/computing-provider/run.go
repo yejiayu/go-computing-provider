@@ -675,8 +675,7 @@ func DoSend(contractAddr, height string) error {
 		return err
 	}
 
-	url := conf.GetConfig().HUB.UbiUrl
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(conf.GetConfig().HUB.UbiUrl+"/contracts", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		logs.GetLogger().Errorf("POST request failed: %v", err)
 		return err

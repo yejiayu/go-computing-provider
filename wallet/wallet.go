@@ -555,7 +555,7 @@ func convertToWei(ethValue string) (*big.Int, error) {
 }
 
 func getFrozenCollateral(walletAddress string) (string, error) {
-	url := fmt.Sprintf("%s/check_frozen_collateral/%s", conf.GetConfig().HUB.ServerUrl, walletAddress)
+	url := fmt.Sprintf("%s/check_holding_collateral/%s", conf.GetConfig().HUB.ServerUrl, walletAddress)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

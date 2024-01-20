@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gomodule/redigo/redis"
 	"github.com/lagrangedao/go-computing-provider/conf"
 	"github.com/lagrangedao/go-computing-provider/constants"
@@ -9,6 +11,9 @@ import (
 	"github.com/lagrangedao/go-computing-provider/internal/models"
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
+	"io"
+	"math/big"
+	"net/http"
 	"os"
 )
 
@@ -32,6 +37,8 @@ var ubiTaskList = &cli.Command{
 		if err := conf.InitConfig(cpPath); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
+
+		nodeID := computing.GetNodeId(cpPath)
 
 		conn := computing.GetRedisClient()
 		prefix := constants.REDIS_UBI_C2_PERFIX + "*"
@@ -58,8 +65,13 @@ var ubiTaskList = &cli.Command{
 				taskType = "GPU"
 			}
 
+			reward, err := getReward(nodeID, task.TaskId)
+			if err != nil {
+				logs.GetLogger().Errorf("get task id: %s, reward failed, error: %v", task.TaskId, err)
+			}
+
 			taskData = append(taskData,
-				[]string{task.TaskId, taskType, task.ZkType, task.Tx, task.Status, "2.0", task.CreateTime})
+				[]string{task.TaskId, taskType, task.ZkType, task.Tx, task.Status, reward, task.CreateTime})
 
 			var rowColor []tablewriter.Colors
 			if task.Status == "success" {
@@ -81,4 +93,57 @@ var ubiTaskList = &cli.Command{
 		return nil
 
 	},
+}
+
+func getReward(nodeId, taskId string) (string, error) {
+	var taskInfo TaskInfo
+
+	url := fmt.Sprintf("%s/rewards?node_id=%s&task_id=%s", conf.GetConfig().HUB.UbiUrl, nodeId, taskId)
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("get ubi task reward failed")
+	}
+
+	bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	err = json.Unmarshal(bytes, &taskInfo)
+	if err != nil {
+		return "", err
+	}
+
+	if len(taskInfo.Data.List) > 0 {
+		task := taskInfo.Data.List[0]
+		fbalance := new(big.Float)
+		fbalance.SetString(task.Amount)
+		etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
+		ethValue := etherQuotient.Text('f', 5)
+		return ethValue, nil
+	} else {
+		return "0.0", nil
+	}
+}
+
+type TaskInfo struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data struct {
+		Total int `json:"total"`
+		List  []struct {
+			TaskId          int    `json:"task_id"`
+			BeneficiaryAddr string `json:"beneficiary_addr"`
+			Amount          string `json:"amount"`
+			From            string `json:"from"`
+			TxHash          string `json:"tx_hash"`
+			ChainId         int    `json:"chain_id"`
+			CreatedAt       int    `json:"created_at"`
+		} `json:"list"`
+	} `json:"data"`
 }
