@@ -589,13 +589,14 @@ func DoUbiTask(c *gin.Context) {
 	//logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
 
 	var gpuFlag = "0"
-	var ubiTaskToRedis models.CacheUbiTaskDetail
+	var ubiTaskToRedis = new(models.CacheUbiTaskDetail)
 	ubiTaskToRedis.TaskId = strconv.Itoa(ubiTask.ID)
 	ubiTaskToRedis.TaskType = "CPU"
 	if ubiTask.Type == 1 {
 		ubiTaskToRedis.TaskType = "GPU"
 		gpuFlag = "1"
 	}
+	ubiTaskToRedis.Status = constants.UBI_TASK_RECEIVED_STATUS
 	ubiTaskToRedis.ZkType = ubiTask.ZkType
 	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 	SaveUbiTaskMetadata(ubiTaskToRedis)
@@ -672,11 +673,31 @@ func DoUbiTask(c *gin.Context) {
 	}
 
 	go func() {
-		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
+		var namespace = "ubi-task-" + strconv.Itoa(ubiTask.ID)
+		var err error
+		defer func() {
+			key := constants.REDIS_UBI_C2_PERFIX + strconv.Itoa(ubiTask.ID)
+			ubiTaskRun, _ := RetrieveUbiTaskMetadata(key)
+			if ubiTaskRun.TaskId == "" {
+				ubiTaskRun = new(models.CacheUbiTaskDetail)
+				ubiTaskRun.TaskId = ubiTaskToRedis.TaskId
+				ubiTaskRun.TaskType = ubiTaskToRedis.TaskType
+				ubiTaskRun.ZkType = ubiTask.ZkType
+				ubiTaskRun.CreateTime = ubiTaskToRedis.CreateTime
+			}
 
+			if err == nil {
+				ubiTaskRun.Status = constants.UBI_TASK_RUNNING_STATUS
+			} else {
+				ubiTaskRun.Status = constants.UBI_TASK_FAILED_STATUS
+				k8sService := NewK8sService()
+				k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metaV1.DeleteOptions{})
+			}
+			SaveUbiTaskMetadata(ubiTaskRun)
+		}()
+		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
 		k8sService := NewK8sService()
 		filC2SecretName := ubiTask.Name
-		var namespace = "ubi-task-" + strconv.Itoa(ubiTask.ID)
 
 		if _, err = k8sService.GetNameSpace(context.TODO(), namespace, metaV1.GetOptions{}); err != nil {
 			if errors.IsNotFound(err) {
@@ -802,7 +823,7 @@ func ReceiveUbiProof(c *gin.Context) {
 	var submitUBIProofTx string
 	var err error
 	defer func() {
-		var ubiTask models.CacheUbiTaskDetail
+		var ubiTask = new(models.CacheUbiTaskDetail)
 		ubiTask.TaskId = c2Proof.TaskId
 		ubiTask.TaskType = c2Proof.TaskType
 		ubiTask.ZkType = c2Proof.ZkType
@@ -810,9 +831,9 @@ func ReceiveUbiProof(c *gin.Context) {
 
 		ubiTask.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 		if err == nil {
-			ubiTask.Status = "success"
+			ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
 		} else {
-			ubiTask.Status = "failed"
+			ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
 		}
 		SaveUbiTaskMetadata(ubiTask)
 		if strings.TrimSpace(c2Proof.NameSpace) != "" {
@@ -1370,7 +1391,7 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 	}, nil
 }
 
-func SaveUbiTaskMetadata(ubiTask models.CacheUbiTaskDetail) {
+func SaveUbiTaskMetadata(ubiTask *models.CacheUbiTaskDetail) {
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
@@ -1393,16 +1414,16 @@ func SaveUbiTaskMetadata(ubiTask models.CacheUbiTaskDetail) {
 	_, _ = redisConn.Do("HSET", fullArgs...)
 }
 
-func RetrieveUbiTaskMetadata(key string) (models.CacheUbiTaskDetail, error) {
+func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
 	redisConn := redisPool.Get()
 	defer redisConn.Close()
 
 	exist, err := redis.Int(redisConn.Do("EXISTS", key))
 	if err != nil {
-		return models.CacheUbiTaskDetail{}, err
+		return nil, err
 	}
 	if exist == 0 {
-		return models.CacheUbiTaskDetail{}, NotFoundRedisKey
+		return nil, NotFoundRedisKey
 	}
 
 	type CacheUbiTaskDetail struct {
@@ -1419,7 +1440,7 @@ func RetrieveUbiTaskMetadata(key string) (models.CacheUbiTaskDetail, error) {
 	valuesStr, err := redis.Strings(redisConn.Do("HMGET", args...))
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
-		return models.CacheUbiTaskDetail{}, err
+		return nil, err
 	}
 
 	var (
@@ -1440,7 +1461,7 @@ func RetrieveUbiTaskMetadata(key string) (models.CacheUbiTaskDetail, error) {
 		createTime = valuesStr[5]
 	}
 
-	return models.CacheUbiTaskDetail{
+	return &models.CacheUbiTaskDetail{
 		TaskId:     taskId,
 		TaskType:   taskType,
 		ZkType:     zkType,

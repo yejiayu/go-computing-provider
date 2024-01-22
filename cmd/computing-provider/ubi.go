@@ -56,7 +56,7 @@ var ubiTaskList = &cli.Command{
 			if err != nil {
 				return fmt.Errorf("failed get ubi task: %s, error: %+v", key, err)
 			}
-			taskList = append(taskList, ubiTask)
+			taskList = append(taskList, *ubiTask)
 		}
 
 		sort.Sort(taskList)
@@ -76,9 +76,13 @@ var ubiTaskList = &cli.Command{
 				[]string{task.TaskId, taskType, task.ZkType, task.Tx, task.Status, reward, task.CreateTime})
 
 			var rowColor []tablewriter.Colors
-			if task.Status == "success" {
+			if task.Status == constants.UBI_TASK_RECEIVED_STATUS {
+				rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgWhiteColor}}
+			} else if task.Status == constants.UBI_TASK_RUNNING_STATUS {
+				rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgCyanColor}}
+			} else if task.Status == constants.UBI_TASK_SUCCESS_STATUS {
 				rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
-			} else {
+			} else if task.Status == constants.UBI_TASK_FAILED_STATUS {
 				rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgRedColor}}
 			}
 

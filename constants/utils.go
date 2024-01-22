@@ -21,3 +21,8 @@ const K8S_DEPLOY_NAME_PREFIX = "deploy-"
 
 const REDIS_SPACE_PREFIX = "FULL:"
 const REDIS_UBI_C2_PERFIX = "UBI-C2:"
+
+const UBI_TASK_RECEIVED_STATUS = "received"
+const UBI_TASK_RUNNING_STATUS = "running"
+const UBI_TASK_SUCCESS_STATUS = "success"
+const UBI_TASK_FAILED_STATUS = "failed"
