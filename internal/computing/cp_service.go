@@ -615,8 +615,8 @@ func DoUbiTask(c *gin.Context) {
 	}
 
 	c2GpuConfig := envVars["RUST_GPU_TOOLS_CUSTOM_GPU"]
-	c2GpuConfig = strings.TrimSpace(c2GpuConfig)
-	nodeName, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.Type, strings.Split(c2GpuConfig, ":")[0], ubiTask.Resource)
+	c2GpuConfig = convertGpuName(strings.TrimSpace(c2GpuConfig))
+	nodeName, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.Type, c2GpuConfig, ubiTask.Resource)
 	if err != nil {
 		logs.GetLogger().Errorf("check resource failed, error: %v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
@@ -624,6 +624,7 @@ func DoUbiTask(c *gin.Context) {
 	}
 
 	if nodeName == "" {
+		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, ubiTaskToRedis.TaskType)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
 	}
 
@@ -1213,6 +1214,10 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 			if taskType == 0 {
 				return nodeName, needCpu, needMemory, needStorage, nil
 			} else if taskType == 1 {
+				if gpuName == "" {
+					nodeName = ""
+					continue
+				}
 				gpuName = strings.ReplaceAll(gpuName, " ", "-")
 				logs.GetLogger().Infof("gpuName: %s, nodeGpu: %+v, nodeGpuSummary: %+v", gpuName, nodeGpu, nodeGpuSummary)
 				usedCount, ok := nodeGpu[gpuName]
@@ -1449,7 +1454,12 @@ func verifySignature(pubKStr, data, signature string) (bool, error) {
 	return valid, nil
 }
 
-func convertName(name string) string {
+func convertGpuName(name string) string {
+	if strings.TrimSpace(name) == "" {
+		return ""
+	} else {
+		name = strings.Split(name, ":")[0]
+	}
 	if strings.Contains(name, "NVIDIA") {
 		if strings.Contains(name, "Tesla") {
 			return strings.Replace(name, "Tesla ", "", 1)
