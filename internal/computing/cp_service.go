@@ -619,12 +619,16 @@ func DoUbiTask(c *gin.Context) {
 	c2GpuConfig = convertGpuName(strings.TrimSpace(c2GpuConfig))
 	nodeName, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.Type, c2GpuConfig, ubiTask.Resource)
 	if err != nil {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
 		logs.GetLogger().Errorf("check resource failed, error: %v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
 		return
 	}
 
 	if nodeName == "" {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
 		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, ubiTaskToRedis.TaskType)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
 	}
@@ -635,24 +639,32 @@ func DoUbiTask(c *gin.Context) {
 	diskUnit := strings.ReplaceAll(disk, "B", "")
 	memQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needMemory, memUnit))
 	if err != nil {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
 		logs.GetLogger().Error("get memory failed, error: %+v", err)
 		return
 	}
 
 	storageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needStorage, diskUnit))
 	if err != nil {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
 		logs.GetLogger().Error("get storage failed, error: %+v", err)
 		return
 	}
 
 	maxMemQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needMemory*2, memUnit))
 	if err != nil {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
 		logs.GetLogger().Error("get memory failed, error: %+v", err)
 		return
 	}
 
 	maxStorageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needStorage*2, diskUnit))
 	if err != nil {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
 		logs.GetLogger().Error("get storage failed, error: %+v", err)
 		return
 	}
