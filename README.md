@@ -430,7 +430,7 @@ UbiTask = true
 
 
 
-Note: Follow [this guide](https://app.gitbook.com/s/y5iPODl9iwLxyYirHs2D/api-reference) to claim Swan-ETH and bridge it to Swan Saturn Chain.
+Note: Follow [this guide](https://docs.swanchain.io/swan-testnet/swan-saturn-testnet/before-you-get-started/claim-faucet-tokens) to claim Swan-ETH and bridge it to Swan Saturn Chain.
 
 ### **Step 4: Initialization**
 
