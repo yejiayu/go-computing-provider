@@ -104,7 +104,7 @@ var ubiTaskList = &cli.Command{
 func getReward(nodeId, taskId string) (string, error) {
 	var taskInfo TaskInfo
 
-	url := fmt.Sprintf("%s/rewards?node_id=%s&task_id=%s", conf.GetConfig().HUB.UbiUrl, nodeId, taskId)
+	url := fmt.Sprintf("%s/rewards?node_id=%s&task_id=%s", conf.GetConfig().UBI.UbiUrl, nodeId, taskId)
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err

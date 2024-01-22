@@ -17,6 +17,7 @@ const (
 // ComputeNode is a compute node config
 type ComputeNode struct {
 	API      API
+	UBI      UBI
 	LOG      LOG
 	HUB      HUB
 	MCS      MCS
@@ -28,13 +29,15 @@ type ComputeNode struct {
 type API struct {
 	Port          int
 	MultiAddress  string
-	RedisUrl      string
-	RedisPassword string
 	Domain        string
 	NodeName      string
-	UbiTask       bool
-	UbiHubPk      string
-	SwanHubPk     string
+	RedisUrl      string
+	RedisPassword string
+}
+type UBI struct {
+	UbiTask     bool
+	UbiEnginePk string
+	UbiUrl      string
 }
 
 type LOG struct {
@@ -47,7 +50,6 @@ type HUB struct {
 	ServerUrl        string
 	AccessToken      string
 	BalanceThreshold float64
-	UbiUrl           string
 }
 
 type MCS struct {
@@ -72,7 +74,6 @@ type RPC struct {
 type CONTRACT struct {
 	SwanToken  string `toml:"SWAN_CONTRACT"`
 	Collateral string `toml:"SWAN_COLLATERAL_CONTRACT"`
-	CpAccount  string `toml:"CP_ACCOUNT_CONTRACT"`
 }
 
 func GetRpcByName(rpcName string) (string, error) {
@@ -110,6 +111,10 @@ func requiredFieldsAreGiven(metaData toml.MetaData) bool {
 		{"MCS"},
 		{"Registry"},
 
+		{"UBI", "UbiTask"},
+		{"UBI", "UbiEnginePk"},
+		{"UBI", "UbiUrl"},
+
 		{"API", "MultiAddress"},
 		{"API", "Domain"},
 		{"API", "RedisUrl"},
@@ -125,6 +130,11 @@ func requiredFieldsAreGiven(metaData toml.MetaData) bool {
 		{"MCS", "BucketName"},
 		{"MCS", "Network"},
 		{"MCS", "FileCachePath"},
+
+		{"RPC", "SWAN_TESTNET"},
+
+		{"CONTRACT", "SWAN_CONTRACT"},
+		{"CONTRACT", "SWAN_COLLATERAL_CONTRACT"},
 	}
 
 	for _, v := range requiredFields {

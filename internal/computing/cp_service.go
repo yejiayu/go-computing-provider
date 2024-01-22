@@ -54,7 +54,7 @@ func GetCpInfo(c *gin.Context) {
 	info.NodeId = GetNodeId(cpPath)
 	info.MultiAddress = conf.GetConfig().API.MultiAddress
 	info.UbiTask = 0
-	if conf.GetConfig().API.UbiTask {
+	if conf.GetConfig().UBI.UbiTask {
 		info.UbiTask = 1
 	}
 	c.JSON(http.StatusOK, util.CreateSuccessResponse(info))

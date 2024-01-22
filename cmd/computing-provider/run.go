@@ -263,7 +263,7 @@ var initCmd = &cli.Command{
 		nodeID := computing.GetNodeId(cpRepoPath)
 		multiAddresses := conf.GetConfig().API.MultiAddress
 		var ubiTaskFlag uint8
-		if conf.GetConfig().API.UbiTask {
+		if conf.GetConfig().UBI.UbiTask {
 			ubiTaskFlag = 1
 		}
 
@@ -675,7 +675,7 @@ func DoSend(contractAddr, height string) error {
 		return err
 	}
 
-	resp, err := http.Post(conf.GetConfig().HUB.UbiUrl+"/contracts", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(conf.GetConfig().UBI.UbiUrl+"/contracts", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		logs.GetLogger().Errorf("POST request failed: %v", err)
 		return err
