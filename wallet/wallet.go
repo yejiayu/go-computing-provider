@@ -410,10 +410,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 	var wallets []map[string]interface{}
 	for _, addr := range addrs {
 		var balance, collateralBalance string
-		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(addr))
-		if err == nil {
-			balance, err = tokenStub.BalanceOf()
-		}
+		balance, err = Balance(ctx, client, addr)
 
 		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(addr))
 		if err == nil {
