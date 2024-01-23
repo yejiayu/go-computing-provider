@@ -123,26 +123,32 @@ var infoCmd = &cli.Command{
 		defer client.Close()
 
 		var balance, collateralBalance string
+		var contractAddress, ownerAddress, beneficiaryAddress, ubiFlag string
 
 		cpStub, err := account.NewAccountStub(client)
-		if err != nil {
-			logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
-			return err
-		}
-
-		cpAccount, err := cpStub.GetCpAccountInfo()
-		if err != nil {
-			return fmt.Errorf("get cpAccount faile, error: %v", err)
-		}
-
-		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(cpAccount.OwnerAddress))
 		if err == nil {
-			balance, err = tokenStub.BalanceOf()
-		}
+			cpAccount, err := cpStub.GetCpAccountInfo()
+			if err != nil {
+				return fmt.Errorf("get cpAccount faile, error: %v", err)
+			}
+			tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(conf.GetConfig().HUB.WalletAddress))
+			if err == nil {
+				balance, err = tokenStub.BalanceOf()
+			}
 
-		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(cpAccount.OwnerAddress))
-		if err == nil {
-			collateralBalance, err = collateralStub.Balances()
+			collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(conf.GetConfig().HUB.WalletAddress))
+			if err == nil {
+				collateralBalance, err = collateralStub.Balances()
+			}
+
+			if cpAccount.UbiFlag == 1 {
+				ubiFlag = "Accept"
+			} else {
+				ubiFlag = "Reject"
+			}
+			contractAddress = cpStub.ContractAddress
+			ownerAddress = cpAccount.OwnerAddress
+			beneficiaryAddress = cpAccount.Beneficiary.BeneficiaryAddress
 		}
 
 		var domain = conf.GetConfig().API.Domain
@@ -151,24 +157,20 @@ var infoCmd = &cli.Command{
 		}
 		var taskData [][]string
 
-		taskData = append(taskData, []string{"Contract Address:", cpStub.ContractAddress})
+		taskData = append(taskData, []string{"Contract Address:", contractAddress})
 		taskData = append(taskData, []string{"Multi-Address:", conf.GetConfig().API.MultiAddress})
 		taskData = append(taskData, []string{"Name:", conf.GetConfig().API.NodeName})
 		taskData = append(taskData, []string{"Node ID:", nodeID})
 		taskData = append(taskData, []string{"Domain:", domain})
 		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
 
-		taskData = append(taskData, []string{"Available balance（SWAN）:", balance})
-		taskData = append(taskData, []string{"Collateral Balance（SWAN）:", collateralBalance})
+		taskData = append(taskData, []string{"Available balance（SWAN-ETH）:", balance})
+		taskData = append(taskData, []string{"Collateral Balance（SWAN-ETH）:", collateralBalance})
 
-		var ubiFlag = "Reject"
-		if cpAccount.UbiFlag == 1 {
-			ubiFlag = "Accept"
-		}
 		taskData = append(taskData, []string{"UBI FLAG:", ubiFlag})
-		taskData = append(taskData, []string{"Beneficiary Address:", cpAccount.Beneficiary.BeneficiaryAddress})
+		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
 
-		header := []string{"Owner:", cpAccount.OwnerAddress}
+		header := []string{"Owner:", ownerAddress}
 		NewVisualTable(header, taskData, []RowColor{}).Generate()
 		return nil
 	},
