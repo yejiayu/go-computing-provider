@@ -24,7 +24,6 @@ import (
 	"github.com/lagrangedao/go-computing-provider/util"
 	"github.com/lagrangedao/go-computing-provider/wallet"
 	"github.com/lagrangedao/go-computing-provider/wallet/contract/collateral"
-	"github.com/lagrangedao/go-computing-provider/wallet/contract/swan_token"
 	"github.com/urfave/cli/v2"
 	"math/big"
 	"net/http"
@@ -141,11 +140,7 @@ var infoCmd = &cli.Command{
 			beneficiaryAddress = cpAccount.Beneficiary.BeneficiaryAddress
 		}
 
-		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(conf.GetConfig().HUB.WalletAddress))
-		if err == nil {
-			balance, err = tokenStub.BalanceOf()
-		}
-
+		balance, err = wallet.Balance(context.TODO(), client, conf.GetConfig().HUB.WalletAddress)
 		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(conf.GetConfig().HUB.WalletAddress))
 		if err == nil {
 			collateralBalance, err = collateralStub.Balances()
@@ -164,8 +159,8 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Domain:", domain})
 		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
 
-		taskData = append(taskData, []string{"Available Balance（SWAN-ETH）:", balance})
-		taskData = append(taskData, []string{"Collateral Balance（SWAN-ETH）:", collateralBalance})
+		taskData = append(taskData, []string{"Available（SWAN-ETH）:", balance})
+		taskData = append(taskData, []string{"Collateral（SWAN-ETH）:", collateralBalance})
 
 		taskData = append(taskData, []string{"UBI FLAG:", ubiFlag})
 		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
