@@ -333,7 +333,7 @@ RedisPassword = ""                            # The redis server access password
 [UBI]
 UbiTask = true                                 # Accept the UBI task (Default: true)
 UbiEnginePk = "0xf5b7F848FaB22bdFD689Fedf26AA31bD5e890fCD"  # UBI Engine's public key, CP only accept the task from this UBI engine 
-UbiUrl ="http://ubi-task.swanchain.io/v1"     # UBI Engine's API address
+UbiUrl ="https://ubi-task.swanchain.io/v1"     # UBI Engine's API address
 
 [LOG]
 CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"   # Your domain name SSL .crt file path
