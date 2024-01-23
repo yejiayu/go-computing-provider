@@ -549,7 +549,7 @@ func (d *Deploy) watchContainerRunningTime() {
 		return
 	}
 
-	key := constants.REDIS_FULL_PREFIX + d.spaceUuid
+	key := constants.REDIS_SPACE_PREFIX + d.spaceUuid
 	conn.Do("DEL", redis.Args{}.AddFlat(key)...)
 
 	fullArgs := []interface{}{key}

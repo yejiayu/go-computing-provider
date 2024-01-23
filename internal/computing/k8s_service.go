@@ -1,5 +1,6 @@
 package computing
 
+import "C"
 import (
 	"context"
 	"encoding/json"
@@ -61,6 +62,8 @@ func NewK8sService() *K8sService {
 				return
 			}
 		}
+		config.QPS = 30
+		config.Burst = 50
 		clientSet, err = kubernetes.NewForConfig(config)
 		if err != nil {
 			logs.GetLogger().Errorf("Failed create k8s clientset, error: %v", err)
@@ -315,7 +318,7 @@ func (s *K8sService) ListNamespace(ctx context.Context) ([]string, error) {
 }
 
 func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeResource, error) {
-	activePods, err := allActivePods(s.k8sClient)
+	activePods, err := s.GetAllActivePod(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +336,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 	}
 
 	for _, node := range nodes.Items {
-		nodeGpu, _, nodeResource := getNodeResource(activePods, &node)
+		nodeGpu, _, nodeResource := GetNodeResource(activePods, &node)
 
 		collectGpu := make(map[string]collectGpuInfo)
 		if gpu, ok := nodeGpuInfoMap[node.Name]; ok {
@@ -361,10 +364,6 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 
 			for name, info := range collectGpu {
 				runCount := int(nodeGpu[name])
-				if num, ok := runTaskGpuResource.Load(name); ok {
-					runCount += num.(int)
-				}
-
 				if runCount < info.count {
 					info.remainNum = info.count - runCount
 				} else {
@@ -509,6 +508,99 @@ func (s *K8sService) PodDoCommand(namespace, podName, containerName string, podC
 		return fmt.Errorf("failed to create stream: %w", err)
 	}
 
+	return nil
+}
+
+func (s *K8sService) GetNodeGpuSummary(ctx context.Context) (map[string]map[string]int64, error) {
+	nodeGpuInfoMap, err := s.GetPodLog(ctx)
+	if err != nil {
+		logs.GetLogger().Errorf("Collect cluster gpu info Failed, if have available gpu, please check resource-exporter. error: %+v", err)
+		return map[string]map[string]int64{}, err
+	}
+
+	var nodeGpuSummary = make(map[string]map[string]int64)
+	for nodeName, gpuDetailStr := range nodeGpuInfoMap {
+		var gpuInfo struct {
+			Gpu models.Gpu `json:"gpu"`
+		}
+		if err := json.Unmarshal([]byte(gpuDetailStr.String()), &gpuInfo); err != nil {
+			logs.GetLogger().Error("nodeName: %s, error: %+v", nodeName, err)
+			continue
+		}
+
+		collectGpu := make(map[string]int64)
+		for _, gpuDetail := range gpuInfo.Gpu.Details {
+			gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
+			if v, ok := collectGpu[gpuName]; ok {
+				v += 1
+				collectGpu[gpuName] = v
+			} else {
+				collectGpu[gpuName] = 1
+			}
+		}
+		nodeGpuSummary[nodeName] = collectGpu
+	}
+	return nodeGpuSummary, nil
+}
+
+func (s *K8sService) GetAllActivePod(ctx context.Context) ([]coreV1.Pod, error) {
+	allPods, err := clientSet.CoreV1().Pods("").List(ctx, metaV1.ListOptions{
+		FieldSelector: "status.phase=Running",
+	})
+	if err != nil {
+		return nil, err
+	}
+	return allPods.Items, nil
+}
+
+func (s *K8sService) GetAPIServerEndpoint() string {
+	last := strings.LastIndex(s.config.Host, ":")
+	return s.config.Host[:last]
+}
+
+func (s *K8sService) GetDeploymentActiveCount() (int, error) {
+	namespaces, err := s.ListNamespace(context.TODO())
+	if err != nil {
+		logs.GetLogger().Errorf("Failed get all namespace, error: %+v", err)
+		return 0, err
+	}
+
+	var total int
+	for _, namespace := range namespaces {
+		if strings.HasPrefix(namespace, constants.K8S_NAMESPACE_NAME_PREFIX) {
+			deployments, err := s.k8sClient.AppsV1().Deployments(namespace).List(context.TODO(), metaV1.ListOptions{})
+			if err != nil {
+				logs.GetLogger().Errorf("Error getting deployments in namespace %s: %v\n", namespace, err)
+				continue
+			}
+
+			for _, deployment := range deployments.Items {
+				creationTimestamp := deployment.ObjectMeta.CreationTimestamp.Time
+				currentTime := time.Now()
+				age := currentTime.Sub(creationTimestamp)
+				if deployment.Status.AvailableReplicas > 0 && age.Hours() > 0 {
+					total++
+				}
+			}
+		}
+	}
+	return total, nil
+}
+
+func (s *K8sService) CreateUbiTaskSecret(ctx context.Context, namespace, name string, data string) error {
+	inputSecret := &coreV1.Secret{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		StringData: map[string]string{
+			"input.json": data,
+		},
+	}
+	_, err := s.k8sClient.CoreV1().Secrets(namespace).Create(ctx, inputSecret, metaV1.CreateOptions{})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

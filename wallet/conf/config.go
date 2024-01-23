@@ -23,24 +23,8 @@ type ChainConfig struct {
 	CONTRACT struct {
 		SwanToken  string `toml:"SWAN_CONTRACT"`
 		Collateral string `toml:"SWAN_COLLATERAL_CONTRACT"`
+		UbiTask    string `toml:"UBI_TASK_CONTRACT"`
 	} `toml:"CONTRACT"`
-}
-
-func GetContractAddressByName(name string) (string, error) {
-	chain, err := loadConfig()
-	if err != nil {
-		return "", err
-	}
-	var rpc string
-	switch name {
-	case TokenContract:
-		rpc = chain.CONTRACT.SwanToken
-		break
-	case CollateralContract:
-		rpc = chain.CONTRACT.Collateral
-		break
-	}
-	return rpc, nil
 }
 
 func GetRpcByName(rpcName string) (string, error) {

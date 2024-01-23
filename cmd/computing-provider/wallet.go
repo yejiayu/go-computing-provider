@@ -84,7 +84,7 @@ var walletList = &cli.Command{
 
 var walletExport = &cli.Command{
 	Name:      "export",
-	Usage:     "export keys",
+	Usage:     "Export keys",
 	ArgsUsage: "[address]",
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
@@ -114,7 +114,7 @@ var walletExport = &cli.Command{
 
 var walletImport = &cli.Command{
 	Name:      "import",
-	Usage:     "import keys",
+	Usage:     "Import keys",
 	ArgsUsage: "[<path> (optional, will read from stdin if omitted)]",
 	Flags:     []cli.Flag{},
 	Action: func(cctx *cli.Context) error {
@@ -212,7 +212,7 @@ var walletSign = &cli.Command{
 
 var walletVerify = &cli.Command{
 	Name:      "verify",
-	Usage:     "verify the signature of a message",
+	Usage:     "Verify the signature of a message",
 	ArgsUsage: "<signing address>  <signature> <rawMessage>",
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
@@ -290,7 +290,7 @@ var walletSend = &cli.Command{
 
 		amount := cctx.Args().Get(1)
 		if strings.TrimSpace(amount) == "" {
-			return fmt.Errorf("failed to get amount: %s", chain)
+			return fmt.Errorf("failed to get amount: %s", amount)
 		}
 		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
 		if err != nil {
@@ -305,9 +305,9 @@ var walletSend = &cli.Command{
 	},
 }
 
-var CollateralCmd = &cli.Command{
+var collateralCmd = &cli.Command{
 	Name:      "collateral",
-	Usage:     "Manage the collateral amount to the hub",
+	Usage:     "Manage the collateral amount",
 	ArgsUsage: "[fromAddress] [amount]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -318,14 +318,28 @@ var CollateralCmd = &cli.Command{
 	},
 	Subcommands: []*cli.Command{
 		collateralInfoCmd,
+		collateralAddCmd,
+		collateralSendCmd,
 		collateralWithdrawCmd,
+	},
+}
+
+var collateralAddCmd = &cli.Command{
+	Name:      "add",
+	Usage:     "Send the collateral amount to the hub",
+	ArgsUsage: "add [targetAddress] [amount]",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "chain",
+			Usage: "Specify which rpc connection chain to use",
+			Value: conf.DefaultRpc,
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
 		if cctx.NArg() != 2 {
 			return fmt.Errorf("need two params: the from address and amount")
 		}
-
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
 			return fmt.Errorf("failed to parse chain: %s", chain)
@@ -418,6 +432,55 @@ var collateralWithdrawCmd = &cli.Command{
 			return err
 		}
 		txHash, err := localWallet.CollateralWithdraw(ctx, chain, to, amount)
+		if err != nil {
+			return err
+		}
+		fmt.Println(txHash)
+		return nil
+	},
+}
+
+var collateralSendCmd = &cli.Command{
+	Name:      "send",
+	Usage:     "Send funds between accounts",
+	ArgsUsage: "[targetAddress] [amount]",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:     "from",
+			Usage:    "optionally specify the account to send funds from",
+			Required: true,
+		},
+		&cli.Uint64Flag{
+			Name:  "nonce",
+			Usage: "optionally specify the nonce to use",
+			Value: 0,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+		ctx := reqContext(cctx)
+		if cctx.NArg() != 2 {
+			return fmt.Errorf(" need two params: the target address and amount")
+		}
+
+		from := cctx.String("from")
+		if strings.TrimSpace(from) == "" {
+			return fmt.Errorf("failed to parse from address: %s", from)
+		}
+
+		to := cctx.Args().Get(0)
+		if strings.TrimSpace(to) == "" {
+			return fmt.Errorf("failed to parse target address: %s", to)
+		}
+
+		amount := cctx.Args().Get(1)
+		if strings.TrimSpace(amount) == "" {
+			return fmt.Errorf("failed to get amount: %s", amount)
+		}
+		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+		if err != nil {
+			return err
+		}
+		txHash, err := localWallet.CollateralSendCmd(ctx, from, to, amount)
 		if err != nil {
 			return err
 		}

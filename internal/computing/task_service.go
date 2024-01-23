@@ -17,7 +17,6 @@ import (
 	"time"
 )
 
-var runTaskGpuResource sync.Map
 var deployingChan = make(chan models2.Job)
 
 type ScheduleTask struct {
@@ -257,7 +256,7 @@ func watchExpiredTask() {
 					}
 				}()
 				conn := redisPool.Get()
-				prefix := constants.REDIS_FULL_PREFIX + "*"
+				prefix := constants.REDIS_SPACE_PREFIX + "*"
 				keys, err := redis.Strings(conn.Do("KEYS", prefix))
 				if err != nil {
 					logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)

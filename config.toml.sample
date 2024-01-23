@@ -7,15 +7,20 @@ NodeName = ""                                   # The computing-provider node na
 RedisUrl = "redis://127.0.0.1:6379"           # The redis server address
 RedisPassword = ""                            # The redis server access password
 
+[UBI]
+UbiTask = true                                              # Accept the UBI task (Default: true)
+UbiEnginePk = "0xf5b7F848FaB22bdFD689Fedf26AA31bD5e890fCD"  # UBI Engine's public key, CP only accept the task from this UBI engine
+UbiUrl ="https://ubi-task.swanchain.io/v1"                   # UBI Engine's API address
+
 [LOG]
 CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"   # Your domain name SSL .crt file path
 KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"   # Your domain name SSL .key file path
 
 [HUB]
-ServerUrl = "https://swanhub-cali.swanchain.io"     # The swan hub API address
-AccessToken = ""                                    # The swan hub access token
-WalletAddress = ""                                  # The cp wallet address
-BalanceThreshold= 50                                # The cp cp’s collateral balance threshold
+ServerUrl = "https://orchestrator-api.swanchain.io" # The Orchestrator's API address
+AccessToken = ""                                    # The Orchestrator's access token, Acquired from "https://orchestrator.swanchain.io"
+WalletAddress = ""                                  # The cp‘s wallet address
+BalanceThreshold= 50                                # The cp’s collateral balance threshold
 
 [MCS]
 ApiKey = ""                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key
@@ -29,10 +34,9 @@ UserName = ""                                 # The login username, if only a si
 Password = ""                                 # The login password, if only a single node, you can ignore
 
 [RPC]
-GOERLI_URL = "https://goerli.infura.io/v3/"
-SWAN_TESTNET ="https://rpc-testnet.swanchain.io"
-SWAN_MAINNET= ""
+SWAN_TESTNET ="https://saturn-rpc.swanchain.io"     # Swan testnet RPC
+SWAN_MAINNET= ""                                    # Swan mainnet RPC
 
 [CONTRACT]
-SWAN_CONTRACT="0x407a5856050053CF1DB54113bd9Ea9D2Eeee7C35"
-SWAN_COLLATERAL_CONTRACT="0xaAea25dF7D20f2098B816486880E4b706DD57044"
+SWAN_CONTRACT="0x91B25A65b295F0405552A4bbB77879ab5e38166c"              # Swan token's contract address
+SWAN_COLLATERAL_CONTRACT="0xC876B960472E994C7D20B223D1A72Ed6D12C20E5"   # Swan's collateral address

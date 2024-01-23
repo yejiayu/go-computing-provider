@@ -5,20 +5,27 @@ import (
 	"encoding/json"
 	stErr "errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
+	"github.com/lagrangedao/go-computing-provider/account"
 	"github.com/lagrangedao/go-computing-provider/build"
 	"github.com/lagrangedao/go-computing-provider/conf"
 	"github.com/lagrangedao/go-computing-provider/constants"
 	"github.com/lagrangedao/go-computing-provider/internal/models"
 	"github.com/lagrangedao/go-computing-provider/util"
+	"github.com/lagrangedao/go-computing-provider/wallet"
 	"io"
 	batchv1 "k8s.io/api/batch/v1"
+	coreV1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"math/rand"
@@ -31,6 +38,27 @@ import (
 	"syscall"
 	"time"
 )
+
+func GetCpInfo(c *gin.Context) {
+	var info struct {
+		NodeId       string `json:"node_id"`
+		MultiAddress string `json:"multi_address"`
+		UbiTask      int    `json:"ubi_task"`
+	}
+
+	cpPath, exit := os.LookupEnv("CP_PATH")
+	if !exit {
+		return
+	}
+
+	info.NodeId = GetNodeId(cpPath)
+	info.MultiAddress = conf.GetConfig().API.MultiAddress
+	info.UbiTask = 0
+	if conf.GetConfig().UBI.UbiTask {
+		info.UbiTask = 1
+	}
+	c.JSON(http.StatusOK, util.CreateSuccessResponse(info))
+}
 
 func GetServiceProviderInfo(c *gin.Context) {
 	info := new(models.HostInfo)
@@ -49,6 +77,15 @@ func ReceiveJob(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
 
+	available, err := checkResourceAvailableForSpace(jobData.JobSourceURI)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
+	}
+
+	if !available {
+		c.JSON(http.StatusOK, util.CreateErrorResponse(util.CheckAvailableResources))
+	}
+
 	var hostName string
 	var logHost string
 	prefixStr := generateString(10)
@@ -60,8 +97,7 @@ func ReceiveJob(c *gin.Context) {
 		logHost = "log." + conf.GetConfig().API.Domain
 	}
 
-	_, err := celeryService.DelayTask(constants.TASK_DEPLOY, jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID)
-	if err != nil {
+	if _, err = celeryService.DelayTask(constants.TASK_DEPLOY, jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID); err != nil {
 		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
 		return
 	}
@@ -78,7 +114,7 @@ func ReceiveJob(c *gin.Context) {
 	if err = submitJob(&jobData); err != nil {
 		jobData.JobResultURI = ""
 	}
-
+	logs.GetLogger().Infof("submit job detail: %+v", jobData)
 	c.JSON(http.StatusOK, jobData)
 }
 
@@ -210,7 +246,7 @@ func ReNewJob(c *gin.Context) {
 	}
 
 	conn := redisPool.Get()
-	prefix := constants.REDIS_FULL_PREFIX + "*"
+	prefix := constants.REDIS_SPACE_PREFIX + "*"
 	keys, err := redis.Strings(conn.Do("KEYS", prefix))
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
@@ -231,7 +267,7 @@ func ReNewJob(c *gin.Context) {
 		}
 	}
 
-	redisKey := constants.REDIS_FULL_PREFIX + spaceDetail.SpaceUuid
+	redisKey := constants.REDIS_SPACE_PREFIX + spaceDetail.SpaceUuid
 	leftTime := spaceDetail.ExpireTime - time.Now().Unix()
 	if leftTime < 0 {
 		c.JSON(http.StatusOK, map[string]string{
@@ -278,7 +314,7 @@ func CancelJob(c *gin.Context) {
 	}
 
 	conn := redisPool.Get()
-	prefix := constants.REDIS_FULL_PREFIX + "*"
+	prefix := constants.REDIS_SPACE_PREFIX + "*"
 	keys, err := redis.Strings(conn.Do("KEYS", prefix))
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
@@ -303,8 +339,17 @@ func CancelJob(c *gin.Context) {
 		c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
 		return
 	}
-	k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobDetail.WalletAddress)
-	deleteJob(k8sNameSpace, jobDetail.SpaceUuid)
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				logs.GetLogger().Errorf("task_uuid: %s, delete space request failed, error: %+v", taskUuid, err)
+				return
+			}
+		}()
+		k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobDetail.WalletAddress)
+		deleteJob(k8sNameSpace, jobDetail.SpaceUuid)
+	}()
+
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
 }
 
@@ -333,23 +378,27 @@ func GetSpaceLog(c *gin.Context) {
 	spaceUuid := c.Query("space_id")
 	logType := c.Query("type")
 	if strings.TrimSpace(spaceUuid) == "" {
+		logs.GetLogger().Errorf("get space log failed, space_id is empty: %s", spaceUuid)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: space_id"})
 		return
 	}
 
 	if strings.TrimSpace(logType) == "" {
+		logs.GetLogger().Errorf("get space log failed, type is empty: %s", logType)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: type"})
 		return
 	}
 
 	if strings.TrimSpace(logType) != "build" && strings.TrimSpace(logType) != "container" {
+		logs.GetLogger().Errorf("get space log failed, type is build or container, type:: %s", logType)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: type"})
 		return
 	}
 
-	redisKey := constants.REDIS_FULL_PREFIX + spaceUuid
+	redisKey := constants.REDIS_SPACE_PREFIX + spaceUuid
 	spaceDetail, err := RetrieveJobMetadata(redisKey)
 	if err != nil {
+		logs.GetLogger().Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
 		return
 	}
@@ -360,7 +409,6 @@ func GetSpaceLog(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "upgrading connection failed"})
 		return
 	}
-	defer conn.Close()
 	handleConnection(conn, spaceDetail, logType)
 }
 
@@ -487,20 +535,390 @@ func DoProof(c *gin.Context) {
 	c.JSON(http.StatusOK, util.CreateSuccessResponse(string(bytes)))
 }
 
+func DoUbiTask(c *gin.Context) {
+
+	var ubiTask models.UBITaskReq
+	if err := c.ShouldBindJSON(&ubiTask); err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
+	}
+	logs.GetLogger().Infof("receive ubi task received: %+v", ubiTask)
+
+	if ubiTask.ID == 0 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: id"))
+		return
+	}
+	if strings.TrimSpace(ubiTask.Name) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: name"))
+		return
+	}
+
+	if ubiTask.Type != 0 && ubiTask.Type != 1 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of task_type is 0 or 1"))
+		return
+	}
+	if strings.TrimSpace(ubiTask.ZkType) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: zk_type"))
+		return
+	}
+
+	if strings.TrimSpace(ubiTask.InputParam) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: input_param"))
+		return
+	}
+
+	if strings.TrimSpace(ubiTask.Signature) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		return
+	}
+
+	//ubiHubPk := conf.GetConfig().API.UbiHubPk
+	//
+	//cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	//nodeID := GetNodeId(cpRepoPath)
+	//
+	//signature, err := verifySignature(ubiHubPk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
+	//if err != nil {
+	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+	//	return
+	//}
+	//if !signature {
+	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+	//	return
+	//}
+	//logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
+
+	var gpuFlag = "0"
+	var ubiTaskToRedis = new(models.CacheUbiTaskDetail)
+	ubiTaskToRedis.TaskId = strconv.Itoa(ubiTask.ID)
+	ubiTaskToRedis.TaskType = "CPU"
+	if ubiTask.Type == 1 {
+		ubiTaskToRedis.TaskType = "GPU"
+		gpuFlag = "1"
+	}
+	ubiTaskToRedis.Status = constants.UBI_TASK_RECEIVED_STATUS
+	ubiTaskToRedis.ZkType = ubiTask.ZkType
+	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+	SaveUbiTaskMetadata(ubiTaskToRedis)
+
+	inputParamTaskJson, err := util.GetMcsFileByUrl(ubiTask.InputParam)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "the value of task_type is 0 or 1"))
+		return
+	}
+
+	var envFilePath string
+	envFilePath = filepath.Join(os.Getenv("CP_PATH"), "fil-c2.env")
+	envVars, err := godotenv.Read(envFilePath)
+	if err != nil {
+		logs.GetLogger().Errorf("reading fil-c2-env.env failed, error: %v", err)
+		return
+	}
+
+	c2GpuConfig := envVars["RUST_GPU_TOOLS_CUSTOM_GPU"]
+	c2GpuConfig = convertGpuName(strings.TrimSpace(c2GpuConfig))
+	nodeName, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.Type, c2GpuConfig, ubiTask.Resource)
+	if err != nil {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
+		logs.GetLogger().Errorf("check resource failed, error: %v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
+		return
+	}
+
+	if nodeName == "" {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
+		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, ubiTaskToRedis.TaskType)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
+	}
+
+	mem := strings.Split(strings.TrimSpace(ubiTask.Resource.Memory), " ")[1]
+	memUnit := strings.ReplaceAll(mem, "B", "")
+	disk := strings.Split(strings.TrimSpace(ubiTask.Resource.Storage), " ")[1]
+	diskUnit := strings.ReplaceAll(disk, "B", "")
+	memQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needMemory, memUnit))
+	if err != nil {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
+		logs.GetLogger().Error("get memory failed, error: %+v", err)
+		return
+	}
+
+	storageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needStorage, diskUnit))
+	if err != nil {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
+		logs.GetLogger().Error("get storage failed, error: %+v", err)
+		return
+	}
+
+	maxMemQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needMemory*2, memUnit))
+	if err != nil {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
+		logs.GetLogger().Error("get memory failed, error: %+v", err)
+		return
+	}
+
+	maxStorageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needStorage*2, diskUnit))
+	if err != nil {
+		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
+		SaveUbiTaskMetadata(ubiTaskToRedis)
+		logs.GetLogger().Error("get storage failed, error: %+v", err)
+		return
+	}
+
+	resourceRequirements := coreV1.ResourceRequirements{
+		Limits: coreV1.ResourceList{
+			coreV1.ResourceCPU:              *resource.NewQuantity(needCpu*2, resource.DecimalSI),
+			coreV1.ResourceMemory:           maxMemQuantity,
+			coreV1.ResourceEphemeralStorage: maxStorageQuantity,
+			"nvidia.com/gpu":                resource.MustParse(gpuFlag),
+		},
+		Requests: coreV1.ResourceList{
+			coreV1.ResourceCPU:              *resource.NewQuantity(needCpu, resource.DecimalSI),
+			coreV1.ResourceMemory:           memQuantity,
+			coreV1.ResourceEphemeralStorage: storageQuantity,
+			"nvidia.com/gpu":                resource.MustParse(gpuFlag),
+		},
+	}
+
+	go func() {
+		var namespace = "ubi-task-" + strconv.Itoa(ubiTask.ID)
+		var err error
+		defer func() {
+			key := constants.REDIS_UBI_C2_PERFIX + strconv.Itoa(ubiTask.ID)
+			ubiTaskRun, _ := RetrieveUbiTaskMetadata(key)
+			if ubiTaskRun.TaskId == "" {
+				ubiTaskRun = new(models.CacheUbiTaskDetail)
+				ubiTaskRun.TaskId = ubiTaskToRedis.TaskId
+				ubiTaskRun.TaskType = ubiTaskToRedis.TaskType
+				ubiTaskRun.ZkType = ubiTask.ZkType
+				ubiTaskRun.CreateTime = ubiTaskToRedis.CreateTime
+			}
+
+			if err == nil {
+				ubiTaskRun.Status = constants.UBI_TASK_RUNNING_STATUS
+			} else {
+				ubiTaskRun.Status = constants.UBI_TASK_FAILED_STATUS
+				k8sService := NewK8sService()
+				k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metaV1.DeleteOptions{})
+			}
+			SaveUbiTaskMetadata(ubiTaskRun)
+		}()
+		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
+		k8sService := NewK8sService()
+		filC2SecretName := ubiTask.Name
+
+		if _, err = k8sService.GetNameSpace(context.TODO(), namespace, metaV1.GetOptions{}); err != nil {
+			if errors.IsNotFound(err) {
+				k8sNamespace := &v1.Namespace{
+					ObjectMeta: metaV1.ObjectMeta{
+						Name: namespace,
+					},
+				}
+				_, err = k8sService.CreateNameSpace(context.TODO(), k8sNamespace, metaV1.CreateOptions{})
+				if err != nil {
+					logs.GetLogger().Errorf("create namespace failed, error: %v", err)
+					return
+				}
+			}
+		}
+
+		if err = k8sService.CreateUbiTaskSecret(context.TODO(), namespace, filC2SecretName, inputParamTaskJson); err != nil {
+			logs.GetLogger().Errorf("create ubi task configmap failed, error: %v", err)
+			return
+		}
+
+		urlSplits := strings.Split(conf.GetConfig().API.MultiAddress, "/")
+		receiveUrl := fmt.Sprintf("%s:%s/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), urlSplits[4])
+
+		execCommand := []string{"ubi-bench", "c2"}
+		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
+		job := &batchv1.Job{
+			ObjectMeta: metaV1.ObjectMeta{
+				Name:      JobName,
+				Namespace: namespace,
+			},
+			Spec: batchv1.JobSpec{
+				Template: v1.PodTemplateSpec{
+					Spec: v1.PodSpec{
+						NodeName: nodeName,
+						Containers: []v1.Container{
+							{
+								Name:  JobName + generateString(5),
+								Image: "filswan/ubi-worker:v1.0",
+								Env: []v1.EnvVar{
+									{
+										Name:  "RECEIVE_PROOF_URL",
+										Value: receiveUrl,
+									},
+									{
+										Name:  "TASKID",
+										Value: strconv.Itoa(ubiTask.ID),
+									},
+									{
+										Name:  "TASK_TYPE",
+										Value: strconv.Itoa(ubiTask.Type),
+									},
+									{
+										Name:  "ZK_TYPE",
+										Value: ubiTask.ZkType,
+									},
+									{
+										Name:  "NAME_SPACE",
+										Value: namespace,
+									},
+								},
+								VolumeMounts: []v1.VolumeMount{
+									{
+										Name:      "fil-c2-input-volume",
+										MountPath: "/var/tmp/fil-c2-param",
+									},
+									{
+										Name:      "proof-params",
+										MountPath: "/var/tmp/filecoin-proof-parameters",
+									},
+								},
+								Command:   execCommand,
+								Resources: resourceRequirements,
+							},
+						},
+						Volumes: []v1.Volume{
+							{
+								Name: "proof-params",
+								VolumeSource: v1.VolumeSource{
+									HostPath: &v1.HostPathVolumeSource{
+										Path: filC2Param,
+									},
+								},
+							},
+							{
+								Name: "fil-c2-input-volume",
+								VolumeSource: v1.VolumeSource{
+									Secret: &v1.SecretVolumeSource{
+										SecretName: filC2SecretName,
+									},
+								},
+							},
+						},
+						RestartPolicy: "Never",
+					},
+				},
+				BackoffLimit:            new(int32),
+				TTLSecondsAfterFinished: new(int32),
+			},
+		}
+
+		*job.Spec.BackoffLimit = 1
+		*job.Spec.TTLSecondsAfterFinished = 120
+
+		if _, err = k8sService.k8sClient.BatchV1().Jobs(namespace).Create(context.TODO(), job, metaV1.CreateOptions{}); err != nil {
+			logs.GetLogger().Errorf("Failed creating ubi task job: %v", err)
+			return
+		}
+	}()
+
+	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
+}
+
+func ReceiveUbiProof(c *gin.Context) {
+	var c2Proof struct {
+		TaskId    string `json:"task_id"`
+		TaskType  string `json:"task_type"`
+		Proof     string `json:"proof"`
+		ZkType    string `json:"zk_type"`
+		NameSpace string `json:"name_space"`
+	}
+
+	var submitUBIProofTx string
+	var err error
+	defer func() {
+		var ubiTask = new(models.CacheUbiTaskDetail)
+		ubiTask.TaskId = c2Proof.TaskId
+		ubiTask.TaskType = c2Proof.TaskType
+		ubiTask.ZkType = c2Proof.ZkType
+		ubiTask.Tx = submitUBIProofTx
+
+		ubiTask.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+		if err == nil {
+			ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
+		} else {
+			ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
+		}
+		SaveUbiTaskMetadata(ubiTask)
+		if strings.TrimSpace(c2Proof.NameSpace) != "" {
+			k8sService := NewK8sService()
+			k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), c2Proof.NameSpace, metaV1.DeleteOptions{})
+		}
+	}()
+
+	if err := c.ShouldBindJSON(&c2Proof); err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
+	}
+	logs.GetLogger().Infof("task_id: %s, C2 proof out received: %+v", c2Proof.TaskId, c2Proof)
+
+	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+	if err != nil {
+		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+		return
+	}
+
+	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+	if err != nil {
+		logs.GetLogger().Errorf("setup wallet ubi failed, error: %v,", err)
+		return
+	}
+
+	ki, err := localWallet.FindKey(conf.GetConfig().HUB.WalletAddress)
+	if err != nil || ki == nil {
+		logs.GetLogger().Errorf("the address: %s, private key %v,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
+		return
+	}
+
+	client, err := ethclient.Dial(chainUrl)
+	if err != nil {
+		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+		return
+	}
+	defer client.Close()
+
+	accountStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
+	if err != nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		return
+	}
+
+	taskType, err := strconv.ParseUint(c2Proof.TaskType, 10, 8)
+	if err != nil {
+		logs.GetLogger().Errorf("Conversion to uint8 error: %v", err)
+		return
+	}
+
+	submitUBIProofTx, err = accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
+	if err != nil {
+		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
+		return
+	}
+
+	fmt.Printf("submitUBIProofTx: %s", submitUBIProofTx)
+	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
+}
+
 func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail, logType string) {
 	client := NewWsClient(conn)
 
 	if logType == "build" {
 		buildLogPath := filepath.Join("build", spaceDetail.WalletAddress, "spaces", spaceDetail.SpaceName, BuildFileName)
 		if _, err := os.Stat(buildLogPath); err != nil {
-			logs.GetLogger().Errorf("not found build log file: %s", buildLogPath)
-			return
+			client.HandleLogs(strings.NewReader("This space is deployed starting from a image."))
+		} else {
+			logFile, _ := os.Open(buildLogPath)
+			defer logFile.Close()
+			client.HandleLogs(logFile)
 		}
-		logFile, _ := os.Open(buildLogPath)
-		defer logFile.Close()
-
-		client.HandleLogs(logFile)
-
 	} else if logType == "container" {
 		k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(spaceDetail.WalletAddress)
 
@@ -514,12 +932,14 @@ func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail,
 		}
 
 		if len(pods.Items) > 0 {
+			line := int64(1000)
 			containerStatuses := pods.Items[0].Status.ContainerStatuses
 			lastIndex := len(containerStatuses) - 1
 			req := k8sService.k8sClient.CoreV1().Pods(k8sNameSpace).GetLogs(pods.Items[0].Name, &v1.PodLogOptions{
 				Container:  containerStatuses[lastIndex].Name,
 				Follow:     true,
 				Timestamps: true,
+				TailLines:  &line,
 			})
 
 			podLogs, err := req.Stream(context.Background())
@@ -551,48 +971,20 @@ func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string
 			return
 		}
 	}()
-	var gpuName string
-	defer func() {
-		if gpuName != "" {
-			count, ok := runTaskGpuResource.Load(gpuName)
-			if ok && count.(int) > 0 {
-				runTaskGpuResource.Store(gpuName, count.(int)-1)
-			} else {
-				runTaskGpuResource.Delete(gpuName)
-			}
-		}
-	}()
 
-	resp, err := http.Get(jobSourceURI)
+	spaceDetail, err := getSpaceDetail(jobSourceURI)
 	if err != nil {
-		logs.GetLogger().Errorf("error making request to Space API: %+v", err)
-		return ""
-	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			logs.GetLogger().Errorf("error closed resp Space API: %+v", err)
-		}
-	}(resp.Body)
-	logs.GetLogger().Infof("Space API response received. Response: %d", resp.StatusCode)
-	if resp.StatusCode != http.StatusOK {
-		logs.GetLogger().Errorf("space API response not OK. Status Code: %d", resp.StatusCode)
+		logs.GetLogger().Errorln(err)
 		return ""
 	}
 
-	var spaceJson models.SpaceJSON
-	if err := json.NewDecoder(resp.Body).Decode(&spaceJson); err != nil {
-		logs.GetLogger().Errorf("error decoding Space API response JSON: %v", err)
-		return ""
-	}
-
-	walletAddress = spaceJson.Data.Owner.PublicAddress
-	spaceName := spaceJson.Data.Space.Name
-	spaceUuid = strings.ToLower(spaceJson.Data.Space.Uuid)
-	spaceHardware := spaceJson.Data.Space.ActiveOrder.Config
+	walletAddress = spaceDetail.Data.Owner.PublicAddress
+	spaceName := spaceDetail.Data.Space.Name
+	spaceUuid = strings.ToLower(spaceDetail.Data.Space.Uuid)
+	spaceHardware := spaceDetail.Data.Space.ActiveOrder.Config
 
 	conn := redisPool.Get()
-	fullArgs := []interface{}{constants.REDIS_FULL_PREFIX + spaceUuid}
+	fullArgs := []interface{}{constants.REDIS_SPACE_PREFIX + spaceUuid}
 	fields := map[string]string{
 		"wallet_address": walletAddress,
 		"space_name":     spaceName,
@@ -614,20 +1006,10 @@ func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string
 	deploy := NewDeploy(jobUuid, hostName, walletAddress, spaceHardware.Description, int64(duration), taskUuid)
 	deploy.WithSpaceInfo(spaceUuid, spaceName)
 
-	if deploy.hardwareResource.Gpu.Unit != "" {
-		gpuName = strings.ReplaceAll(deploy.hardwareResource.Gpu.Unit, " ", "-")
-		count, ok := runTaskGpuResource.Load(gpuName)
-		if ok {
-			runTaskGpuResource.Store(gpuName, count.(int)+1)
-		} else {
-			runTaskGpuResource.Store(gpuName, 1)
-		}
-	}
-
 	spacePath := filepath.Join("build", walletAddress, "spaces", spaceName)
 	os.RemoveAll(spacePath)
 	updateJobStatus(jobUuid, models.JobDownloadSource)
-	containsYaml, yamlPath, imagePath, modelsSettingFile, err := BuildSpaceTaskImage(spaceUuid, spaceJson.Data.Files)
+	containsYaml, yamlPath, imagePath, modelsSettingFile, err := BuildSpaceTaskImage(spaceUuid, spaceDetail.Data.Files)
 	if err != nil {
 		logs.GetLogger().Error(err)
 		return ""
@@ -753,6 +1135,140 @@ func updateJobStatus(jobUuid string, jobStatus models.JobStatus, url ...string) 
 			}
 		}
 	}()
+}
+
+func getSpaceDetail(jobSourceURI string) (models.SpaceJSON, error) {
+	resp, err := http.Get(jobSourceURI)
+	if err != nil {
+		return models.SpaceJSON{}, fmt.Errorf("error making request to Space API: %+v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return models.SpaceJSON{}, fmt.Errorf("space API response not OK. Status Code: %d", resp.StatusCode)
+	}
+
+	var spaceJson models.SpaceJSON
+	if err := json.NewDecoder(resp.Body).Decode(&spaceJson); err != nil {
+		return models.SpaceJSON{}, fmt.Errorf("error decoding Space API response JSON: %v", err)
+	}
+	return spaceJson, nil
+}
+
+func checkResourceAvailableForSpace(jobSourceURI string) (bool, error) {
+	spaceDetail, err := getSpaceDetail(jobSourceURI)
+	if err != nil {
+		logs.GetLogger().Errorln(err)
+		return false, err
+	}
+
+	taskType, hardwareDetail := getHardwareDetail(spaceDetail.Data.Space.ActiveOrder.Config.Description)
+	k8sService := NewK8sService()
+
+	activePods, err := k8sService.GetAllActivePod(context.TODO())
+	if err != nil {
+		return false, err
+	}
+
+	nodes, err := k8sService.k8sClient.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+
+	nodeGpuSummary, err := k8sService.GetNodeGpuSummary(context.TODO())
+	if err != nil {
+		logs.GetLogger().Errorf("Failed collect k8s gpu, error: %+v", err)
+		return false, err
+	}
+
+	for _, node := range nodes.Items {
+		nodeGpu, remainderResource, _ := GetNodeResource(activePods, &node)
+		remainderCpu := remainderResource[ResourceCpu]
+		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
+		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
+
+		if hardwareDetail.Cpu.Quantity < remainderCpu && float64(hardwareDetail.Memory.Quantity) < remainderMemory && float64(hardwareDetail.Storage.Quantity) < remainderStorage {
+			if taskType == "CPU" {
+				return true, nil
+			} else if taskType == "GPU" {
+				gpuName := strings.ReplaceAll(hardwareDetail.Gpu.Unit, " ", "-")
+				logs.GetLogger().Infof("gpuName: %s, nodeGpu: %+v, nodeGpuSummary: %+v", gpuName, nodeGpu, nodeGpuSummary)
+				usedCount, ok := nodeGpu[gpuName]
+				if !ok {
+					usedCount = 0
+				}
+				if usedCount+hardwareDetail.Gpu.Quantity <= nodeGpuSummary[node.Name][gpuName] {
+					return true, nil
+				}
+				continue
+			}
+		}
+	}
+	return false, nil
+}
+
+func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models.TaskResource) (string, int64, int64, int64, error) {
+	k8sService := NewK8sService()
+	activePods, err := k8sService.GetAllActivePod(context.TODO())
+	if err != nil {
+		return "", 0, 0, 0, err
+	}
+
+	nodes, err := k8sService.k8sClient.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return "", 0, 0, 0, err
+	}
+
+	nodeGpuSummary, err := k8sService.GetNodeGpuSummary(context.TODO())
+	if err != nil {
+		logs.GetLogger().Errorf("Failed collect k8s gpu, error: %+v", err)
+		return "", 0, 0, 0, err
+	}
+
+	needCpu, _ := strconv.ParseInt(resource.CPU, 10, 64)
+	var needMemory, needStorage int64
+	if len(strings.Split(strings.TrimSpace(resource.Memory), " ")) > 0 {
+		needMemory, err = strconv.ParseInt(strings.Split(strings.TrimSpace(resource.Memory), " ")[0], 10, 64)
+
+	}
+	if len(strings.Split(strings.TrimSpace(resource.Storage), " ")) > 0 {
+		needStorage, err = strconv.ParseInt(strings.Split(strings.TrimSpace(resource.Storage), " ")[0], 10, 64)
+
+	}
+
+	var nodeName string
+	for _, node := range nodes.Items {
+		nodeGpu, remainderResource, _ := GetNodeResource(activePods, &node)
+		remainderCpu := remainderResource[ResourceCpu]
+		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
+		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
+
+		logs.GetLogger().Infof("needCpu: %d, needMemory: %d, needStorage: %d", needCpu, needMemory, needStorage)
+		logs.GetLogger().Infof("needCpu: %d, needMemory: %f, needStorage: %f", remainderCpu, remainderMemory, remainderStorage)
+		if needCpu < remainderCpu && float64(needMemory) < remainderMemory && float64(needStorage) < remainderStorage {
+			nodeName = node.Name
+			if taskType == 0 {
+				return nodeName, needCpu, needMemory, needStorage, nil
+			} else if taskType == 1 {
+				if gpuName == "" {
+					nodeName = ""
+					continue
+				}
+				gpuName = strings.ReplaceAll(gpuName, " ", "-")
+				logs.GetLogger().Infof("gpuName: %s, nodeGpu: %+v, nodeGpuSummary: %+v", gpuName, nodeGpu, nodeGpuSummary)
+				usedCount, ok := nodeGpu[gpuName]
+				if !ok {
+					usedCount = 0
+				}
+
+				if usedCount+1 <= nodeGpuSummary[node.Name][gpuName] {
+					return nodeName, needCpu, needMemory, needStorage, nil
+				}
+				nodeName = ""
+				continue
+			}
+		}
+	}
+	return nodeName, needCpu, needMemory, needStorage, nil
 }
 
 func generateString(length int) string {
@@ -885,4 +1401,114 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 		Url:           url,
 		TaskUuid:      taskUuid,
 	}, nil
+}
+
+func SaveUbiTaskMetadata(ubiTask *models.CacheUbiTaskDetail) {
+	redisConn := redisPool.Get()
+	defer redisConn.Close()
+
+	key := constants.REDIS_UBI_C2_PERFIX + ubiTask.TaskId
+	redisConn.Do("DEL", redis.Args{}.AddFlat(key)...)
+
+	fullArgs := []interface{}{key}
+	fields := map[string]string{
+		"task_id":     ubiTask.TaskId,
+		"task_type":   ubiTask.TaskType,
+		"zk_type":     ubiTask.ZkType,
+		"tx":          ubiTask.Tx,
+		"status":      ubiTask.Status,
+		"create_time": ubiTask.CreateTime,
+	}
+
+	for k, val := range fields {
+		fullArgs = append(fullArgs, k, val)
+	}
+	_, _ = redisConn.Do("HSET", fullArgs...)
+}
+
+func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
+	redisConn := redisPool.Get()
+	defer redisConn.Close()
+
+	exist, err := redis.Int(redisConn.Do("EXISTS", key))
+	if err != nil {
+		return nil, err
+	}
+	if exist == 0 {
+		return nil, NotFoundRedisKey
+	}
+
+	type CacheUbiTaskDetail struct {
+		TaskId     string `json:"task_id"`
+		TaskType   string `json:"task_type"`
+		ZkType     string `json:"zk_type"`
+		Tx         string `json:"tx"`
+		Status     string `json:"status"`
+		Reward     string `json:"reward"`
+		CreateTime string `json:"create_time"`
+	}
+
+	args := append([]interface{}{key}, "task_id", "task_type", "zk_type", "tx", "status", "create_time")
+	valuesStr, err := redis.Strings(redisConn.Do("HMGET", args...))
+	if err != nil {
+		logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
+		return nil, err
+	}
+
+	var (
+		taskId     string
+		taskType   string
+		zkType     string
+		tx         string
+		status     string
+		createTime string
+	)
+
+	if len(valuesStr) >= 6 {
+		taskId = valuesStr[0]
+		taskType = valuesStr[1]
+		zkType = valuesStr[2]
+		tx = valuesStr[3]
+		status = valuesStr[4]
+		createTime = valuesStr[5]
+	}
+
+	return &models.CacheUbiTaskDetail{
+		TaskId:     taskId,
+		TaskType:   taskType,
+		ZkType:     zkType,
+		Tx:         tx,
+		Status:     status,
+		CreateTime: createTime,
+	}, nil
+}
+
+func verifySignature(pubKStr, data, signature string) (bool, error) {
+	hash := crypto.Keccak256Hash([]byte(data))
+	valid := crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), []byte(signature))
+	return valid, nil
+}
+
+func convertGpuName(name string) string {
+	if strings.TrimSpace(name) == "" {
+		return ""
+	} else {
+		name = strings.Split(name, ":")[0]
+	}
+	if strings.Contains(name, "NVIDIA") {
+		if strings.Contains(name, "Tesla") {
+			return strings.Replace(name, "Tesla ", "", 1)
+		}
+
+		if strings.Contains(name, "GeForce") {
+			name = strings.Replace(name, "GeForce ", "", 1)
+		}
+		return strings.Replace(name, "RTX ", "", 1)
+	} else {
+		if strings.Contains(name, "GeForce") {
+			cpName := strings.Replace(name, "GeForce ", "NVIDIA", 1)
+			return strings.Replace(cpName, "RTX", "", 1)
+		}
+	}
+	return name
 }

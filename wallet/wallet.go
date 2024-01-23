@@ -2,6 +2,7 @@ package wallet
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
@@ -11,12 +12,14 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/lagrangedao/go-computing-provider/wallet/conf"
+	"github.com/lagrangedao/go-computing-provider/conf"
 	"github.com/lagrangedao/go-computing-provider/wallet/contract/collateral"
 	"github.com/lagrangedao/go-computing-provider/wallet/contract/swan_token"
 	"github.com/lagrangedao/go-computing-provider/wallet/tablewriter"
 	"golang.org/x/xerrors"
+	"io"
 	"math/big"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -42,18 +45,15 @@ func SetupWallet(dir string) (*LocalWallet, error) {
 	if !exit {
 		return nil, fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 	}
+	if err := conf.InitConfig(cpPath); err != nil {
+		return nil, fmt.Errorf("load config file failed, error: %+v", err)
+	}
 
 	kstore, err := OpenOrInitKeystore(filepath.Join(cpPath, dir))
 	if err != nil {
 		return nil, err
 	}
-
-	wallet, err := NewWallet(kstore)
-	if err != nil {
-		return nil, err
-	}
-
-	return wallet, nil
+	return NewWallet(kstore), nil
 }
 
 type LocalWallet struct {
@@ -63,16 +63,16 @@ type LocalWallet struct {
 	lk sync.Mutex
 }
 
-func NewWallet(keystore KeyStore) (*LocalWallet, error) {
+func NewWallet(keystore KeyStore) *LocalWallet {
 	w := &LocalWallet{
 		keys:     make(map[string]*KeyInfo),
 		keystore: keystore,
 	}
-	return w, nil
+	return w
 }
 
 func (w *LocalWallet) WalletSign(ctx context.Context, addr string, msg []byte) (string, error) {
-	ki, err := w.findKey(addr)
+	ki, err := w.FindKey(addr)
 	if err != nil {
 		return "", err
 	}
@@ -89,7 +89,7 @@ func (w *LocalWallet) WalletSign(ctx context.Context, addr string, msg []byte) (
 func (w *LocalWallet) WalletVerify(ctx context.Context, addr string, sigByte []byte, data string) (bool, error) {
 	hash := crypto.Keccak256Hash([]byte(data))
 
-	ki, err := w.findKey(addr)
+	ki, err := w.FindKey(addr)
 	if err != nil {
 		return false, err
 	}
@@ -100,7 +100,7 @@ func (w *LocalWallet) WalletVerify(ctx context.Context, addr string, sigByte []b
 	return Verify(ki.PrivateKey, sigByte, hash.Bytes())
 }
 
-func (w *LocalWallet) findKey(addr string) (*KeyInfo, error) {
+func (w *LocalWallet) FindKey(addr string) (*KeyInfo, error) {
 	w.lk.Lock()
 	defer w.lk.Unlock()
 
@@ -109,7 +109,7 @@ func (w *LocalWallet) findKey(addr string) (*KeyInfo, error) {
 		return k, nil
 	}
 	if w.keystore == nil {
-		log.Warn("findKey didn't find the key in in-memory wallet")
+		log.Warn("FindKey didn't find the key in in-memory wallet")
 		return nil, nil
 	}
 
@@ -139,7 +139,7 @@ func (w *LocalWallet) tryFind(key string) (KeyInfo, error) {
 }
 
 func (w *LocalWallet) WalletExport(ctx context.Context, addr string) (*KeyInfo, error) {
-	k, err := w.findKey(addr)
+	k, err := w.FindKey(addr)
 	if err != nil {
 		return nil, xerrors.Errorf("failed to find key to export: %w", err)
 	}
@@ -260,7 +260,7 @@ func (w *LocalWallet) WalletNew(ctx context.Context) (string, error) {
 }
 
 func (w *LocalWallet) walletDelete(ctx context.Context, addr string) error {
-	k, err := w.findKey(addr)
+	k, err := w.FindKey(addr)
 
 	if err != nil {
 		return xerrors.Errorf("failed to delete key %s : %w", addr, err)
@@ -293,7 +293,7 @@ func (w *LocalWallet) WalletSend(ctx context.Context, chainName string, from, to
 	if err != nil {
 		return "", err
 	}
-	ki, err := w.findKey(from)
+	ki, err := w.FindKey(from)
 	if err != nil {
 		return "", err
 	}
@@ -329,7 +329,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 	if err != nil {
 		return "", err
 	}
-	ki, err := w.findKey(from)
+	ki, err := w.FindKey(from)
 	if err != nil {
 		return "", err
 	}
@@ -394,6 +394,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 	addressKey := "Address"
 	balanceKey := "Balance"
 	collateralKey := "Collateral"
+	frozenKey := "Escrow"
 	errorKey := "Error"
 
 	chainRpc, err := conf.GetRpcByName(chainName)
@@ -409,15 +410,14 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 	var wallets []map[string]interface{}
 	for _, addr := range addrs {
 		var balance, collateralBalance string
-		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(addr))
-		if err == nil {
-			balance, err = tokenStub.BalanceOf()
-		}
+		balance, err = Balance(ctx, client, addr)
 
 		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(addr))
 		if err == nil {
 			collateralBalance, err = collateralStub.Balances()
 		}
+
+		frozenCollateral, err := getFrozenCollateral(addr)
 
 		var errmsg string
 		if err != nil {
@@ -428,6 +428,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 			addressKey:    addr,
 			balanceKey:    balance,
 			collateralKey: collateralBalance,
+			frozenKey:     frozenCollateral,
 			errorKey:      errmsg,
 		}
 		wallets = append(wallets, wallet)
@@ -437,6 +438,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 		tablewriter.Col(addressKey),
 		tablewriter.Col(balanceKey),
 		tablewriter.Col(collateralKey),
+		tablewriter.Col(frozenKey),
 		tablewriter.NewLineCol(errorKey))
 
 	for _, wallet := range wallets {
@@ -456,7 +458,7 @@ func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, 
 		return "", err
 	}
 
-	ki, err := w.findKey(to)
+	ki, err := w.FindKey(to)
 	if err != nil {
 		return "", err
 	}
@@ -475,6 +477,43 @@ func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, 
 		return "", err
 	}
 	withdrawHash, err := collateralStub.Withdraw(withDrawAmount)
+	if err != nil {
+		return "", err
+	}
+
+	return withdrawHash, nil
+}
+
+func (w *LocalWallet) CollateralSendCmd(ctx context.Context, from, to string, amount string) (string, error) {
+	withDrawAmount, err := convertToWei(amount)
+	if err != nil {
+		return "", err
+	}
+
+	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+	if err != nil {
+		return "", err
+	}
+
+	ki, err := w.FindKey(from)
+	if err != nil {
+		return "", err
+	}
+	if ki == nil {
+		return "", xerrors.Errorf("the address: %s, private key %w,", to, ErrKeyInfoNotFound)
+	}
+
+	client, err := ethclient.Dial(chainUrl)
+	if err != nil {
+		return "", err
+	}
+	defer client.Close()
+
+	collateralStub, err := swan_token.NewTokenStub(client, swan_token.WithPrivateKey(ki.PrivateKey))
+	if err != nil {
+		return "", err
+	}
+	withdrawHash, err := collateralStub.Transfer(to, withDrawAmount)
 	if err != nil {
 		return "", err
 	}
@@ -510,4 +549,43 @@ func convertToWei(ethValue string) (*big.Int, error) {
 		return nil, fmt.Errorf("conversion to Wei failed")
 	}
 	return weiInt, nil
+}
+
+func getFrozenCollateral(walletAddress string) (string, error) {
+	url := fmt.Sprintf("%s/check_holding_collateral/%s", conf.GetConfig().HUB.ServerUrl, walletAddress)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", fmt.Errorf("create request failed: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	var frozenResp struct {
+		Data struct {
+			FrozenCollateral big.Int `json:"Frozen_Collateral"`
+		} `json:"data"`
+		Message string `json:"message"`
+		Status  string `json:"status"`
+	}
+
+	if err = json.Unmarshal(body, &frozenResp); err != nil {
+	}
+	fbalance := new(big.Float)
+	fbalance.SetString(frozenResp.Data.FrozenCollateral.String())
+	etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
+	ethValue := etherQuotient.Text('f', 5)
+	return ethValue, nil
 }
