@@ -131,16 +131,6 @@ var infoCmd = &cli.Command{
 			if err != nil {
 				return fmt.Errorf("get cpAccount faile, error: %v", err)
 			}
-			tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(conf.GetConfig().HUB.WalletAddress))
-			if err == nil {
-				balance, err = tokenStub.BalanceOf()
-			}
-
-			collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(conf.GetConfig().HUB.WalletAddress))
-			if err == nil {
-				collateralBalance, err = collateralStub.Balances()
-			}
-
 			if cpAccount.UbiFlag == 1 {
 				ubiFlag = "Accept"
 			} else {
@@ -149,6 +139,16 @@ var infoCmd = &cli.Command{
 			contractAddress = cpStub.ContractAddress
 			ownerAddress = cpAccount.OwnerAddress
 			beneficiaryAddress = cpAccount.Beneficiary.BeneficiaryAddress
+		}
+
+		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(conf.GetConfig().HUB.WalletAddress))
+		if err == nil {
+			balance, err = tokenStub.BalanceOf()
+		}
+
+		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(conf.GetConfig().HUB.WalletAddress))
+		if err == nil {
+			collateralBalance, err = collateralStub.Balances()
 		}
 
 		var domain = conf.GetConfig().API.Domain
@@ -164,7 +164,7 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Domain:", domain})
 		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
 
-		taskData = append(taskData, []string{"Available balance（SWAN-ETH）:", balance})
+		taskData = append(taskData, []string{"Available Balance（SWAN-ETH）:", balance})
 		taskData = append(taskData, []string{"Collateral Balance（SWAN-ETH）:", collateralBalance})
 
 		taskData = append(taskData, []string{"UBI FLAG:", ubiFlag})
