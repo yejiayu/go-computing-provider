@@ -29,113 +29,113 @@ var (
 	_ = abi.ConvertType
 )
 
-// MainMetaData contains all meta data concerning the Main contract.
-var MainMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"previousAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beacon\",\"type\":\"address\"}],\"name\":\"BeaconUpgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"fundingWallet\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receivingWallet\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"depositAmount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\"}],\"name\":\"Initialized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"taskContract\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"cpList\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"collateralAmount\",\"type\":\"uint256\"}],\"name\":\"LockCollateral\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"fundingWallet\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"withdrawAmount\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"addAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balances\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"collateralToken\",\"outputs\":[{\"internalType\":\"contractIERC20\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"tokenAddress\",\"type\":\"address\"}],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"isAdmin\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"taskContract\",\"type\":\"address\"},{\"internalType\":\"address[]\",\"name\":\"cpList\",\"type\":\"address[]\"},{\"internalType\":\"uint256\",\"name\":\"collateral\",\"type\":\"uint256\"}],\"name\":\"lockCollateral\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proxiableUUID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"removeAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCall\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+// CollateralMetaData contains all meta data concerning the Collateral contract.
+var CollateralMetaData = &bind.MetaData{
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"previousAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beacon\",\"type\":\"address\"}],\"name\":\"BeaconUpgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"fundingWallet\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"receivingWallet\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"depositAmount\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\"}],\"name\":\"Initialized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"taskContract\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address[]\",\"name\":\"cpList\",\"type\":\"address[]\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"collateralAmount\",\"type\":\"uint256\"}],\"name\":\"LockCollateral\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"taskContract\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"cp\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"collateralAmount\",\"type\":\"uint256\"}],\"name\":\"UnlockCollateral\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"fundingWallet\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"withdrawAmount\",\"type\":\"uint256\"}],\"name\":\"Withdraw\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"addAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balances\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"}],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"depositETH\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"frozenBalance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"isAdmin\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"taskContract\",\"type\":\"address\"},{\"internalType\":\"address[]\",\"name\":\"cpList\",\"type\":\"address[]\"},{\"internalType\":\"uint256\",\"name\":\"collateral\",\"type\":\"uint256\"}],\"name\":\"lockCollateral\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proxiableUUID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"admin\",\"type\":\"address\"}],\"name\":\"removeAdmin\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"taskBalance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"totalFrozenBalance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"recipient\",\"type\":\"address\"}],\"name\":\"unlockCollateral\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCall\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}]",
 }
 
-// MainABI is the input ABI used to generate the binding from.
-// Deprecated: Use MainMetaData.ABI instead.
-var MainABI = MainMetaData.ABI
+// CollateralABI is the input ABI used to generate the binding from.
+// Deprecated: Use CollateralMetaData.ABI instead.
+var CollateralABI = CollateralMetaData.ABI
 
-// Main is an auto generated Go binding around an Ethereum contract.
-type Main struct {
-	MainCaller     // Read-only binding to the contract
-	MainTransactor // Write-only binding to the contract
-	MainFilterer   // Log filterer for contract events
+// Collateral is an auto generated Go binding around an Ethereum contract.
+type Collateral struct {
+	CollateralCaller     // Read-only binding to the contract
+	CollateralTransactor // Write-only binding to the contract
+	CollateralFilterer   // Log filterer for contract events
 }
 
-// MainCaller is an auto generated read-only Go binding around an Ethereum contract.
-type MainCaller struct {
+// CollateralCaller is an auto generated read-only Go binding around an Ethereum contract.
+type CollateralCaller struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// MainTransactor is an auto generated write-only Go binding around an Ethereum contract.
-type MainTransactor struct {
+// CollateralTransactor is an auto generated write-only Go binding around an Ethereum contract.
+type CollateralTransactor struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// MainFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
-type MainFilterer struct {
+// CollateralFilterer is an auto generated log filtering Go binding around an Ethereum contract events.
+type CollateralFilterer struct {
 	contract *bind.BoundContract // Generic contract wrapper for the low level calls
 }
 
-// MainSession is an auto generated Go binding around an Ethereum contract,
+// CollateralSession is an auto generated Go binding around an Ethereum contract,
 // with pre-set call and transact options.
-type MainSession struct {
-	Contract     *Main             // Generic contract binding to set the session for
+type CollateralSession struct {
+	Contract     *Collateral       // Generic contract binding to set the session for
 	CallOpts     bind.CallOpts     // Call options to use throughout this session
 	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
 }
 
-// MainCallerSession is an auto generated read-only Go binding around an Ethereum contract,
+// CollateralCallerSession is an auto generated read-only Go binding around an Ethereum contract,
 // with pre-set call options.
-type MainCallerSession struct {
-	Contract *MainCaller   // Generic contract caller binding to set the session for
-	CallOpts bind.CallOpts // Call options to use throughout this session
+type CollateralCallerSession struct {
+	Contract *CollateralCaller // Generic contract caller binding to set the session for
+	CallOpts bind.CallOpts     // Call options to use throughout this session
 }
 
-// MainTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
+// CollateralTransactorSession is an auto generated write-only Go binding around an Ethereum contract,
 // with pre-set transact options.
-type MainTransactorSession struct {
-	Contract     *MainTransactor   // Generic contract transactor binding to set the session for
-	TransactOpts bind.TransactOpts // Transaction auth options to use throughout this session
+type CollateralTransactorSession struct {
+	Contract     *CollateralTransactor // Generic contract transactor binding to set the session for
+	TransactOpts bind.TransactOpts     // Transaction auth options to use throughout this session
 }
 
-// MainRaw is an auto generated low-level Go binding around an Ethereum contract.
-type MainRaw struct {
-	Contract *Main // Generic contract binding to access the raw methods on
+// CollateralRaw is an auto generated low-level Go binding around an Ethereum contract.
+type CollateralRaw struct {
+	Contract *Collateral // Generic contract binding to access the raw methods on
 }
 
-// MainCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
-type MainCallerRaw struct {
-	Contract *MainCaller // Generic read-only contract binding to access the raw methods on
+// CollateralCallerRaw is an auto generated low-level read-only Go binding around an Ethereum contract.
+type CollateralCallerRaw struct {
+	Contract *CollateralCaller // Generic read-only contract binding to access the raw methods on
 }
 
-// MainTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
-type MainTransactorRaw struct {
-	Contract *MainTransactor // Generic write-only contract binding to access the raw methods on
+// CollateralTransactorRaw is an auto generated low-level write-only Go binding around an Ethereum contract.
+type CollateralTransactorRaw struct {
+	Contract *CollateralTransactor // Generic write-only contract binding to access the raw methods on
 }
 
-// NewMain creates a new instance of Main, bound to a specific deployed contract.
-func NewMain(address common.Address, backend bind.ContractBackend) (*Main, error) {
-	contract, err := bindMain(address, backend, backend, backend)
+// NewCollateral creates a new instance of Collateral, bound to a specific deployed contract.
+func NewCollateral(address common.Address, backend bind.ContractBackend) (*Collateral, error) {
+	contract, err := bindCollateral(address, backend, backend, backend)
 	if err != nil {
 		return nil, err
 	}
-	return &Main{MainCaller: MainCaller{contract: contract}, MainTransactor: MainTransactor{contract: contract}, MainFilterer: MainFilterer{contract: contract}}, nil
+	return &Collateral{CollateralCaller: CollateralCaller{contract: contract}, CollateralTransactor: CollateralTransactor{contract: contract}, CollateralFilterer: CollateralFilterer{contract: contract}}, nil
 }
 
-// NewMainCaller creates a new read-only instance of Main, bound to a specific deployed contract.
-func NewMainCaller(address common.Address, caller bind.ContractCaller) (*MainCaller, error) {
-	contract, err := bindMain(address, caller, nil, nil)
+// NewCollateralCaller creates a new read-only instance of Collateral, bound to a specific deployed contract.
+func NewCollateralCaller(address common.Address, caller bind.ContractCaller) (*CollateralCaller, error) {
+	contract, err := bindCollateral(address, caller, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &MainCaller{contract: contract}, nil
+	return &CollateralCaller{contract: contract}, nil
 }
 
-// NewMainTransactor creates a new write-only instance of Main, bound to a specific deployed contract.
-func NewMainTransactor(address common.Address, transactor bind.ContractTransactor) (*MainTransactor, error) {
-	contract, err := bindMain(address, nil, transactor, nil)
+// NewCollateralTransactor creates a new write-only instance of Collateral, bound to a specific deployed contract.
+func NewCollateralTransactor(address common.Address, transactor bind.ContractTransactor) (*CollateralTransactor, error) {
+	contract, err := bindCollateral(address, nil, transactor, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &MainTransactor{contract: contract}, nil
+	return &CollateralTransactor{contract: contract}, nil
 }
 
-// NewMainFilterer creates a new log filterer instance of Main, bound to a specific deployed contract.
-func NewMainFilterer(address common.Address, filterer bind.ContractFilterer) (*MainFilterer, error) {
-	contract, err := bindMain(address, nil, nil, filterer)
+// NewCollateralFilterer creates a new log filterer instance of Collateral, bound to a specific deployed contract.
+func NewCollateralFilterer(address common.Address, filterer bind.ContractFilterer) (*CollateralFilterer, error) {
+	contract, err := bindCollateral(address, nil, nil, filterer)
 	if err != nil {
 		return nil, err
 	}
-	return &MainFilterer{contract: contract}, nil
+	return &CollateralFilterer{contract: contract}, nil
 }
 
-// bindMain binds a generic wrapper to an already deployed contract.
-func bindMain(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
-	parsed, err := MainMetaData.GetAbi()
+// bindCollateral binds a generic wrapper to an already deployed contract.
+func bindCollateral(address common.Address, caller bind.ContractCaller, transactor bind.ContractTransactor, filterer bind.ContractFilterer) (*bind.BoundContract, error) {
+	parsed, err := CollateralMetaData.GetAbi()
 	if err != nil {
 		return nil, err
 	}
@@ -146,46 +146,46 @@ func bindMain(address common.Address, caller bind.ContractCaller, transactor bin
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Main *MainRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
-	return _Main.Contract.MainCaller.contract.Call(opts, result, method, params...)
+func (_Collateral *CollateralRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+	return _Collateral.Contract.CollateralCaller.contract.Call(opts, result, method, params...)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
-func (_Main *MainRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _Main.Contract.MainTransactor.contract.Transfer(opts)
+func (_Collateral *CollateralRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Collateral.Contract.CollateralTransactor.contract.Transfer(opts)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_Main *MainRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _Main.Contract.MainTransactor.contract.Transact(opts, method, params...)
+func (_Collateral *CollateralRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _Collateral.Contract.CollateralTransactor.contract.Transact(opts, method, params...)
 }
 
 // Call invokes the (constant) contract method with params as input values and
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Main *MainCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
-	return _Main.Contract.contract.Call(opts, result, method, params...)
+func (_Collateral *CollateralCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
+	return _Collateral.Contract.contract.Call(opts, result, method, params...)
 }
 
 // Transfer initiates a plain transaction to move funds to the contract, calling
 // its default method if one is available.
-func (_Main *MainTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _Main.Contract.contract.Transfer(opts)
+func (_Collateral *CollateralTransactorRaw) Transfer(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Collateral.Contract.contract.Transfer(opts)
 }
 
 // Transact invokes the (paid) contract method with params as input values.
-func (_Main *MainTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
-	return _Main.Contract.contract.Transact(opts, method, params...)
+func (_Collateral *CollateralTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
+	return _Collateral.Contract.contract.Transact(opts, method, params...)
 }
 
 // Balances is a free data retrieval call binding the contract method 0x27e235e3.
 //
 // Solidity: function balances(address ) view returns(uint256)
-func (_Main *MainCaller) Balances(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
+func (_Collateral *CollateralCaller) Balances(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
 	var out []interface{}
-	err := _Main.contract.Call(opts, &out, "balances", arg0)
+	err := _Collateral.contract.Call(opts, &out, "balances", arg0)
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -200,54 +200,54 @@ func (_Main *MainCaller) Balances(opts *bind.CallOpts, arg0 common.Address) (*bi
 // Balances is a free data retrieval call binding the contract method 0x27e235e3.
 //
 // Solidity: function balances(address ) view returns(uint256)
-func (_Main *MainSession) Balances(arg0 common.Address) (*big.Int, error) {
-	return _Main.Contract.Balances(&_Main.CallOpts, arg0)
+func (_Collateral *CollateralSession) Balances(arg0 common.Address) (*big.Int, error) {
+	return _Collateral.Contract.Balances(&_Collateral.CallOpts, arg0)
 }
 
 // Balances is a free data retrieval call binding the contract method 0x27e235e3.
 //
 // Solidity: function balances(address ) view returns(uint256)
-func (_Main *MainCallerSession) Balances(arg0 common.Address) (*big.Int, error) {
-	return _Main.Contract.Balances(&_Main.CallOpts, arg0)
+func (_Collateral *CollateralCallerSession) Balances(arg0 common.Address) (*big.Int, error) {
+	return _Collateral.Contract.Balances(&_Collateral.CallOpts, arg0)
 }
 
-// CollateralToken is a free data retrieval call binding the contract method 0xb2016bd4.
+// FrozenBalance is a free data retrieval call binding the contract method 0x266565a9.
 //
-// Solidity: function collateralToken() view returns(address)
-func (_Main *MainCaller) CollateralToken(opts *bind.CallOpts) (common.Address, error) {
+// Solidity: function frozenBalance(address ) view returns(uint256)
+func (_Collateral *CollateralCaller) FrozenBalance(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
 	var out []interface{}
-	err := _Main.contract.Call(opts, &out, "collateralToken")
+	err := _Collateral.contract.Call(opts, &out, "frozenBalance", arg0)
 
 	if err != nil {
-		return *new(common.Address), err
+		return *new(*big.Int), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
 
 	return out0, err
 
 }
 
-// CollateralToken is a free data retrieval call binding the contract method 0xb2016bd4.
+// FrozenBalance is a free data retrieval call binding the contract method 0x266565a9.
 //
-// Solidity: function collateralToken() view returns(address)
-func (_Main *MainSession) CollateralToken() (common.Address, error) {
-	return _Main.Contract.CollateralToken(&_Main.CallOpts)
+// Solidity: function frozenBalance(address ) view returns(uint256)
+func (_Collateral *CollateralSession) FrozenBalance(arg0 common.Address) (*big.Int, error) {
+	return _Collateral.Contract.FrozenBalance(&_Collateral.CallOpts, arg0)
 }
 
-// CollateralToken is a free data retrieval call binding the contract method 0xb2016bd4.
+// FrozenBalance is a free data retrieval call binding the contract method 0x266565a9.
 //
-// Solidity: function collateralToken() view returns(address)
-func (_Main *MainCallerSession) CollateralToken() (common.Address, error) {
-	return _Main.Contract.CollateralToken(&_Main.CallOpts)
+// Solidity: function frozenBalance(address ) view returns(uint256)
+func (_Collateral *CollateralCallerSession) FrozenBalance(arg0 common.Address) (*big.Int, error) {
+	return _Collateral.Contract.FrozenBalance(&_Collateral.CallOpts, arg0)
 }
 
 // IsAdmin is a free data retrieval call binding the contract method 0x24d7806c.
 //
 // Solidity: function isAdmin(address ) view returns(bool)
-func (_Main *MainCaller) IsAdmin(opts *bind.CallOpts, arg0 common.Address) (bool, error) {
+func (_Collateral *CollateralCaller) IsAdmin(opts *bind.CallOpts, arg0 common.Address) (bool, error) {
 	var out []interface{}
-	err := _Main.contract.Call(opts, &out, "isAdmin", arg0)
+	err := _Collateral.contract.Call(opts, &out, "isAdmin", arg0)
 
 	if err != nil {
 		return *new(bool), err
@@ -262,23 +262,23 @@ func (_Main *MainCaller) IsAdmin(opts *bind.CallOpts, arg0 common.Address) (bool
 // IsAdmin is a free data retrieval call binding the contract method 0x24d7806c.
 //
 // Solidity: function isAdmin(address ) view returns(bool)
-func (_Main *MainSession) IsAdmin(arg0 common.Address) (bool, error) {
-	return _Main.Contract.IsAdmin(&_Main.CallOpts, arg0)
+func (_Collateral *CollateralSession) IsAdmin(arg0 common.Address) (bool, error) {
+	return _Collateral.Contract.IsAdmin(&_Collateral.CallOpts, arg0)
 }
 
 // IsAdmin is a free data retrieval call binding the contract method 0x24d7806c.
 //
 // Solidity: function isAdmin(address ) view returns(bool)
-func (_Main *MainCallerSession) IsAdmin(arg0 common.Address) (bool, error) {
-	return _Main.Contract.IsAdmin(&_Main.CallOpts, arg0)
+func (_Collateral *CollateralCallerSession) IsAdmin(arg0 common.Address) (bool, error) {
+	return _Collateral.Contract.IsAdmin(&_Collateral.CallOpts, arg0)
 }
 
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
 //
 // Solidity: function owner() view returns(address)
-func (_Main *MainCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
+func (_Collateral *CollateralCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
 	var out []interface{}
-	err := _Main.contract.Call(opts, &out, "owner")
+	err := _Collateral.contract.Call(opts, &out, "owner")
 
 	if err != nil {
 		return *new(common.Address), err
@@ -293,23 +293,23 @@ func (_Main *MainCaller) Owner(opts *bind.CallOpts) (common.Address, error) {
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
 //
 // Solidity: function owner() view returns(address)
-func (_Main *MainSession) Owner() (common.Address, error) {
-	return _Main.Contract.Owner(&_Main.CallOpts)
+func (_Collateral *CollateralSession) Owner() (common.Address, error) {
+	return _Collateral.Contract.Owner(&_Collateral.CallOpts)
 }
 
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
 //
 // Solidity: function owner() view returns(address)
-func (_Main *MainCallerSession) Owner() (common.Address, error) {
-	return _Main.Contract.Owner(&_Main.CallOpts)
+func (_Collateral *CollateralCallerSession) Owner() (common.Address, error) {
+	return _Collateral.Contract.Owner(&_Collateral.CallOpts)
 }
 
 // ProxiableUUID is a free data retrieval call binding the contract method 0x52d1902d.
 //
 // Solidity: function proxiableUUID() view returns(bytes32)
-func (_Main *MainCaller) ProxiableUUID(opts *bind.CallOpts) ([32]byte, error) {
+func (_Collateral *CollateralCaller) ProxiableUUID(opts *bind.CallOpts) ([32]byte, error) {
 	var out []interface{}
-	err := _Main.contract.Call(opts, &out, "proxiableUUID")
+	err := _Collateral.contract.Call(opts, &out, "proxiableUUID")
 
 	if err != nil {
 		return *new([32]byte), err
@@ -324,23 +324,85 @@ func (_Main *MainCaller) ProxiableUUID(opts *bind.CallOpts) ([32]byte, error) {
 // ProxiableUUID is a free data retrieval call binding the contract method 0x52d1902d.
 //
 // Solidity: function proxiableUUID() view returns(bytes32)
-func (_Main *MainSession) ProxiableUUID() ([32]byte, error) {
-	return _Main.Contract.ProxiableUUID(&_Main.CallOpts)
+func (_Collateral *CollateralSession) ProxiableUUID() ([32]byte, error) {
+	return _Collateral.Contract.ProxiableUUID(&_Collateral.CallOpts)
 }
 
 // ProxiableUUID is a free data retrieval call binding the contract method 0x52d1902d.
 //
 // Solidity: function proxiableUUID() view returns(bytes32)
-func (_Main *MainCallerSession) ProxiableUUID() ([32]byte, error) {
-	return _Main.Contract.ProxiableUUID(&_Main.CallOpts)
+func (_Collateral *CollateralCallerSession) ProxiableUUID() ([32]byte, error) {
+	return _Collateral.Contract.ProxiableUUID(&_Collateral.CallOpts)
+}
+
+// TaskBalance is a free data retrieval call binding the contract method 0x637a570a.
+//
+// Solidity: function taskBalance(address ) view returns(uint256)
+func (_Collateral *CollateralCaller) TaskBalance(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
+	var out []interface{}
+	err := _Collateral.contract.Call(opts, &out, "taskBalance", arg0)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// TaskBalance is a free data retrieval call binding the contract method 0x637a570a.
+//
+// Solidity: function taskBalance(address ) view returns(uint256)
+func (_Collateral *CollateralSession) TaskBalance(arg0 common.Address) (*big.Int, error) {
+	return _Collateral.Contract.TaskBalance(&_Collateral.CallOpts, arg0)
+}
+
+// TaskBalance is a free data retrieval call binding the contract method 0x637a570a.
+//
+// Solidity: function taskBalance(address ) view returns(uint256)
+func (_Collateral *CollateralCallerSession) TaskBalance(arg0 common.Address) (*big.Int, error) {
+	return _Collateral.Contract.TaskBalance(&_Collateral.CallOpts, arg0)
+}
+
+// TotalFrozenBalance is a free data retrieval call binding the contract method 0x19cf4697.
+//
+// Solidity: function totalFrozenBalance(address ) view returns(uint256)
+func (_Collateral *CollateralCaller) TotalFrozenBalance(opts *bind.CallOpts, arg0 common.Address) (*big.Int, error) {
+	var out []interface{}
+	err := _Collateral.contract.Call(opts, &out, "totalFrozenBalance", arg0)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// TotalFrozenBalance is a free data retrieval call binding the contract method 0x19cf4697.
+//
+// Solidity: function totalFrozenBalance(address ) view returns(uint256)
+func (_Collateral *CollateralSession) TotalFrozenBalance(arg0 common.Address) (*big.Int, error) {
+	return _Collateral.Contract.TotalFrozenBalance(&_Collateral.CallOpts, arg0)
+}
+
+// TotalFrozenBalance is a free data retrieval call binding the contract method 0x19cf4697.
+//
+// Solidity: function totalFrozenBalance(address ) view returns(uint256)
+func (_Collateral *CollateralCallerSession) TotalFrozenBalance(arg0 common.Address) (*big.Int, error) {
+	return _Collateral.Contract.TotalFrozenBalance(&_Collateral.CallOpts, arg0)
 }
 
 // Version is a free data retrieval call binding the contract method 0x54fd4d50.
 //
 // Solidity: function version() pure returns(uint256)
-func (_Main *MainCaller) Version(opts *bind.CallOpts) (*big.Int, error) {
+func (_Collateral *CollateralCaller) Version(opts *bind.CallOpts) (*big.Int, error) {
 	var out []interface{}
-	err := _Main.contract.Call(opts, &out, "version")
+	err := _Collateral.contract.Call(opts, &out, "version")
 
 	if err != nil {
 		return *new(*big.Int), err
@@ -355,230 +417,293 @@ func (_Main *MainCaller) Version(opts *bind.CallOpts) (*big.Int, error) {
 // Version is a free data retrieval call binding the contract method 0x54fd4d50.
 //
 // Solidity: function version() pure returns(uint256)
-func (_Main *MainSession) Version() (*big.Int, error) {
-	return _Main.Contract.Version(&_Main.CallOpts)
+func (_Collateral *CollateralSession) Version() (*big.Int, error) {
+	return _Collateral.Contract.Version(&_Collateral.CallOpts)
 }
 
 // Version is a free data retrieval call binding the contract method 0x54fd4d50.
 //
 // Solidity: function version() pure returns(uint256)
-func (_Main *MainCallerSession) Version() (*big.Int, error) {
-	return _Main.Contract.Version(&_Main.CallOpts)
+func (_Collateral *CollateralCallerSession) Version() (*big.Int, error) {
+	return _Collateral.Contract.Version(&_Collateral.CallOpts)
 }
 
 // AddAdmin is a paid mutator transaction binding the contract method 0x70480275.
 //
 // Solidity: function addAdmin(address newAdmin) returns()
-func (_Main *MainTransactor) AddAdmin(opts *bind.TransactOpts, newAdmin common.Address) (*types.Transaction, error) {
-	return _Main.contract.Transact(opts, "addAdmin", newAdmin)
+func (_Collateral *CollateralTransactor) AddAdmin(opts *bind.TransactOpts, newAdmin common.Address) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "addAdmin", newAdmin)
 }
 
 // AddAdmin is a paid mutator transaction binding the contract method 0x70480275.
 //
 // Solidity: function addAdmin(address newAdmin) returns()
-func (_Main *MainSession) AddAdmin(newAdmin common.Address) (*types.Transaction, error) {
-	return _Main.Contract.AddAdmin(&_Main.TransactOpts, newAdmin)
+func (_Collateral *CollateralSession) AddAdmin(newAdmin common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.AddAdmin(&_Collateral.TransactOpts, newAdmin)
 }
 
 // AddAdmin is a paid mutator transaction binding the contract method 0x70480275.
 //
 // Solidity: function addAdmin(address newAdmin) returns()
-func (_Main *MainTransactorSession) AddAdmin(newAdmin common.Address) (*types.Transaction, error) {
-	return _Main.Contract.AddAdmin(&_Main.TransactOpts, newAdmin)
+func (_Collateral *CollateralTransactorSession) AddAdmin(newAdmin common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.AddAdmin(&_Collateral.TransactOpts, newAdmin)
 }
 
-// Deposit is a paid mutator transaction binding the contract method 0x47e7ef24.
+// Deposit is a paid mutator transaction binding the contract method 0xf340fa01.
 //
-// Solidity: function deposit(address recipient, uint256 amount) returns()
-func (_Main *MainTransactor) Deposit(opts *bind.TransactOpts, recipient common.Address, amount *big.Int) (*types.Transaction, error) {
-	return _Main.contract.Transact(opts, "deposit", recipient, amount)
+// Solidity: function deposit(address recipient) payable returns()
+func (_Collateral *CollateralTransactor) Deposit(opts *bind.TransactOpts, recipient common.Address) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "deposit", recipient)
 }
 
-// Deposit is a paid mutator transaction binding the contract method 0x47e7ef24.
+// Deposit is a paid mutator transaction binding the contract method 0xf340fa01.
 //
-// Solidity: function deposit(address recipient, uint256 amount) returns()
-func (_Main *MainSession) Deposit(recipient common.Address, amount *big.Int) (*types.Transaction, error) {
-	return _Main.Contract.Deposit(&_Main.TransactOpts, recipient, amount)
+// Solidity: function deposit(address recipient) payable returns()
+func (_Collateral *CollateralSession) Deposit(recipient common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.Deposit(&_Collateral.TransactOpts, recipient)
 }
 
-// Deposit is a paid mutator transaction binding the contract method 0x47e7ef24.
+// Deposit is a paid mutator transaction binding the contract method 0xf340fa01.
 //
-// Solidity: function deposit(address recipient, uint256 amount) returns()
-func (_Main *MainTransactorSession) Deposit(recipient common.Address, amount *big.Int) (*types.Transaction, error) {
-	return _Main.Contract.Deposit(&_Main.TransactOpts, recipient, amount)
+// Solidity: function deposit(address recipient) payable returns()
+func (_Collateral *CollateralTransactorSession) Deposit(recipient common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.Deposit(&_Collateral.TransactOpts, recipient)
 }
 
-// Initialize is a paid mutator transaction binding the contract method 0xc4d66de8.
+// DepositETH is a paid mutator transaction binding the contract method 0x2e599054.
 //
-// Solidity: function initialize(address tokenAddress) returns()
-func (_Main *MainTransactor) Initialize(opts *bind.TransactOpts, tokenAddress common.Address) (*types.Transaction, error) {
-	return _Main.contract.Transact(opts, "initialize", tokenAddress)
+// Solidity: function depositETH(address recipient, uint256 amount) payable returns()
+func (_Collateral *CollateralTransactor) DepositETH(opts *bind.TransactOpts, recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "depositETH", recipient, amount)
 }
 
-// Initialize is a paid mutator transaction binding the contract method 0xc4d66de8.
+// DepositETH is a paid mutator transaction binding the contract method 0x2e599054.
 //
-// Solidity: function initialize(address tokenAddress) returns()
-func (_Main *MainSession) Initialize(tokenAddress common.Address) (*types.Transaction, error) {
-	return _Main.Contract.Initialize(&_Main.TransactOpts, tokenAddress)
+// Solidity: function depositETH(address recipient, uint256 amount) payable returns()
+func (_Collateral *CollateralSession) DepositETH(recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _Collateral.Contract.DepositETH(&_Collateral.TransactOpts, recipient, amount)
 }
 
-// Initialize is a paid mutator transaction binding the contract method 0xc4d66de8.
+// DepositETH is a paid mutator transaction binding the contract method 0x2e599054.
 //
-// Solidity: function initialize(address tokenAddress) returns()
-func (_Main *MainTransactorSession) Initialize(tokenAddress common.Address) (*types.Transaction, error) {
-	return _Main.Contract.Initialize(&_Main.TransactOpts, tokenAddress)
+// Solidity: function depositETH(address recipient, uint256 amount) payable returns()
+func (_Collateral *CollateralTransactorSession) DepositETH(recipient common.Address, amount *big.Int) (*types.Transaction, error) {
+	return _Collateral.Contract.DepositETH(&_Collateral.TransactOpts, recipient, amount)
+}
+
+// Initialize is a paid mutator transaction binding the contract method 0x8129fc1c.
+//
+// Solidity: function initialize() returns()
+func (_Collateral *CollateralTransactor) Initialize(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "initialize")
+}
+
+// Initialize is a paid mutator transaction binding the contract method 0x8129fc1c.
+//
+// Solidity: function initialize() returns()
+func (_Collateral *CollateralSession) Initialize() (*types.Transaction, error) {
+	return _Collateral.Contract.Initialize(&_Collateral.TransactOpts)
+}
+
+// Initialize is a paid mutator transaction binding the contract method 0x8129fc1c.
+//
+// Solidity: function initialize() returns()
+func (_Collateral *CollateralTransactorSession) Initialize() (*types.Transaction, error) {
+	return _Collateral.Contract.Initialize(&_Collateral.TransactOpts)
 }
 
 // LockCollateral is a paid mutator transaction binding the contract method 0x22d39e28.
 //
 // Solidity: function lockCollateral(address taskContract, address[] cpList, uint256 collateral) returns()
-func (_Main *MainTransactor) LockCollateral(opts *bind.TransactOpts, taskContract common.Address, cpList []common.Address, collateral *big.Int) (*types.Transaction, error) {
-	return _Main.contract.Transact(opts, "lockCollateral", taskContract, cpList, collateral)
+func (_Collateral *CollateralTransactor) LockCollateral(opts *bind.TransactOpts, taskContract common.Address, cpList []common.Address, collateral *big.Int) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "lockCollateral", taskContract, cpList, collateral)
 }
 
 // LockCollateral is a paid mutator transaction binding the contract method 0x22d39e28.
 //
 // Solidity: function lockCollateral(address taskContract, address[] cpList, uint256 collateral) returns()
-func (_Main *MainSession) LockCollateral(taskContract common.Address, cpList []common.Address, collateral *big.Int) (*types.Transaction, error) {
-	return _Main.Contract.LockCollateral(&_Main.TransactOpts, taskContract, cpList, collateral)
+func (_Collateral *CollateralSession) LockCollateral(taskContract common.Address, cpList []common.Address, collateral *big.Int) (*types.Transaction, error) {
+	return _Collateral.Contract.LockCollateral(&_Collateral.TransactOpts, taskContract, cpList, collateral)
 }
 
 // LockCollateral is a paid mutator transaction binding the contract method 0x22d39e28.
 //
 // Solidity: function lockCollateral(address taskContract, address[] cpList, uint256 collateral) returns()
-func (_Main *MainTransactorSession) LockCollateral(taskContract common.Address, cpList []common.Address, collateral *big.Int) (*types.Transaction, error) {
-	return _Main.Contract.LockCollateral(&_Main.TransactOpts, taskContract, cpList, collateral)
+func (_Collateral *CollateralTransactorSession) LockCollateral(taskContract common.Address, cpList []common.Address, collateral *big.Int) (*types.Transaction, error) {
+	return _Collateral.Contract.LockCollateral(&_Collateral.TransactOpts, taskContract, cpList, collateral)
 }
 
 // RemoveAdmin is a paid mutator transaction binding the contract method 0x1785f53c.
 //
 // Solidity: function removeAdmin(address admin) returns()
-func (_Main *MainTransactor) RemoveAdmin(opts *bind.TransactOpts, admin common.Address) (*types.Transaction, error) {
-	return _Main.contract.Transact(opts, "removeAdmin", admin)
+func (_Collateral *CollateralTransactor) RemoveAdmin(opts *bind.TransactOpts, admin common.Address) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "removeAdmin", admin)
 }
 
 // RemoveAdmin is a paid mutator transaction binding the contract method 0x1785f53c.
 //
 // Solidity: function removeAdmin(address admin) returns()
-func (_Main *MainSession) RemoveAdmin(admin common.Address) (*types.Transaction, error) {
-	return _Main.Contract.RemoveAdmin(&_Main.TransactOpts, admin)
+func (_Collateral *CollateralSession) RemoveAdmin(admin common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.RemoveAdmin(&_Collateral.TransactOpts, admin)
 }
 
 // RemoveAdmin is a paid mutator transaction binding the contract method 0x1785f53c.
 //
 // Solidity: function removeAdmin(address admin) returns()
-func (_Main *MainTransactorSession) RemoveAdmin(admin common.Address) (*types.Transaction, error) {
-	return _Main.Contract.RemoveAdmin(&_Main.TransactOpts, admin)
+func (_Collateral *CollateralTransactorSession) RemoveAdmin(admin common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.RemoveAdmin(&_Collateral.TransactOpts, admin)
 }
 
 // RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
 //
 // Solidity: function renounceOwnership() returns()
-func (_Main *MainTransactor) RenounceOwnership(opts *bind.TransactOpts) (*types.Transaction, error) {
-	return _Main.contract.Transact(opts, "renounceOwnership")
+func (_Collateral *CollateralTransactor) RenounceOwnership(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "renounceOwnership")
 }
 
 // RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
 //
 // Solidity: function renounceOwnership() returns()
-func (_Main *MainSession) RenounceOwnership() (*types.Transaction, error) {
-	return _Main.Contract.RenounceOwnership(&_Main.TransactOpts)
+func (_Collateral *CollateralSession) RenounceOwnership() (*types.Transaction, error) {
+	return _Collateral.Contract.RenounceOwnership(&_Collateral.TransactOpts)
 }
 
 // RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
 //
 // Solidity: function renounceOwnership() returns()
-func (_Main *MainTransactorSession) RenounceOwnership() (*types.Transaction, error) {
-	return _Main.Contract.RenounceOwnership(&_Main.TransactOpts)
+func (_Collateral *CollateralTransactorSession) RenounceOwnership() (*types.Transaction, error) {
+	return _Collateral.Contract.RenounceOwnership(&_Collateral.TransactOpts)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
 // Solidity: function transferOwnership(address newOwner) returns()
-func (_Main *MainTransactor) TransferOwnership(opts *bind.TransactOpts, newOwner common.Address) (*types.Transaction, error) {
-	return _Main.contract.Transact(opts, "transferOwnership", newOwner)
+func (_Collateral *CollateralTransactor) TransferOwnership(opts *bind.TransactOpts, newOwner common.Address) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "transferOwnership", newOwner)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
 // Solidity: function transferOwnership(address newOwner) returns()
-func (_Main *MainSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
-	return _Main.Contract.TransferOwnership(&_Main.TransactOpts, newOwner)
+func (_Collateral *CollateralSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.TransferOwnership(&_Collateral.TransactOpts, newOwner)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
 //
 // Solidity: function transferOwnership(address newOwner) returns()
-func (_Main *MainTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
-	return _Main.Contract.TransferOwnership(&_Main.TransactOpts, newOwner)
+func (_Collateral *CollateralTransactorSession) TransferOwnership(newOwner common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.TransferOwnership(&_Collateral.TransactOpts, newOwner)
+}
+
+// UnlockCollateral is a paid mutator transaction binding the contract method 0x3f001fd9.
+//
+// Solidity: function unlockCollateral(address recipient) payable returns()
+func (_Collateral *CollateralTransactor) UnlockCollateral(opts *bind.TransactOpts, recipient common.Address) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "unlockCollateral", recipient)
+}
+
+// UnlockCollateral is a paid mutator transaction binding the contract method 0x3f001fd9.
+//
+// Solidity: function unlockCollateral(address recipient) payable returns()
+func (_Collateral *CollateralSession) UnlockCollateral(recipient common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.UnlockCollateral(&_Collateral.TransactOpts, recipient)
+}
+
+// UnlockCollateral is a paid mutator transaction binding the contract method 0x3f001fd9.
+//
+// Solidity: function unlockCollateral(address recipient) payable returns()
+func (_Collateral *CollateralTransactorSession) UnlockCollateral(recipient common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.UnlockCollateral(&_Collateral.TransactOpts, recipient)
 }
 
 // UpgradeTo is a paid mutator transaction binding the contract method 0x3659cfe6.
 //
 // Solidity: function upgradeTo(address newImplementation) returns()
-func (_Main *MainTransactor) UpgradeTo(opts *bind.TransactOpts, newImplementation common.Address) (*types.Transaction, error) {
-	return _Main.contract.Transact(opts, "upgradeTo", newImplementation)
+func (_Collateral *CollateralTransactor) UpgradeTo(opts *bind.TransactOpts, newImplementation common.Address) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "upgradeTo", newImplementation)
 }
 
 // UpgradeTo is a paid mutator transaction binding the contract method 0x3659cfe6.
 //
 // Solidity: function upgradeTo(address newImplementation) returns()
-func (_Main *MainSession) UpgradeTo(newImplementation common.Address) (*types.Transaction, error) {
-	return _Main.Contract.UpgradeTo(&_Main.TransactOpts, newImplementation)
+func (_Collateral *CollateralSession) UpgradeTo(newImplementation common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.UpgradeTo(&_Collateral.TransactOpts, newImplementation)
 }
 
 // UpgradeTo is a paid mutator transaction binding the contract method 0x3659cfe6.
 //
 // Solidity: function upgradeTo(address newImplementation) returns()
-func (_Main *MainTransactorSession) UpgradeTo(newImplementation common.Address) (*types.Transaction, error) {
-	return _Main.Contract.UpgradeTo(&_Main.TransactOpts, newImplementation)
+func (_Collateral *CollateralTransactorSession) UpgradeTo(newImplementation common.Address) (*types.Transaction, error) {
+	return _Collateral.Contract.UpgradeTo(&_Collateral.TransactOpts, newImplementation)
 }
 
 // UpgradeToAndCall is a paid mutator transaction binding the contract method 0x4f1ef286.
 //
 // Solidity: function upgradeToAndCall(address newImplementation, bytes data) payable returns()
-func (_Main *MainTransactor) UpgradeToAndCall(opts *bind.TransactOpts, newImplementation common.Address, data []byte) (*types.Transaction, error) {
-	return _Main.contract.Transact(opts, "upgradeToAndCall", newImplementation, data)
+func (_Collateral *CollateralTransactor) UpgradeToAndCall(opts *bind.TransactOpts, newImplementation common.Address, data []byte) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "upgradeToAndCall", newImplementation, data)
 }
 
 // UpgradeToAndCall is a paid mutator transaction binding the contract method 0x4f1ef286.
 //
 // Solidity: function upgradeToAndCall(address newImplementation, bytes data) payable returns()
-func (_Main *MainSession) UpgradeToAndCall(newImplementation common.Address, data []byte) (*types.Transaction, error) {
-	return _Main.Contract.UpgradeToAndCall(&_Main.TransactOpts, newImplementation, data)
+func (_Collateral *CollateralSession) UpgradeToAndCall(newImplementation common.Address, data []byte) (*types.Transaction, error) {
+	return _Collateral.Contract.UpgradeToAndCall(&_Collateral.TransactOpts, newImplementation, data)
 }
 
 // UpgradeToAndCall is a paid mutator transaction binding the contract method 0x4f1ef286.
 //
 // Solidity: function upgradeToAndCall(address newImplementation, bytes data) payable returns()
-func (_Main *MainTransactorSession) UpgradeToAndCall(newImplementation common.Address, data []byte) (*types.Transaction, error) {
-	return _Main.Contract.UpgradeToAndCall(&_Main.TransactOpts, newImplementation, data)
+func (_Collateral *CollateralTransactorSession) UpgradeToAndCall(newImplementation common.Address, data []byte) (*types.Transaction, error) {
+	return _Collateral.Contract.UpgradeToAndCall(&_Collateral.TransactOpts, newImplementation, data)
 }
 
 // Withdraw is a paid mutator transaction binding the contract method 0x2e1a7d4d.
 //
 // Solidity: function withdraw(uint256 amount) returns()
-func (_Main *MainTransactor) Withdraw(opts *bind.TransactOpts, amount *big.Int) (*types.Transaction, error) {
-	return _Main.contract.Transact(opts, "withdraw", amount)
+func (_Collateral *CollateralTransactor) Withdraw(opts *bind.TransactOpts, amount *big.Int) (*types.Transaction, error) {
+	return _Collateral.contract.Transact(opts, "withdraw", amount)
 }
 
 // Withdraw is a paid mutator transaction binding the contract method 0x2e1a7d4d.
 //
 // Solidity: function withdraw(uint256 amount) returns()
-func (_Main *MainSession) Withdraw(amount *big.Int) (*types.Transaction, error) {
-	return _Main.Contract.Withdraw(&_Main.TransactOpts, amount)
+func (_Collateral *CollateralSession) Withdraw(amount *big.Int) (*types.Transaction, error) {
+	return _Collateral.Contract.Withdraw(&_Collateral.TransactOpts, amount)
 }
 
 // Withdraw is a paid mutator transaction binding the contract method 0x2e1a7d4d.
 //
 // Solidity: function withdraw(uint256 amount) returns()
-func (_Main *MainTransactorSession) Withdraw(amount *big.Int) (*types.Transaction, error) {
-	return _Main.Contract.Withdraw(&_Main.TransactOpts, amount)
+func (_Collateral *CollateralTransactorSession) Withdraw(amount *big.Int) (*types.Transaction, error) {
+	return _Collateral.Contract.Withdraw(&_Collateral.TransactOpts, amount)
 }
 
-// MainAdminChangedIterator is returned from FilterAdminChanged and is used to iterate over the raw logs and unpacked data for AdminChanged events raised by the Main contract.
-type MainAdminChangedIterator struct {
-	Event *MainAdminChanged // Event containing the contract specifics and raw log
+// Receive is a paid mutator transaction binding the contract receive function.
+//
+// Solidity: receive() payable returns()
+func (_Collateral *CollateralTransactor) Receive(opts *bind.TransactOpts) (*types.Transaction, error) {
+	return _Collateral.contract.RawTransact(opts, nil) // calldata is disallowed for receive function
+}
+
+// Receive is a paid mutator transaction binding the contract receive function.
+//
+// Solidity: receive() payable returns()
+func (_Collateral *CollateralSession) Receive() (*types.Transaction, error) {
+	return _Collateral.Contract.Receive(&_Collateral.TransactOpts)
+}
+
+// Receive is a paid mutator transaction binding the contract receive function.
+//
+// Solidity: receive() payable returns()
+func (_Collateral *CollateralTransactorSession) Receive() (*types.Transaction, error) {
+	return _Collateral.Contract.Receive(&_Collateral.TransactOpts)
+}
+
+// CollateralAdminChangedIterator is returned from FilterAdminChanged and is used to iterate over the raw logs and unpacked data for AdminChanged events raised by the Collateral contract.
+type CollateralAdminChangedIterator struct {
+	Event *CollateralAdminChanged // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -592,7 +717,7 @@ type MainAdminChangedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MainAdminChangedIterator) Next() bool {
+func (it *CollateralAdminChangedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -601,7 +726,7 @@ func (it *MainAdminChangedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MainAdminChanged)
+			it.Event = new(CollateralAdminChanged)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -616,7 +741,7 @@ func (it *MainAdminChangedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MainAdminChanged)
+		it.Event = new(CollateralAdminChanged)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -632,19 +757,19 @@ func (it *MainAdminChangedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MainAdminChangedIterator) Error() error {
+func (it *CollateralAdminChangedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MainAdminChangedIterator) Close() error {
+func (it *CollateralAdminChangedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MainAdminChanged represents a AdminChanged event raised by the Main contract.
-type MainAdminChanged struct {
+// CollateralAdminChanged represents a AdminChanged event raised by the Collateral contract.
+type CollateralAdminChanged struct {
 	PreviousAdmin common.Address
 	NewAdmin      common.Address
 	Raw           types.Log // Blockchain specific contextual infos
@@ -653,21 +778,21 @@ type MainAdminChanged struct {
 // FilterAdminChanged is a free log retrieval operation binding the contract event 0x7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f.
 //
 // Solidity: event AdminChanged(address previousAdmin, address newAdmin)
-func (_Main *MainFilterer) FilterAdminChanged(opts *bind.FilterOpts) (*MainAdminChangedIterator, error) {
+func (_Collateral *CollateralFilterer) FilterAdminChanged(opts *bind.FilterOpts) (*CollateralAdminChangedIterator, error) {
 
-	logs, sub, err := _Main.contract.FilterLogs(opts, "AdminChanged")
+	logs, sub, err := _Collateral.contract.FilterLogs(opts, "AdminChanged")
 	if err != nil {
 		return nil, err
 	}
-	return &MainAdminChangedIterator{contract: _Main.contract, event: "AdminChanged", logs: logs, sub: sub}, nil
+	return &CollateralAdminChangedIterator{contract: _Collateral.contract, event: "AdminChanged", logs: logs, sub: sub}, nil
 }
 
 // WatchAdminChanged is a free log subscription operation binding the contract event 0x7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f.
 //
 // Solidity: event AdminChanged(address previousAdmin, address newAdmin)
-func (_Main *MainFilterer) WatchAdminChanged(opts *bind.WatchOpts, sink chan<- *MainAdminChanged) (event.Subscription, error) {
+func (_Collateral *CollateralFilterer) WatchAdminChanged(opts *bind.WatchOpts, sink chan<- *CollateralAdminChanged) (event.Subscription, error) {
 
-	logs, sub, err := _Main.contract.WatchLogs(opts, "AdminChanged")
+	logs, sub, err := _Collateral.contract.WatchLogs(opts, "AdminChanged")
 	if err != nil {
 		return nil, err
 	}
@@ -677,8 +802,8 @@ func (_Main *MainFilterer) WatchAdminChanged(opts *bind.WatchOpts, sink chan<- *
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MainAdminChanged)
-				if err := _Main.contract.UnpackLog(event, "AdminChanged", log); err != nil {
+				event := new(CollateralAdminChanged)
+				if err := _Collateral.contract.UnpackLog(event, "AdminChanged", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -702,18 +827,18 @@ func (_Main *MainFilterer) WatchAdminChanged(opts *bind.WatchOpts, sink chan<- *
 // ParseAdminChanged is a log parse operation binding the contract event 0x7e644d79422f17c01e4894b5f4f588d331ebfa28653d42ae832dc59e38c9798f.
 //
 // Solidity: event AdminChanged(address previousAdmin, address newAdmin)
-func (_Main *MainFilterer) ParseAdminChanged(log types.Log) (*MainAdminChanged, error) {
-	event := new(MainAdminChanged)
-	if err := _Main.contract.UnpackLog(event, "AdminChanged", log); err != nil {
+func (_Collateral *CollateralFilterer) ParseAdminChanged(log types.Log) (*CollateralAdminChanged, error) {
+	event := new(CollateralAdminChanged)
+	if err := _Collateral.contract.UnpackLog(event, "AdminChanged", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// MainBeaconUpgradedIterator is returned from FilterBeaconUpgraded and is used to iterate over the raw logs and unpacked data for BeaconUpgraded events raised by the Main contract.
-type MainBeaconUpgradedIterator struct {
-	Event *MainBeaconUpgraded // Event containing the contract specifics and raw log
+// CollateralBeaconUpgradedIterator is returned from FilterBeaconUpgraded and is used to iterate over the raw logs and unpacked data for BeaconUpgraded events raised by the Collateral contract.
+type CollateralBeaconUpgradedIterator struct {
+	Event *CollateralBeaconUpgraded // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -727,7 +852,7 @@ type MainBeaconUpgradedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MainBeaconUpgradedIterator) Next() bool {
+func (it *CollateralBeaconUpgradedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -736,7 +861,7 @@ func (it *MainBeaconUpgradedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MainBeaconUpgraded)
+			it.Event = new(CollateralBeaconUpgraded)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -751,7 +876,7 @@ func (it *MainBeaconUpgradedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MainBeaconUpgraded)
+		it.Event = new(CollateralBeaconUpgraded)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -767,19 +892,19 @@ func (it *MainBeaconUpgradedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MainBeaconUpgradedIterator) Error() error {
+func (it *CollateralBeaconUpgradedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MainBeaconUpgradedIterator) Close() error {
+func (it *CollateralBeaconUpgradedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MainBeaconUpgraded represents a BeaconUpgraded event raised by the Main contract.
-type MainBeaconUpgraded struct {
+// CollateralBeaconUpgraded represents a BeaconUpgraded event raised by the Collateral contract.
+type CollateralBeaconUpgraded struct {
 	Beacon common.Address
 	Raw    types.Log // Blockchain specific contextual infos
 }
@@ -787,31 +912,31 @@ type MainBeaconUpgraded struct {
 // FilterBeaconUpgraded is a free log retrieval operation binding the contract event 0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e.
 //
 // Solidity: event BeaconUpgraded(address indexed beacon)
-func (_Main *MainFilterer) FilterBeaconUpgraded(opts *bind.FilterOpts, beacon []common.Address) (*MainBeaconUpgradedIterator, error) {
+func (_Collateral *CollateralFilterer) FilterBeaconUpgraded(opts *bind.FilterOpts, beacon []common.Address) (*CollateralBeaconUpgradedIterator, error) {
 
 	var beaconRule []interface{}
 	for _, beaconItem := range beacon {
 		beaconRule = append(beaconRule, beaconItem)
 	}
 
-	logs, sub, err := _Main.contract.FilterLogs(opts, "BeaconUpgraded", beaconRule)
+	logs, sub, err := _Collateral.contract.FilterLogs(opts, "BeaconUpgraded", beaconRule)
 	if err != nil {
 		return nil, err
 	}
-	return &MainBeaconUpgradedIterator{contract: _Main.contract, event: "BeaconUpgraded", logs: logs, sub: sub}, nil
+	return &CollateralBeaconUpgradedIterator{contract: _Collateral.contract, event: "BeaconUpgraded", logs: logs, sub: sub}, nil
 }
 
 // WatchBeaconUpgraded is a free log subscription operation binding the contract event 0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e.
 //
 // Solidity: event BeaconUpgraded(address indexed beacon)
-func (_Main *MainFilterer) WatchBeaconUpgraded(opts *bind.WatchOpts, sink chan<- *MainBeaconUpgraded, beacon []common.Address) (event.Subscription, error) {
+func (_Collateral *CollateralFilterer) WatchBeaconUpgraded(opts *bind.WatchOpts, sink chan<- *CollateralBeaconUpgraded, beacon []common.Address) (event.Subscription, error) {
 
 	var beaconRule []interface{}
 	for _, beaconItem := range beacon {
 		beaconRule = append(beaconRule, beaconItem)
 	}
 
-	logs, sub, err := _Main.contract.WatchLogs(opts, "BeaconUpgraded", beaconRule)
+	logs, sub, err := _Collateral.contract.WatchLogs(opts, "BeaconUpgraded", beaconRule)
 	if err != nil {
 		return nil, err
 	}
@@ -821,8 +946,8 @@ func (_Main *MainFilterer) WatchBeaconUpgraded(opts *bind.WatchOpts, sink chan<-
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MainBeaconUpgraded)
-				if err := _Main.contract.UnpackLog(event, "BeaconUpgraded", log); err != nil {
+				event := new(CollateralBeaconUpgraded)
+				if err := _Collateral.contract.UnpackLog(event, "BeaconUpgraded", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -846,18 +971,18 @@ func (_Main *MainFilterer) WatchBeaconUpgraded(opts *bind.WatchOpts, sink chan<-
 // ParseBeaconUpgraded is a log parse operation binding the contract event 0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e.
 //
 // Solidity: event BeaconUpgraded(address indexed beacon)
-func (_Main *MainFilterer) ParseBeaconUpgraded(log types.Log) (*MainBeaconUpgraded, error) {
-	event := new(MainBeaconUpgraded)
-	if err := _Main.contract.UnpackLog(event, "BeaconUpgraded", log); err != nil {
+func (_Collateral *CollateralFilterer) ParseBeaconUpgraded(log types.Log) (*CollateralBeaconUpgraded, error) {
+	event := new(CollateralBeaconUpgraded)
+	if err := _Collateral.contract.UnpackLog(event, "BeaconUpgraded", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// MainDepositIterator is returned from FilterDeposit and is used to iterate over the raw logs and unpacked data for Deposit events raised by the Main contract.
-type MainDepositIterator struct {
-	Event *MainDeposit // Event containing the contract specifics and raw log
+// CollateralDepositIterator is returned from FilterDeposit and is used to iterate over the raw logs and unpacked data for Deposit events raised by the Collateral contract.
+type CollateralDepositIterator struct {
+	Event *CollateralDeposit // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -871,7 +996,7 @@ type MainDepositIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MainDepositIterator) Next() bool {
+func (it *CollateralDepositIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -880,7 +1005,7 @@ func (it *MainDepositIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MainDeposit)
+			it.Event = new(CollateralDeposit)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -895,7 +1020,7 @@ func (it *MainDepositIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MainDeposit)
+		it.Event = new(CollateralDeposit)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -911,19 +1036,19 @@ func (it *MainDepositIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MainDepositIterator) Error() error {
+func (it *CollateralDepositIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MainDepositIterator) Close() error {
+func (it *CollateralDepositIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MainDeposit represents a Deposit event raised by the Main contract.
-type MainDeposit struct {
+// CollateralDeposit represents a Deposit event raised by the Collateral contract.
+type CollateralDeposit struct {
 	FundingWallet   common.Address
 	ReceivingWallet common.Address
 	DepositAmount   *big.Int
@@ -933,21 +1058,21 @@ type MainDeposit struct {
 // FilterDeposit is a free log retrieval operation binding the contract event 0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62.
 //
 // Solidity: event Deposit(address fundingWallet, address receivingWallet, uint256 depositAmount)
-func (_Main *MainFilterer) FilterDeposit(opts *bind.FilterOpts) (*MainDepositIterator, error) {
+func (_Collateral *CollateralFilterer) FilterDeposit(opts *bind.FilterOpts) (*CollateralDepositIterator, error) {
 
-	logs, sub, err := _Main.contract.FilterLogs(opts, "Deposit")
+	logs, sub, err := _Collateral.contract.FilterLogs(opts, "Deposit")
 	if err != nil {
 		return nil, err
 	}
-	return &MainDepositIterator{contract: _Main.contract, event: "Deposit", logs: logs, sub: sub}, nil
+	return &CollateralDepositIterator{contract: _Collateral.contract, event: "Deposit", logs: logs, sub: sub}, nil
 }
 
 // WatchDeposit is a free log subscription operation binding the contract event 0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62.
 //
 // Solidity: event Deposit(address fundingWallet, address receivingWallet, uint256 depositAmount)
-func (_Main *MainFilterer) WatchDeposit(opts *bind.WatchOpts, sink chan<- *MainDeposit) (event.Subscription, error) {
+func (_Collateral *CollateralFilterer) WatchDeposit(opts *bind.WatchOpts, sink chan<- *CollateralDeposit) (event.Subscription, error) {
 
-	logs, sub, err := _Main.contract.WatchLogs(opts, "Deposit")
+	logs, sub, err := _Collateral.contract.WatchLogs(opts, "Deposit")
 	if err != nil {
 		return nil, err
 	}
@@ -957,8 +1082,8 @@ func (_Main *MainFilterer) WatchDeposit(opts *bind.WatchOpts, sink chan<- *MainD
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MainDeposit)
-				if err := _Main.contract.UnpackLog(event, "Deposit", log); err != nil {
+				event := new(CollateralDeposit)
+				if err := _Collateral.contract.UnpackLog(event, "Deposit", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -982,18 +1107,18 @@ func (_Main *MainFilterer) WatchDeposit(opts *bind.WatchOpts, sink chan<- *MainD
 // ParseDeposit is a log parse operation binding the contract event 0x5548c837ab068cf56a2c2479df0882a4922fd203edb7517321831d95078c5f62.
 //
 // Solidity: event Deposit(address fundingWallet, address receivingWallet, uint256 depositAmount)
-func (_Main *MainFilterer) ParseDeposit(log types.Log) (*MainDeposit, error) {
-	event := new(MainDeposit)
-	if err := _Main.contract.UnpackLog(event, "Deposit", log); err != nil {
+func (_Collateral *CollateralFilterer) ParseDeposit(log types.Log) (*CollateralDeposit, error) {
+	event := new(CollateralDeposit)
+	if err := _Collateral.contract.UnpackLog(event, "Deposit", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// MainInitializedIterator is returned from FilterInitialized and is used to iterate over the raw logs and unpacked data for Initialized events raised by the Main contract.
-type MainInitializedIterator struct {
-	Event *MainInitialized // Event containing the contract specifics and raw log
+// CollateralInitializedIterator is returned from FilterInitialized and is used to iterate over the raw logs and unpacked data for Initialized events raised by the Collateral contract.
+type CollateralInitializedIterator struct {
+	Event *CollateralInitialized // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -1007,7 +1132,7 @@ type MainInitializedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MainInitializedIterator) Next() bool {
+func (it *CollateralInitializedIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -1016,7 +1141,7 @@ func (it *MainInitializedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MainInitialized)
+			it.Event = new(CollateralInitialized)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -1031,7 +1156,7 @@ func (it *MainInitializedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MainInitialized)
+		it.Event = new(CollateralInitialized)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -1047,19 +1172,19 @@ func (it *MainInitializedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MainInitializedIterator) Error() error {
+func (it *CollateralInitializedIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MainInitializedIterator) Close() error {
+func (it *CollateralInitializedIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MainInitialized represents a Initialized event raised by the Main contract.
-type MainInitialized struct {
+// CollateralInitialized represents a Initialized event raised by the Collateral contract.
+type CollateralInitialized struct {
 	Version uint8
 	Raw     types.Log // Blockchain specific contextual infos
 }
@@ -1067,21 +1192,21 @@ type MainInitialized struct {
 // FilterInitialized is a free log retrieval operation binding the contract event 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 //
 // Solidity: event Initialized(uint8 version)
-func (_Main *MainFilterer) FilterInitialized(opts *bind.FilterOpts) (*MainInitializedIterator, error) {
+func (_Collateral *CollateralFilterer) FilterInitialized(opts *bind.FilterOpts) (*CollateralInitializedIterator, error) {
 
-	logs, sub, err := _Main.contract.FilterLogs(opts, "Initialized")
+	logs, sub, err := _Collateral.contract.FilterLogs(opts, "Initialized")
 	if err != nil {
 		return nil, err
 	}
-	return &MainInitializedIterator{contract: _Main.contract, event: "Initialized", logs: logs, sub: sub}, nil
+	return &CollateralInitializedIterator{contract: _Collateral.contract, event: "Initialized", logs: logs, sub: sub}, nil
 }
 
 // WatchInitialized is a free log subscription operation binding the contract event 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 //
 // Solidity: event Initialized(uint8 version)
-func (_Main *MainFilterer) WatchInitialized(opts *bind.WatchOpts, sink chan<- *MainInitialized) (event.Subscription, error) {
+func (_Collateral *CollateralFilterer) WatchInitialized(opts *bind.WatchOpts, sink chan<- *CollateralInitialized) (event.Subscription, error) {
 
-	logs, sub, err := _Main.contract.WatchLogs(opts, "Initialized")
+	logs, sub, err := _Collateral.contract.WatchLogs(opts, "Initialized")
 	if err != nil {
 		return nil, err
 	}
@@ -1091,8 +1216,8 @@ func (_Main *MainFilterer) WatchInitialized(opts *bind.WatchOpts, sink chan<- *M
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MainInitialized)
-				if err := _Main.contract.UnpackLog(event, "Initialized", log); err != nil {
+				event := new(CollateralInitialized)
+				if err := _Collateral.contract.UnpackLog(event, "Initialized", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -1116,18 +1241,18 @@ func (_Main *MainFilterer) WatchInitialized(opts *bind.WatchOpts, sink chan<- *M
 // ParseInitialized is a log parse operation binding the contract event 0x7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498.
 //
 // Solidity: event Initialized(uint8 version)
-func (_Main *MainFilterer) ParseInitialized(log types.Log) (*MainInitialized, error) {
-	event := new(MainInitialized)
-	if err := _Main.contract.UnpackLog(event, "Initialized", log); err != nil {
+func (_Collateral *CollateralFilterer) ParseInitialized(log types.Log) (*CollateralInitialized, error) {
+	event := new(CollateralInitialized)
+	if err := _Collateral.contract.UnpackLog(event, "Initialized", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// MainLockCollateralIterator is returned from FilterLockCollateral and is used to iterate over the raw logs and unpacked data for LockCollateral events raised by the Main contract.
-type MainLockCollateralIterator struct {
-	Event *MainLockCollateral // Event containing the contract specifics and raw log
+// CollateralLockCollateralIterator is returned from FilterLockCollateral and is used to iterate over the raw logs and unpacked data for LockCollateral events raised by the Collateral contract.
+type CollateralLockCollateralIterator struct {
+	Event *CollateralLockCollateral // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -1141,7 +1266,7 @@ type MainLockCollateralIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MainLockCollateralIterator) Next() bool {
+func (it *CollateralLockCollateralIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -1150,7 +1275,7 @@ func (it *MainLockCollateralIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MainLockCollateral)
+			it.Event = new(CollateralLockCollateral)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -1165,7 +1290,7 @@ func (it *MainLockCollateralIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MainLockCollateral)
+		it.Event = new(CollateralLockCollateral)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -1181,19 +1306,19 @@ func (it *MainLockCollateralIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MainLockCollateralIterator) Error() error {
+func (it *CollateralLockCollateralIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MainLockCollateralIterator) Close() error {
+func (it *CollateralLockCollateralIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MainLockCollateral represents a LockCollateral event raised by the Main contract.
-type MainLockCollateral struct {
+// CollateralLockCollateral represents a LockCollateral event raised by the Collateral contract.
+type CollateralLockCollateral struct {
 	TaskContract     common.Address
 	CpList           []common.Address
 	CollateralAmount *big.Int
@@ -1203,21 +1328,21 @@ type MainLockCollateral struct {
 // FilterLockCollateral is a free log retrieval operation binding the contract event 0x725d92f258a928f1444ddfbc373ac2965cd5af9acfd0ec698099db2759db9415.
 //
 // Solidity: event LockCollateral(address taskContract, address[] cpList, uint256 collateralAmount)
-func (_Main *MainFilterer) FilterLockCollateral(opts *bind.FilterOpts) (*MainLockCollateralIterator, error) {
+func (_Collateral *CollateralFilterer) FilterLockCollateral(opts *bind.FilterOpts) (*CollateralLockCollateralIterator, error) {
 
-	logs, sub, err := _Main.contract.FilterLogs(opts, "LockCollateral")
+	logs, sub, err := _Collateral.contract.FilterLogs(opts, "LockCollateral")
 	if err != nil {
 		return nil, err
 	}
-	return &MainLockCollateralIterator{contract: _Main.contract, event: "LockCollateral", logs: logs, sub: sub}, nil
+	return &CollateralLockCollateralIterator{contract: _Collateral.contract, event: "LockCollateral", logs: logs, sub: sub}, nil
 }
 
 // WatchLockCollateral is a free log subscription operation binding the contract event 0x725d92f258a928f1444ddfbc373ac2965cd5af9acfd0ec698099db2759db9415.
 //
 // Solidity: event LockCollateral(address taskContract, address[] cpList, uint256 collateralAmount)
-func (_Main *MainFilterer) WatchLockCollateral(opts *bind.WatchOpts, sink chan<- *MainLockCollateral) (event.Subscription, error) {
+func (_Collateral *CollateralFilterer) WatchLockCollateral(opts *bind.WatchOpts, sink chan<- *CollateralLockCollateral) (event.Subscription, error) {
 
-	logs, sub, err := _Main.contract.WatchLogs(opts, "LockCollateral")
+	logs, sub, err := _Collateral.contract.WatchLogs(opts, "LockCollateral")
 	if err != nil {
 		return nil, err
 	}
@@ -1227,8 +1352,8 @@ func (_Main *MainFilterer) WatchLockCollateral(opts *bind.WatchOpts, sink chan<-
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MainLockCollateral)
-				if err := _Main.contract.UnpackLog(event, "LockCollateral", log); err != nil {
+				event := new(CollateralLockCollateral)
+				if err := _Collateral.contract.UnpackLog(event, "LockCollateral", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -1252,18 +1377,18 @@ func (_Main *MainFilterer) WatchLockCollateral(opts *bind.WatchOpts, sink chan<-
 // ParseLockCollateral is a log parse operation binding the contract event 0x725d92f258a928f1444ddfbc373ac2965cd5af9acfd0ec698099db2759db9415.
 //
 // Solidity: event LockCollateral(address taskContract, address[] cpList, uint256 collateralAmount)
-func (_Main *MainFilterer) ParseLockCollateral(log types.Log) (*MainLockCollateral, error) {
-	event := new(MainLockCollateral)
-	if err := _Main.contract.UnpackLog(event, "LockCollateral", log); err != nil {
+func (_Collateral *CollateralFilterer) ParseLockCollateral(log types.Log) (*CollateralLockCollateral, error) {
+	event := new(CollateralLockCollateral)
+	if err := _Collateral.contract.UnpackLog(event, "LockCollateral", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// MainOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the Main contract.
-type MainOwnershipTransferredIterator struct {
-	Event *MainOwnershipTransferred // Event containing the contract specifics and raw log
+// CollateralOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the Collateral contract.
+type CollateralOwnershipTransferredIterator struct {
+	Event *CollateralOwnershipTransferred // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -1277,7 +1402,7 @@ type MainOwnershipTransferredIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MainOwnershipTransferredIterator) Next() bool {
+func (it *CollateralOwnershipTransferredIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -1286,7 +1411,7 @@ func (it *MainOwnershipTransferredIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MainOwnershipTransferred)
+			it.Event = new(CollateralOwnershipTransferred)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -1301,7 +1426,7 @@ func (it *MainOwnershipTransferredIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MainOwnershipTransferred)
+		it.Event = new(CollateralOwnershipTransferred)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -1317,19 +1442,19 @@ func (it *MainOwnershipTransferredIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MainOwnershipTransferredIterator) Error() error {
+func (it *CollateralOwnershipTransferredIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MainOwnershipTransferredIterator) Close() error {
+func (it *CollateralOwnershipTransferredIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MainOwnershipTransferred represents a OwnershipTransferred event raised by the Main contract.
-type MainOwnershipTransferred struct {
+// CollateralOwnershipTransferred represents a OwnershipTransferred event raised by the Collateral contract.
+type CollateralOwnershipTransferred struct {
 	PreviousOwner common.Address
 	NewOwner      common.Address
 	Raw           types.Log // Blockchain specific contextual infos
@@ -1338,7 +1463,7 @@ type MainOwnershipTransferred struct {
 // FilterOwnershipTransferred is a free log retrieval operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 //
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
-func (_Main *MainFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*MainOwnershipTransferredIterator, error) {
+func (_Collateral *CollateralFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, previousOwner []common.Address, newOwner []common.Address) (*CollateralOwnershipTransferredIterator, error) {
 
 	var previousOwnerRule []interface{}
 	for _, previousOwnerItem := range previousOwner {
@@ -1349,17 +1474,17 @@ func (_Main *MainFilterer) FilterOwnershipTransferred(opts *bind.FilterOpts, pre
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
 
-	logs, sub, err := _Main.contract.FilterLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
+	logs, sub, err := _Collateral.contract.FilterLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
 	if err != nil {
 		return nil, err
 	}
-	return &MainOwnershipTransferredIterator{contract: _Main.contract, event: "OwnershipTransferred", logs: logs, sub: sub}, nil
+	return &CollateralOwnershipTransferredIterator{contract: _Collateral.contract, event: "OwnershipTransferred", logs: logs, sub: sub}, nil
 }
 
 // WatchOwnershipTransferred is a free log subscription operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 //
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
-func (_Main *MainFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *MainOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
+func (_Collateral *CollateralFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink chan<- *CollateralOwnershipTransferred, previousOwner []common.Address, newOwner []common.Address) (event.Subscription, error) {
 
 	var previousOwnerRule []interface{}
 	for _, previousOwnerItem := range previousOwner {
@@ -1370,7 +1495,7 @@ func (_Main *MainFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink 
 		newOwnerRule = append(newOwnerRule, newOwnerItem)
 	}
 
-	logs, sub, err := _Main.contract.WatchLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
+	logs, sub, err := _Collateral.contract.WatchLogs(opts, "OwnershipTransferred", previousOwnerRule, newOwnerRule)
 	if err != nil {
 		return nil, err
 	}
@@ -1380,8 +1505,8 @@ func (_Main *MainFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink 
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MainOwnershipTransferred)
-				if err := _Main.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+				event := new(CollateralOwnershipTransferred)
+				if err := _Collateral.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -1405,18 +1530,18 @@ func (_Main *MainFilterer) WatchOwnershipTransferred(opts *bind.WatchOpts, sink 
 // ParseOwnershipTransferred is a log parse operation binding the contract event 0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0.
 //
 // Solidity: event OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
-func (_Main *MainFilterer) ParseOwnershipTransferred(log types.Log) (*MainOwnershipTransferred, error) {
-	event := new(MainOwnershipTransferred)
-	if err := _Main.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+func (_Collateral *CollateralFilterer) ParseOwnershipTransferred(log types.Log) (*CollateralOwnershipTransferred, error) {
+	event := new(CollateralOwnershipTransferred)
+	if err := _Collateral.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// MainUpgradedIterator is returned from FilterUpgraded and is used to iterate over the raw logs and unpacked data for Upgraded events raised by the Main contract.
-type MainUpgradedIterator struct {
-	Event *MainUpgraded // Event containing the contract specifics and raw log
+// CollateralUnlockCollateralIterator is returned from FilterUnlockCollateral and is used to iterate over the raw logs and unpacked data for UnlockCollateral events raised by the Collateral contract.
+type CollateralUnlockCollateralIterator struct {
+	Event *CollateralUnlockCollateral // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -1430,7 +1555,7 @@ type MainUpgradedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MainUpgradedIterator) Next() bool {
+func (it *CollateralUnlockCollateralIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -1439,7 +1564,7 @@ func (it *MainUpgradedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MainUpgraded)
+			it.Event = new(CollateralUnlockCollateral)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -1454,7 +1579,7 @@ func (it *MainUpgradedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MainUpgraded)
+		it.Event = new(CollateralUnlockCollateral)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -1470,51 +1595,43 @@ func (it *MainUpgradedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MainUpgradedIterator) Error() error {
+func (it *CollateralUnlockCollateralIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MainUpgradedIterator) Close() error {
+func (it *CollateralUnlockCollateralIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MainUpgraded represents a Upgraded event raised by the Main contract.
-type MainUpgraded struct {
-	Implementation common.Address
-	Raw            types.Log // Blockchain specific contextual infos
+// CollateralUnlockCollateral represents a UnlockCollateral event raised by the Collateral contract.
+type CollateralUnlockCollateral struct {
+	TaskContract     common.Address
+	Cp               common.Address
+	CollateralAmount *big.Int
+	Raw              types.Log // Blockchain specific contextual infos
 }
 
-// FilterUpgraded is a free log retrieval operation binding the contract event 0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b.
+// FilterUnlockCollateral is a free log retrieval operation binding the contract event 0x0b07bdad0ef069f045a8095f09327d7282a29a5101416833dff00b4b2f888f77.
 //
-// Solidity: event Upgraded(address indexed implementation)
-func (_Main *MainFilterer) FilterUpgraded(opts *bind.FilterOpts, implementation []common.Address) (*MainUpgradedIterator, error) {
+// Solidity: event UnlockCollateral(address taskContract, address cp, uint256 collateralAmount)
+func (_Collateral *CollateralFilterer) FilterUnlockCollateral(opts *bind.FilterOpts) (*CollateralUnlockCollateralIterator, error) {
 
-	var implementationRule []interface{}
-	for _, implementationItem := range implementation {
-		implementationRule = append(implementationRule, implementationItem)
-	}
-
-	logs, sub, err := _Main.contract.FilterLogs(opts, "Upgraded", implementationRule)
+	logs, sub, err := _Collateral.contract.FilterLogs(opts, "UnlockCollateral")
 	if err != nil {
 		return nil, err
 	}
-	return &MainUpgradedIterator{contract: _Main.contract, event: "Upgraded", logs: logs, sub: sub}, nil
+	return &CollateralUnlockCollateralIterator{contract: _Collateral.contract, event: "UnlockCollateral", logs: logs, sub: sub}, nil
 }
 
-// WatchUpgraded is a free log subscription operation binding the contract event 0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b.
+// WatchUnlockCollateral is a free log subscription operation binding the contract event 0x0b07bdad0ef069f045a8095f09327d7282a29a5101416833dff00b4b2f888f77.
 //
-// Solidity: event Upgraded(address indexed implementation)
-func (_Main *MainFilterer) WatchUpgraded(opts *bind.WatchOpts, sink chan<- *MainUpgraded, implementation []common.Address) (event.Subscription, error) {
+// Solidity: event UnlockCollateral(address taskContract, address cp, uint256 collateralAmount)
+func (_Collateral *CollateralFilterer) WatchUnlockCollateral(opts *bind.WatchOpts, sink chan<- *CollateralUnlockCollateral) (event.Subscription, error) {
 
-	var implementationRule []interface{}
-	for _, implementationItem := range implementation {
-		implementationRule = append(implementationRule, implementationItem)
-	}
-
-	logs, sub, err := _Main.contract.WatchLogs(opts, "Upgraded", implementationRule)
+	logs, sub, err := _Collateral.contract.WatchLogs(opts, "UnlockCollateral")
 	if err != nil {
 		return nil, err
 	}
@@ -1524,8 +1641,152 @@ func (_Main *MainFilterer) WatchUpgraded(opts *bind.WatchOpts, sink chan<- *Main
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MainUpgraded)
-				if err := _Main.contract.UnpackLog(event, "Upgraded", log); err != nil {
+				event := new(CollateralUnlockCollateral)
+				if err := _Collateral.contract.UnpackLog(event, "UnlockCollateral", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseUnlockCollateral is a log parse operation binding the contract event 0x0b07bdad0ef069f045a8095f09327d7282a29a5101416833dff00b4b2f888f77.
+//
+// Solidity: event UnlockCollateral(address taskContract, address cp, uint256 collateralAmount)
+func (_Collateral *CollateralFilterer) ParseUnlockCollateral(log types.Log) (*CollateralUnlockCollateral, error) {
+	event := new(CollateralUnlockCollateral)
+	if err := _Collateral.contract.UnpackLog(event, "UnlockCollateral", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// CollateralUpgradedIterator is returned from FilterUpgraded and is used to iterate over the raw logs and unpacked data for Upgraded events raised by the Collateral contract.
+type CollateralUpgradedIterator struct {
+	Event *CollateralUpgraded // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *CollateralUpgradedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(CollateralUpgraded)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(CollateralUpgraded)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *CollateralUpgradedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *CollateralUpgradedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// CollateralUpgraded represents a Upgraded event raised by the Collateral contract.
+type CollateralUpgraded struct {
+	Implementation common.Address
+	Raw            types.Log // Blockchain specific contextual infos
+}
+
+// FilterUpgraded is a free log retrieval operation binding the contract event 0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b.
+//
+// Solidity: event Upgraded(address indexed implementation)
+func (_Collateral *CollateralFilterer) FilterUpgraded(opts *bind.FilterOpts, implementation []common.Address) (*CollateralUpgradedIterator, error) {
+
+	var implementationRule []interface{}
+	for _, implementationItem := range implementation {
+		implementationRule = append(implementationRule, implementationItem)
+	}
+
+	logs, sub, err := _Collateral.contract.FilterLogs(opts, "Upgraded", implementationRule)
+	if err != nil {
+		return nil, err
+	}
+	return &CollateralUpgradedIterator{contract: _Collateral.contract, event: "Upgraded", logs: logs, sub: sub}, nil
+}
+
+// WatchUpgraded is a free log subscription operation binding the contract event 0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b.
+//
+// Solidity: event Upgraded(address indexed implementation)
+func (_Collateral *CollateralFilterer) WatchUpgraded(opts *bind.WatchOpts, sink chan<- *CollateralUpgraded, implementation []common.Address) (event.Subscription, error) {
+
+	var implementationRule []interface{}
+	for _, implementationItem := range implementation {
+		implementationRule = append(implementationRule, implementationItem)
+	}
+
+	logs, sub, err := _Collateral.contract.WatchLogs(opts, "Upgraded", implementationRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(CollateralUpgraded)
+				if err := _Collateral.contract.UnpackLog(event, "Upgraded", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -1549,18 +1810,18 @@ func (_Main *MainFilterer) WatchUpgraded(opts *bind.WatchOpts, sink chan<- *Main
 // ParseUpgraded is a log parse operation binding the contract event 0xbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b.
 //
 // Solidity: event Upgraded(address indexed implementation)
-func (_Main *MainFilterer) ParseUpgraded(log types.Log) (*MainUpgraded, error) {
-	event := new(MainUpgraded)
-	if err := _Main.contract.UnpackLog(event, "Upgraded", log); err != nil {
+func (_Collateral *CollateralFilterer) ParseUpgraded(log types.Log) (*CollateralUpgraded, error) {
+	event := new(CollateralUpgraded)
+	if err := _Collateral.contract.UnpackLog(event, "Upgraded", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log
 	return event, nil
 }
 
-// MainWithdrawIterator is returned from FilterWithdraw and is used to iterate over the raw logs and unpacked data for Withdraw events raised by the Main contract.
-type MainWithdrawIterator struct {
-	Event *MainWithdraw // Event containing the contract specifics and raw log
+// CollateralWithdrawIterator is returned from FilterWithdraw and is used to iterate over the raw logs and unpacked data for Withdraw events raised by the Collateral contract.
+type CollateralWithdrawIterator struct {
+	Event *CollateralWithdraw // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -1574,7 +1835,7 @@ type MainWithdrawIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *MainWithdrawIterator) Next() bool {
+func (it *CollateralWithdrawIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -1583,7 +1844,7 @@ func (it *MainWithdrawIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(MainWithdraw)
+			it.Event = new(CollateralWithdraw)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -1598,7 +1859,7 @@ func (it *MainWithdrawIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(MainWithdraw)
+		it.Event = new(CollateralWithdraw)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -1614,19 +1875,19 @@ func (it *MainWithdrawIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *MainWithdrawIterator) Error() error {
+func (it *CollateralWithdrawIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *MainWithdrawIterator) Close() error {
+func (it *CollateralWithdrawIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// MainWithdraw represents a Withdraw event raised by the Main contract.
-type MainWithdraw struct {
+// CollateralWithdraw represents a Withdraw event raised by the Collateral contract.
+type CollateralWithdraw struct {
 	FundingWallet  common.Address
 	WithdrawAmount *big.Int
 	Raw            types.Log // Blockchain specific contextual infos
@@ -1635,21 +1896,21 @@ type MainWithdraw struct {
 // FilterWithdraw is a free log retrieval operation binding the contract event 0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364.
 //
 // Solidity: event Withdraw(address fundingWallet, uint256 withdrawAmount)
-func (_Main *MainFilterer) FilterWithdraw(opts *bind.FilterOpts) (*MainWithdrawIterator, error) {
+func (_Collateral *CollateralFilterer) FilterWithdraw(opts *bind.FilterOpts) (*CollateralWithdrawIterator, error) {
 
-	logs, sub, err := _Main.contract.FilterLogs(opts, "Withdraw")
+	logs, sub, err := _Collateral.contract.FilterLogs(opts, "Withdraw")
 	if err != nil {
 		return nil, err
 	}
-	return &MainWithdrawIterator{contract: _Main.contract, event: "Withdraw", logs: logs, sub: sub}, nil
+	return &CollateralWithdrawIterator{contract: _Collateral.contract, event: "Withdraw", logs: logs, sub: sub}, nil
 }
 
 // WatchWithdraw is a free log subscription operation binding the contract event 0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364.
 //
 // Solidity: event Withdraw(address fundingWallet, uint256 withdrawAmount)
-func (_Main *MainFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *MainWithdraw) (event.Subscription, error) {
+func (_Collateral *CollateralFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *CollateralWithdraw) (event.Subscription, error) {
 
-	logs, sub, err := _Main.contract.WatchLogs(opts, "Withdraw")
+	logs, sub, err := _Collateral.contract.WatchLogs(opts, "Withdraw")
 	if err != nil {
 		return nil, err
 	}
@@ -1659,8 +1920,8 @@ func (_Main *MainFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *Main
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(MainWithdraw)
-				if err := _Main.contract.UnpackLog(event, "Withdraw", log); err != nil {
+				event := new(CollateralWithdraw)
+				if err := _Collateral.contract.UnpackLog(event, "Withdraw", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -1684,9 +1945,9 @@ func (_Main *MainFilterer) WatchWithdraw(opts *bind.WatchOpts, sink chan<- *Main
 // ParseWithdraw is a log parse operation binding the contract event 0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364.
 //
 // Solidity: event Withdraw(address fundingWallet, uint256 withdrawAmount)
-func (_Main *MainFilterer) ParseWithdraw(log types.Log) (*MainWithdraw, error) {
-	event := new(MainWithdraw)
-	if err := _Main.contract.UnpackLog(event, "Withdraw", log); err != nil {
+func (_Collateral *CollateralFilterer) ParseWithdraw(log types.Log) (*CollateralWithdraw, error) {
+	event := new(CollateralWithdraw)
+	if err := _Collateral.contract.UnpackLog(event, "Withdraw", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

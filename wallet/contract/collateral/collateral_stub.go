@@ -15,7 +15,7 @@ import (
 
 type Stub struct {
 	client     *ethclient.Client
-	collateral *Main
+	collateral *Collateral
 	privateK   string
 	publicK    string
 }
@@ -41,7 +41,7 @@ func NewCollateralStub(client *ethclient.Client, options ...Option) (*Stub, erro
 	}
 
 	collateralAddress := common.HexToAddress(conf.GetConfig().CONTRACT.Collateral)
-	collateralClient, err := NewMain(collateralAddress, client)
+	collateralClient, err := NewCollateral(collateralAddress, client)
 	if err != nil {
 		return nil, fmt.Errorf("create collateral contract client, error: %+v", err)
 	}
@@ -57,12 +57,12 @@ func (s *Stub) Deposit(amount *big.Int) (string, error) {
 		return "", err
 	}
 
-	txOptions, err := s.createTransactOpts()
+	txOptions, err := s.createTransactOpts(amount, true)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, collateral client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.collateral.Deposit(txOptions, publicAddress, amount)
+	transaction, err := s.collateral.Deposit(txOptions, publicAddress)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, collateral client create deposit tx error: %+v", publicAddress, err)
 	}
@@ -98,7 +98,7 @@ func (s *Stub) Withdraw(amount *big.Int) (string, error) {
 		return "", err
 	}
 
-	txOptions, err := s.createTransactOpts()
+	txOptions, err := s.createTransactOpts(nil, false)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, collateral client create transaction, error: %+v", publicAddress, err)
 	}
@@ -128,7 +128,7 @@ func (s *Stub) privateKeyToPublicKey() (common.Address, error) {
 	return crypto.PubkeyToAddress(*publicKeyECDSA), nil
 }
 
-func (s *Stub) createTransactOpts() (*bind.TransactOpts, error) {
+func (s *Stub) createTransactOpts(amount *big.Int, isDeposit bool) (*bind.TransactOpts, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {
 		return nil, err
@@ -155,6 +155,10 @@ func (s *Stub) createTransactOpts() (*bind.TransactOpts, error) {
 	}
 
 	txOptions, err := bind.NewKeyedTransactorWithChainID(privateKey, chainId)
+	if isDeposit {
+		txOptions.Value = amount
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("address: %s, collateral client create transaction, error: %+v", publicAddress, err)
 	}
