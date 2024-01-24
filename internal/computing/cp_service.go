@@ -1225,13 +1225,13 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 	}
 
 	needCpu, _ := strconv.ParseInt(resource.CPU, 10, 64)
-	var needMemory, needStorage int64
+	var needMemory, needStorage float64
 	if len(strings.Split(strings.TrimSpace(resource.Memory), " ")) > 0 {
-		needMemory, err = strconv.ParseInt(strings.Split(strings.TrimSpace(resource.Memory), " ")[0], 10, 64)
+		needMemory, err = strconv.ParseFloat(strings.Split(strings.TrimSpace(resource.Memory), " ")[0], 64)
 
 	}
 	if len(strings.Split(strings.TrimSpace(resource.Storage), " ")) > 0 {
-		needStorage, err = strconv.ParseInt(strings.Split(strings.TrimSpace(resource.Storage), " ")[0], 10, 64)
+		needStorage, err = strconv.ParseFloat(strings.Split(strings.TrimSpace(resource.Storage), " ")[0], 64)
 
 	}
 
@@ -1242,12 +1242,12 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
 		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
 
-		logs.GetLogger().Infof("needCpu: %d, needMemory: %d, needStorage: %d", needCpu, needMemory, needStorage)
+		logs.GetLogger().Infof("needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
 		logs.GetLogger().Infof("needCpu: %d, needMemory: %f, needStorage: %f", remainderCpu, remainderMemory, remainderStorage)
-		if needCpu < remainderCpu && float64(needMemory) < remainderMemory && float64(needStorage) < remainderStorage {
+		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
 			nodeName = node.Name
 			if taskType == 0 {
-				return nodeName, needCpu, needMemory, needStorage, nil
+				return nodeName, needCpu, int64(needMemory), int64(needStorage), nil
 			} else if taskType == 1 {
 				if gpuName == "" {
 					nodeName = ""
@@ -1261,14 +1261,14 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 				}
 
 				if usedCount+1 <= nodeGpuSummary[node.Name][gpuName] {
-					return nodeName, needCpu, needMemory, needStorage, nil
+					return nodeName, needCpu, int64(needMemory), int64(needStorage), nil
 				}
 				nodeName = ""
 				continue
 			}
 		}
 	}
-	return nodeName, needCpu, needMemory, needStorage, nil
+	return nodeName, needCpu, int64(needMemory), int64(needStorage), nil
 }
 
 func generateString(length int) string {
