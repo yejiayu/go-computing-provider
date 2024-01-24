@@ -731,7 +731,7 @@ func DoUbiTask(c *gin.Context) {
 			return
 		}
 
-		receiveUrl := fmt.Sprintf("%s:%s/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), conf.GetConfig().API.Port)
+		receiveUrl := fmt.Sprintf("%s:%d/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), conf.GetConfig().API.Port)
 
 		execCommand := []string{"ubi-bench", "c2"}
 		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
