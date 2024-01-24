@@ -124,7 +124,6 @@ func getReward(nodeId, taskId string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	logs.GetLogger().Infof("reward: %+v", taskInfo)
 	if len(taskInfo.Data.List) > 0 {
 		task := taskInfo.Data.List[0]
 		floatVal, _ := strconv.ParseFloat(task.Amount, 64)
