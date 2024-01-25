@@ -711,6 +711,7 @@ func DoUbiTask(c *gin.Context) {
 				ubiTaskRun.Status = constants.UBI_TASK_FAILED_STATUS
 				k8sService := NewK8sService()
 				k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metaV1.DeleteOptions{})
+				os.Remove(ubiParamDir)
 			}
 			SaveUbiTaskMetadata(ubiTaskRun)
 		}()
@@ -769,6 +770,10 @@ func DoUbiTask(c *gin.Context) {
 									{
 										Name:  "NAME_SPACE",
 										Value: namespace,
+									},
+									{
+										Name:  "PARAM_PATH",
+										Value: ubiParamDir,
 									},
 								},
 								VolumeMounts: []v1.VolumeMount{
@@ -830,6 +835,7 @@ func ReceiveUbiProof(c *gin.Context) {
 		Proof     string `json:"proof"`
 		ZkType    string `json:"zk_type"`
 		NameSpace string `json:"name_space"`
+		ParmPath  string `json:"parm_path"`
 	}
 
 	var submitUBIProofTx string
@@ -852,6 +858,7 @@ func ReceiveUbiProof(c *gin.Context) {
 			k8sService := NewK8sService()
 			k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), c2Proof.NameSpace, metaV1.DeleteOptions{})
 		}
+		os.Remove(c2Proof.ParmPath)
 	}()
 
 	if err := c.ShouldBindJSON(&c2Proof); err != nil {
