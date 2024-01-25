@@ -580,11 +580,12 @@ func DoUbiTask(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
 		return
 	}
+
+	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d,  type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
 	if !signature {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
 		return
 	}
-	logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
 
 	var gpuFlag = "0"
 	var ubiTaskToRedis = new(models.CacheUbiTaskDetail)
