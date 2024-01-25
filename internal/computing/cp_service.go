@@ -601,7 +601,14 @@ func DoUbiTask(c *gin.Context) {
 	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 	SaveUbiTaskMetadata(ubiTaskToRedis)
 
-	inputParamTaskJson, err := util.GetMcsFileByUrl(ubiTask.InputParam)
+	cpPath, _ := os.LookupEnv("CP_PATH")
+	ubiParamDir := filepath.Join(cpPath, "zk-pool", ubiTask.ZkType, ubiTask.Name)
+	if _, err := os.Stat(ubiParamDir); os.IsNotExist(err) {
+		_ = os.MkdirAll(ubiParamDir, os.ModePerm)
+	}
+
+	ubiParamJsonFileName := filepath.Join(ubiParamDir, ubiTask.Name+".json")
+	err := util.SaveMcsFileByUrlToFile(ubiParamJsonFileName, ubiTask.InputParam)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "the value of task_type is 0 or 1"))
 		return
@@ -709,7 +716,6 @@ func DoUbiTask(c *gin.Context) {
 		}()
 		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
 		k8sService := NewK8sService()
-		filC2SecretName := ubiTask.Name
 
 		if _, err = k8sService.GetNameSpace(context.TODO(), namespace, metaV1.GetOptions{}); err != nil {
 			if errors.IsNotFound(err) {
@@ -726,14 +732,9 @@ func DoUbiTask(c *gin.Context) {
 			}
 		}
 
-		if err = k8sService.CreateUbiTaskSecret(context.TODO(), namespace, filC2SecretName, inputParamTaskJson); err != nil {
-			logs.GetLogger().Errorf("create ubi task configmap failed, error: %v", err)
-			return
-		}
-
 		receiveUrl := fmt.Sprintf("%s:%d/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), conf.GetConfig().API.Port)
-
-		execCommand := []string{"ubi-bench", "c2"}
+		ubiParamFilePathInContainer := filepath.Join("/var/tmp/fil-c2-param", ubiTask.Name+".json")
+		execCommand := []string{"ubi-bench", "c2", ubiParamFilePathInContainer}
 		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
 		job := &batchv1.Job{
 			ObjectMeta: metaV1.ObjectMeta{
@@ -796,8 +797,8 @@ func DoUbiTask(c *gin.Context) {
 							{
 								Name: "fil-c2-input-volume",
 								VolumeSource: v1.VolumeSource{
-									Secret: &v1.SecretVolumeSource{
-										SecretName: filC2SecretName,
+									HostPath: &v1.HostPathVolumeSource{
+										Path: ubiParamDir,
 									},
 								},
 							},
