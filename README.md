@@ -332,7 +332,7 @@ RedisPassword = ""                            # The redis server access password
 
 [UBI]
 UbiTask = true                                 # Accept the UBI task (Default: true)
-UbiEnginePk = "0xf5b7F848FaB22bdFD689Fedf26AA31bD5e890fCD"  # UBI Engine's public key, CP only accept the task from this UBI engine 
+UbiEnginePk = "0xB5aeb540B4895cd024c1625E146684940A849ED9"  # UBI Engine's public key, CP only accept the task from this UBI engine 
 UbiUrl ="https://ubi-task.swanchain.io/v1"     # UBI Engine's API address
 
 [LOG]
@@ -362,7 +362,7 @@ SWAN_MAINNET= ""								   # Swan mainnet RPC
 
 [CONTRACT]
 SWAN_CONTRACT="0x91B25A65b295F0405552A4bbB77879ab5e38166c"   # Swan token's contract address
-SWAN_COLLATERAL_CONTRACT="0xd0370c1D117653Be799AC697FdfB3C8B1A80Dec1"   # Swan's collateral address
+SWAN_COLLATERAL_CONTRACT="0xB8D9744b46C1ABbd02D62a7eebF193d83965ba39"   # Swan's collateral address
 ```
 ## Install AI Inference Dependency
 It is necessary for Computing Provider to deploy the  AI inference endpoint. But if you do not want to support the feature, you can skip it.

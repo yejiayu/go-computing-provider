@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	stErr "errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
@@ -572,21 +573,20 @@ func DoUbiTask(c *gin.Context) {
 		return
 	}
 
-	//ubiHubPk := conf.GetConfig().API.UbiHubPk
-	//
-	//cpRepoPath, _ := os.LookupEnv("CP_PATH")
-	//nodeID := GetNodeId(cpRepoPath)
-	//
-	//signature, err := verifySignature(ubiHubPk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
-	//if err != nil {
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
-	//	return
-	//}
-	//if !signature {
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
-	//	return
-	//}
-	//logs.GetLogger().Infof("ubi task sign verify success, task_id: %d,  type: %s", ubiTask.ID, ubiTask.ZkType)
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	nodeID := GetNodeId(cpRepoPath)
+
+	signature, err := verifySignature(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		return
+	}
+
+	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d,  type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
+	if !signature {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
+		return
+	}
 
 	var gpuFlag = "0"
 	var ubiTaskToRedis = new(models.CacheUbiTaskDetail)
@@ -601,7 +601,14 @@ func DoUbiTask(c *gin.Context) {
 	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 	SaveUbiTaskMetadata(ubiTaskToRedis)
 
-	inputParamTaskJson, err := util.GetMcsFileByUrl(ubiTask.InputParam)
+	cpPath, _ := os.LookupEnv("CP_PATH")
+	ubiParamDir := filepath.Join(cpPath, "zk-pool", ubiTask.ZkType, ubiTask.Name)
+	if _, err := os.Stat(ubiParamDir); os.IsNotExist(err) {
+		_ = os.MkdirAll(ubiParamDir, os.ModePerm)
+	}
+
+	ubiParamJsonFileName := filepath.Join(ubiParamDir, ubiTask.Name+".json")
+	err = util.SaveMcsFileByUrlToFile(ubiParamJsonFileName, ubiTask.InputParam)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "the value of task_type is 0 or 1"))
 		return
@@ -704,12 +711,12 @@ func DoUbiTask(c *gin.Context) {
 				ubiTaskRun.Status = constants.UBI_TASK_FAILED_STATUS
 				k8sService := NewK8sService()
 				k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metaV1.DeleteOptions{})
+				os.Remove(ubiParamDir)
 			}
 			SaveUbiTaskMetadata(ubiTaskRun)
 		}()
 		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
 		k8sService := NewK8sService()
-		filC2SecretName := ubiTask.Name
 
 		if _, err = k8sService.GetNameSpace(context.TODO(), namespace, metaV1.GetOptions{}); err != nil {
 			if errors.IsNotFound(err) {
@@ -726,14 +733,9 @@ func DoUbiTask(c *gin.Context) {
 			}
 		}
 
-		if err = k8sService.CreateUbiTaskSecret(context.TODO(), namespace, filC2SecretName, inputParamTaskJson); err != nil {
-			logs.GetLogger().Errorf("create ubi task configmap failed, error: %v", err)
-			return
-		}
-
 		receiveUrl := fmt.Sprintf("%s:%d/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), conf.GetConfig().API.Port)
-
-		execCommand := []string{"ubi-bench", "c2"}
+		ubiParamFilePathInContainer := filepath.Join("/var/tmp/fil-c2-param", ubiTask.Name+".json")
+		execCommand := []string{"ubi-bench", "c2", ubiParamFilePathInContainer}
 		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
 		job := &batchv1.Job{
 			ObjectMeta: metaV1.ObjectMeta{
@@ -769,6 +771,10 @@ func DoUbiTask(c *gin.Context) {
 										Name:  "NAME_SPACE",
 										Value: namespace,
 									},
+									{
+										Name:  "PARAM_PATH",
+										Value: ubiParamDir,
+									},
 								},
 								VolumeMounts: []v1.VolumeMount{
 									{
@@ -796,8 +802,8 @@ func DoUbiTask(c *gin.Context) {
 							{
 								Name: "fil-c2-input-volume",
 								VolumeSource: v1.VolumeSource{
-									Secret: &v1.SecretVolumeSource{
-										SecretName: filC2SecretName,
+									HostPath: &v1.HostPathVolumeSource{
+										Path: ubiParamDir,
 									},
 								},
 							},
@@ -829,6 +835,7 @@ func ReceiveUbiProof(c *gin.Context) {
 		Proof     string `json:"proof"`
 		ZkType    string `json:"zk_type"`
 		NameSpace string `json:"name_space"`
+		ParmPath  string `json:"parm_path"`
 	}
 
 	var submitUBIProofTx string
@@ -851,6 +858,7 @@ func ReceiveUbiProof(c *gin.Context) {
 			k8sService := NewK8sService()
 			k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), c2Proof.NameSpace, metaV1.DeleteOptions{})
 		}
+		os.Remove(c2Proof.ParmPath)
 	}()
 
 	if err := c.ShouldBindJSON(&c2Proof); err != nil {
@@ -1185,7 +1193,12 @@ func checkResourceAvailableForSpace(jobSourceURI string) (bool, error) {
 		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
 		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
 
-		if hardwareDetail.Cpu.Quantity < remainderCpu && float64(hardwareDetail.Memory.Quantity) < remainderMemory && float64(hardwareDetail.Storage.Quantity) < remainderStorage {
+		needCpu := hardwareDetail.Cpu.Quantity
+		needMemory := float64(hardwareDetail.Memory.Quantity)
+		needStorage := float64(hardwareDetail.Storage.Quantity)
+		logs.GetLogger().Infof("checkResourceAvailableForSpace: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForSpace: remainderCpu: %d, remainderMemory: %.2f, remainderStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
+		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
 			if taskType == "CPU" {
 				return true, nil
 			} else if taskType == "GPU" {
@@ -1241,8 +1254,8 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
 		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
 
-		logs.GetLogger().Infof("needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
-		logs.GetLogger().Infof("needCpu: %d, needMemory: %f, needStorage: %f", remainderCpu, remainderMemory, remainderStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForUbi: remainderCpu: %d, remainderMemory: %.2f, remainderStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
 		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
 			nodeName = node.Name
 			if taskType == 0 {
@@ -1484,8 +1497,13 @@ func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
 
 func verifySignature(pubKStr, data, signature string) (bool, error) {
 	hash := crypto.Keccak256Hash([]byte(data))
-	valid := crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), []byte(signature))
-	return valid, nil
+	decode, err := hexutil.Decode(signature)
+	if err != nil {
+		return false, err
+	}
+	signatureNoRecoverID := decode[:len(decode)-1]
+	crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), signatureNoRecoverID)
+	return true, nil
 }
 
 func convertGpuName(name string) string {

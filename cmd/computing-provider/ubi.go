@@ -12,10 +12,10 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
 	"io"
-	"math/big"
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 )
 
 var ubiTaskCmd = &cli.Command{
@@ -124,14 +124,10 @@ func getReward(nodeId, taskId string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	if len(taskInfo.Data.List) > 0 {
 		task := taskInfo.Data.List[0]
-		fbalance := new(big.Float)
-		fbalance.SetString(task.Amount)
-		etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
-		ethValue := etherQuotient.Text('f', 1)
-		return ethValue, nil
+		floatVal, _ := strconv.ParseFloat(task.Amount, 64)
+		return fmt.Sprintf("%.2f", floatVal), nil
 	} else {
 		return "0.0", nil
 	}
