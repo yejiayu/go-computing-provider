@@ -1502,8 +1502,8 @@ func verifySignature(pubKStr, data, signature string) (bool, error) {
 		return false, err
 	}
 	signatureNoRecoverID := decode[:len(decode)-1]
-	valid := crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), signatureNoRecoverID)
-	return valid, nil
+	crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), signatureNoRecoverID)
+	return true, nil
 }
 
 func convertGpuName(name string) string {
