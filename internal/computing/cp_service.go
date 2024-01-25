@@ -1185,7 +1185,12 @@ func checkResourceAvailableForSpace(jobSourceURI string) (bool, error) {
 		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
 		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
 
-		if hardwareDetail.Cpu.Quantity < remainderCpu && float64(hardwareDetail.Memory.Quantity) < remainderMemory && float64(hardwareDetail.Storage.Quantity) < remainderStorage {
+		needCpu := hardwareDetail.Cpu.Quantity
+		needMemory := float64(hardwareDetail.Memory.Quantity)
+		needStorage := float64(hardwareDetail.Storage.Quantity)
+		logs.GetLogger().Infof("checkResourceAvailableForSpace: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForSpace: remainderCpu: %d, remainderMemory: %f, remainderStorage: %f", remainderCpu, remainderMemory, remainderStorage)
+		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
 			if taskType == "CPU" {
 				return true, nil
 			} else if taskType == "GPU" {
@@ -1241,8 +1246,8 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
 		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
 
-		logs.GetLogger().Infof("needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
-		logs.GetLogger().Infof("needCpu: %d, needMemory: %f, needStorage: %f", remainderCpu, remainderMemory, remainderStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForUbi: remainderCpu: %d, remainderMemory: %f, remainderStorage: %f", remainderCpu, remainderMemory, remainderStorage)
 		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
 			nodeName = node.Name
 			if taskType == 0 {
