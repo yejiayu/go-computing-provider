@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	stErr "errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
@@ -1496,7 +1497,11 @@ func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
 
 func verifySignature(pubKStr, data, signature string) (bool, error) {
 	hash := crypto.Keccak256Hash([]byte(data))
-	valid := crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), []byte(signature))
+	decode, err := hexutil.Decode(signature)
+	if err != nil {
+		return false, err
+	}
+	valid := crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), decode)
 	return valid, nil
 }
 
