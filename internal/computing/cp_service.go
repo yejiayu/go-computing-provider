@@ -1501,7 +1501,8 @@ func verifySignature(pubKStr, data, signature string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	valid := crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), decode)
+	signatureNoRecoverID := decode[:len(decode)-1]
+	valid := crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), signatureNoRecoverID)
 	return valid, nil
 }
 
