@@ -33,7 +33,6 @@ func Verify(addr string, signature, dataHash []byte) (bool, error) {
 	if addr != pub {
 		return false, err
 	}
-
 	return true, nil
 }
 

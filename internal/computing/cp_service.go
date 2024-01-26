@@ -1510,7 +1510,7 @@ func verifySignature(pubKStr, data, signature string) (bool, error) {
 	if pubKStr != pub {
 		return false, err
 	}
-	return false, nil
+	return true, nil
 }
 
 func convertGpuName(name string) string {
