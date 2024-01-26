@@ -7,13 +7,13 @@ import (
 )
 
 const (
-	FlagCpRepo = "cp-repo"
+	FlagCpRepo = "repo"
 )
 
 func main() {
 	app := &cli.App{
 		Name:                 "computing-provider",
-		Usage:                "A computing provider is an individual or organization that participates in the decentralized computing network by offering computational resources such as processing power (CPU and GPU), memory, storage, and bandwidth.",
+		Usage:                "Swanchain decentralized computing network client",
 		EnableBashCompletion: true,
 		Version:              build.UserVersion(),
 		Flags: []cli.Flag{
@@ -25,8 +25,14 @@ func main() {
 			},
 		},
 		Commands: []*cli.Command{
+			initCmd,
 			runCmd,
+			infoCmd,
+			accountCmd,
 			taskCmd,
+			walletCmd,
+			collateralCmd,
+			ubiTaskCmd,
 		},
 	}
 	app.Setup()

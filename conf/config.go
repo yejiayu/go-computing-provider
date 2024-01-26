@@ -10,22 +10,34 @@ import (
 
 var config *ComputeNode
 
+const (
+	DefaultRpc = "swan"
+)
+
 // ComputeNode is a compute node config
 type ComputeNode struct {
 	API      API
+	UBI      UBI
 	LOG      LOG
-	LAG      LAG
+	HUB      HUB
 	MCS      MCS
 	Registry Registry
+	RPC      RPC
+	CONTRACT CONTRACT
 }
 
 type API struct {
 	Port          int
 	MultiAddress  string
-	RedisUrl      string
-	RedisPassword string
 	Domain        string
 	NodeName      string
+	RedisUrl      string
+	RedisPassword string
+}
+type UBI struct {
+	UbiTask     bool
+	UbiEnginePk string
+	UbiUrl      string
 }
 
 type LOG struct {
@@ -33,9 +45,11 @@ type LOG struct {
 	KeyFile string
 }
 
-type LAG struct {
-	ServerUrl   string
-	AccessToken string
+type HUB struct {
+	WalletAddress    string
+	ServerUrl        string
+	AccessToken      string
+	BalanceThreshold float64
 }
 
 type MCS struct {
@@ -50,6 +64,26 @@ type Registry struct {
 	ServerAddress string
 	UserName      string
 	Password      string
+}
+
+type RPC struct {
+	SwanTestnet string `toml:"SWAN_TESTNET"`
+	SwanMainnet string `toml:"SWAN_MAINNET"`
+}
+
+type CONTRACT struct {
+	SwanToken  string `toml:"SWAN_CONTRACT"`
+	Collateral string `toml:"SWAN_COLLATERAL_CONTRACT"`
+}
+
+func GetRpcByName(rpcName string) (string, error) {
+	var rpc string
+	switch rpcName {
+	case DefaultRpc:
+		rpc = GetConfig().RPC.SwanTestnet
+		break
+	}
+	return rpc, nil
 }
 
 func InitConfig(cpRepoPath string) error {
@@ -73,9 +107,13 @@ func requiredFieldsAreGiven(metaData toml.MetaData) bool {
 	requiredFields := [][]string{
 		{"API"},
 		{"LOG"},
-		{"LAG"},
+		{"HUB"},
 		{"MCS"},
 		{"Registry"},
+
+		{"UBI", "UbiTask"},
+		{"UBI", "UbiEnginePk"},
+		{"UBI", "UbiUrl"},
 
 		{"API", "MultiAddress"},
 		{"API", "Domain"},
@@ -84,13 +122,19 @@ func requiredFieldsAreGiven(metaData toml.MetaData) bool {
 		{"LOG", "CrtFile"},
 		{"LOG", "KeyFile"},
 
-		{"LAG", "ServerUrl"},
-		{"LAG", "AccessToken"},
+		{"HUB", "ServerUrl"},
+		{"HUB", "AccessToken"},
+		{"HUB", "WalletAddress"},
 
 		{"MCS", "ApiKey"},
 		{"MCS", "BucketName"},
 		{"MCS", "Network"},
 		{"MCS", "FileCachePath"},
+
+		{"RPC", "SWAN_TESTNET"},
+
+		{"CONTRACT", "SWAN_CONTRACT"},
+		{"CONTRACT", "SWAN_COLLATERAL_CONTRACT"},
 	}
 
 	for _, v := range requiredFields {

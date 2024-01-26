@@ -67,6 +67,12 @@ func (ws *WsClient) HandleLogs(reader io.Reader) {
 	ws.writeMessage()
 
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				return
+			}
+		}()
+
 		ticker := time.NewTicker(PingPeriod)
 		defer ticker.Stop()
 		for {

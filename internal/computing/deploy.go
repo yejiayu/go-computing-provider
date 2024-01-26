@@ -40,9 +40,10 @@ type Deploy struct {
 	TaskType          string
 	DeployName        string
 	hardwareDesc      string
+	taskUuid          string
 }
 
-func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration int64) *Deploy {
+func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration int64, taskUuid string) *Deploy {
 	taskType, hardwareDetail := getHardwareDetail(hardwareDesc)
 	return &Deploy{
 		jobUuid:          jobUuid,
@@ -53,6 +54,7 @@ func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration i
 		TaskType:         taskType,
 		k8sNameSpace:     constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(walletAddress),
 		hardwareDesc:     hardwareDesc,
+		taskUuid:         taskUuid,
 	}
 }
 
@@ -547,7 +549,7 @@ func (d *Deploy) watchContainerRunningTime() {
 		return
 	}
 
-	key := constants.REDIS_FULL_PREFIX + d.spaceUuid
+	key := constants.REDIS_SPACE_PREFIX + d.spaceUuid
 	conn.Do("DEL", redis.Args{}.AddFlat(key)...)
 
 	fullArgs := []interface{}{key}
@@ -561,6 +563,7 @@ func (d *Deploy) watchContainerRunningTime() {
 		"deploy_name":    d.DeployName,
 		"hardware":       d.hardwareDesc,
 		"url":            fmt.Sprintf("https://%s", d.hostName),
+		"task_uuid":      d.taskUuid,
 	}
 
 	for key, val := range fields {
@@ -578,12 +581,16 @@ func getHardwareDetail(description string) (string, models.Resource) {
 		hardwareResource.Gpu.Quantity = 0
 		hardwareResource.Gpu.Unit = ""
 		taskType = "CPU"
+		hardwareResource.Storage.Quantity = 5
 	} else {
 		taskType = "GPU"
 		hardwareResource.Gpu.Quantity = 1
 		oldName := strings.TrimSpace(confSplits[0])
 		hardwareResource.Gpu.Unit = strings.ReplaceAll(oldName, "Nvidia", "NVIDIA")
+
+		hardwareResource.Storage.Quantity = 20
 	}
+	hardwareResource.Storage.Unit = "Gi"
 
 	cpuSplits := strings.Split(confSplits[1], " ")
 	cores, _ := strconv.ParseInt(cpuSplits[1], 10, 64)
@@ -595,7 +602,5 @@ func getHardwareDetail(description string) (string, models.Resource) {
 	hardwareResource.Memory.Quantity = mem
 	hardwareResource.Memory.Unit = strings.ReplaceAll(memSplits[2], "B", "")
 
-	hardwareResource.Storage.Quantity = 30
-	hardwareResource.Storage.Unit = "Gi"
 	return taskType, hardwareResource
 }

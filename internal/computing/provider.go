@@ -24,7 +24,7 @@ func Reconnect(nodeID string) string {
 }
 
 func updateProviderInfo(nodeID, peerID, address string, status string) {
-	updateURL := conf.GetConfig().LAG.ServerUrl + "/cp"
+	updateURL := conf.GetConfig().HUB.ServerUrl + "/cp"
 
 	var cpName string
 	if conf.GetConfig().API.NodeName != "" {
@@ -34,11 +34,12 @@ func updateProviderInfo(nodeID, peerID, address string, status string) {
 	}
 
 	provider := models.ComputingProvider{
-		Name:         cpName,
-		NodeId:       nodeID,
-		MultiAddress: conf.GetConfig().API.MultiAddress,
-		Autobid:      1,
-		Status:       status,
+		PublicAddress: conf.GetConfig().HUB.WalletAddress,
+		Name:          cpName,
+		NodeId:        nodeID,
+		MultiAddress:  conf.GetConfig().API.MultiAddress,
+		Autobid:       1,
+		Status:        status,
 	}
 
 	jsonData, err := json.Marshal(provider)
@@ -56,7 +57,7 @@ func updateProviderInfo(nodeID, peerID, address string, status string) {
 
 	// Set the content type and API token in the request header
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().LAG.AccessToken)
+	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -83,6 +84,12 @@ func InitComputingProvider(cpRepoPath string) string {
 	updateProviderInfo(nodeID, peerID, address, models.ActiveStatus)
 	return nodeID
 }
+
+func GetNodeId(cpRepoPath string) string {
+	nodeID, _, _ := GenerateNodeID(cpRepoPath)
+	return nodeID
+}
+
 func GenerateNodeID(cpRepoPath string) (string, string, string) {
 	privateKeyPath := filepath.Join(cpRepoPath, "private_key")
 	var privateKeyBytes []byte

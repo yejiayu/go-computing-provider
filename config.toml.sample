@@ -7,13 +7,20 @@ NodeName = ""                                   # The computing-provider node na
 RedisUrl = "redis://127.0.0.1:6379"           # The redis server address
 RedisPassword = ""                            # The redis server access password
 
+[UBI]
+UbiTask = true                                              # Accept the UBI task (Default: true)
+UbiEnginePk = "0xB5aeb540B4895cd024c1625E146684940A849ED9"  # UBI Engine's public key, CP only accept the task from this UBI engine
+UbiUrl ="https://ubi-task.swanchain.io/v1"                   # UBI Engine's API address
+
 [LOG]
 CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"   # Your domain name SSL .crt file path
 KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"   # Your domain name SSL .key file path
 
-[LAG]
-ServerUrl = "https://api.lagrangedao.org"     # The lagrangedao.org API address
-AccessToken = ""                              # Lagrange access token, acquired from “https://lagrangedao.org  -> setting -> Access Tokens -> New token”
+[HUB]
+ServerUrl = "https://orchestrator-api.swanchain.io" # The Orchestrator's API address
+AccessToken = ""                                    # The Orchestrator's access token, Acquired from "https://orchestrator.swanchain.io"
+WalletAddress = ""                                  # The cp‘s wallet address
+BalanceThreshold= 50                                # The cp’s collateral balance threshold
 
 [MCS]
 ApiKey = ""                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key
@@ -25,3 +32,11 @@ FileCachePath = "/tmp"                        # Cache directory of job data
 ServerAddress = ""                            # The docker container image registry address, if only a single node, you can ignore
 UserName = ""                                 # The login username, if only a single node, you can ignore
 Password = ""                                 # The login password, if only a single node, you can ignore
+
+[RPC]
+SWAN_TESTNET ="https://saturn-rpc.swanchain.io"     # Swan testnet RPC
+SWAN_MAINNET= ""                                    # Swan mainnet RPC
+
+[CONTRACT]
+SWAN_CONTRACT="0x91B25A65b295F0405552A4bbB77879ab5e38166c"              # Swan token's contract address
+SWAN_COLLATERAL_CONTRACT="0xB8D9744b46C1ABbd02D62a7eebF193d83965ba39"   # Swan's collateral address
