@@ -85,6 +85,7 @@ func ReceiveJob(c *gin.Context) {
 	}
 
 	if !available {
+		logs.GetLogger().Warnf(" task id: %s, name: %s, not found a resources available", jobData.TaskUUID, jobData.Name)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
 	}
 
