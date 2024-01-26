@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -1504,9 +1505,13 @@ func verifySignature(pubKStr, data, signature string) (bool, error) {
 	}
 	hash := crypto.Keccak256Hash([]byte(data)).Bytes()
 	pbs, _ := base64.StdEncoding.DecodeString(pubKStr)
-	publicKeyECDSA, _ := crypto.UnmarshalPubkey(pbs)
+	publicKeyECDSA, err := crypto.UnmarshalPubkey(pbs)
+	if err != nil {
+		return false, err
+	}
 	pub := crypto.CompressPubkey(publicKeyECDSA)
-	crypto.VerifySignature(pub, hash, sb[:64])
+	verify := crypto.VerifySignature(pub, hash, sb[:64])
+	log.Println(verify)
 	return true, nil
 }
 
