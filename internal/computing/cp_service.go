@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	stErr "errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gin-gonic/gin"
@@ -1495,21 +1497,20 @@ func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
 }
 
 func verifySignature(pubKStr, data, signature string) (bool, error) {
-	// todo
-	//sb, err := hexutil.Decode(signature)
-	//if err != nil {
-	//	return false, err
-	//}
-	//hash := crypto.Keccak256Hash([]byte(data)).Bytes()
-	//pbs, _ := base64.StdEncoding.DecodeString(pubKStr)
-	//publicKeyECDSA, err := crypto.UnmarshalPubkey(pbs)
-	//if err != nil {
-	//	return false, err
-	//}
-	//pub := crypto.CompressPubkey(publicKeyECDSA)
-	//verify := crypto.VerifySignature(pub, hash, sb[:64])
-	//log.Println(verify)
-	return true, nil
+	sb, err := hexutil.Decode(signature)
+	if err != nil {
+		return false, err
+	}
+	hash := crypto.Keccak256Hash([]byte(data))
+	sigPublicKeyECDSA, err := crypto.SigToPub(hash.Bytes(), sb)
+	if err != nil {
+		return false, err
+	}
+	pub := crypto.PubkeyToAddress(*sigPublicKeyECDSA).Hex()
+	if pubKStr != pub {
+		return false, err
+	}
+	return false, nil
 }
 
 func convertGpuName(name string) string {
