@@ -2,6 +2,7 @@ package computing
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	stErr "errors"
 	"fmt"
@@ -84,7 +85,7 @@ func ReceiveJob(c *gin.Context) {
 	}
 
 	if !available {
-		c.JSON(http.StatusOK, util.CreateErrorResponse(util.CheckAvailableResources))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
 	}
 
 	var hostName string
@@ -1496,14 +1497,15 @@ func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
 }
 
 func verifySignature(pubKStr, data, signature string) (bool, error) {
-	hash := crypto.Keccak256Hash([]byte(data))
-	decode, err := hexutil.Decode(signature)
+	sb, err := hexutil.Decode(signature)
 	if err != nil {
 		return false, err
 	}
-	signatureNoRecoverID := decode[:len(decode)-1]
-	crypto.VerifySignature([]byte(pubKStr), hash.Bytes(), signatureNoRecoverID)
-	return true, nil
+	hash := crypto.Keccak256Hash([]byte(data)).Bytes()
+	pbs, _ := base64.StdEncoding.DecodeString(pubKStr)
+	publicKeyECDSA, _ := crypto.UnmarshalPubkey(pbs)
+	pub := crypto.CompressPubkey(publicKeyECDSA)
+	return crypto.VerifySignature(pub, hash, sb[:64]), nil
 }
 
 func convertGpuName(name string) string {
