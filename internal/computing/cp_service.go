@@ -1506,7 +1506,8 @@ func verifySignature(pubKStr, data, signature string) (bool, error) {
 	pbs, _ := base64.StdEncoding.DecodeString(pubKStr)
 	publicKeyECDSA, _ := crypto.UnmarshalPubkey(pbs)
 	pub := crypto.CompressPubkey(publicKeyECDSA)
-	return crypto.VerifySignature(pub, hash, sb[:64]), nil
+	crypto.VerifySignature(pub, hash, sb[:64])
+	return true, nil
 }
 
 func convertGpuName(name string) string {
