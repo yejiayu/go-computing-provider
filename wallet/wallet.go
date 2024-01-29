@@ -88,16 +88,7 @@ func (w *LocalWallet) WalletSign(ctx context.Context, addr string, msg []byte) (
 
 func (w *LocalWallet) WalletVerify(ctx context.Context, addr string, sigByte []byte, data string) (bool, error) {
 	hash := crypto.Keccak256Hash([]byte(data))
-
-	ki, err := w.FindKey(addr)
-	if err != nil {
-		return false, err
-	}
-	if ki == nil {
-		return false, xerrors.Errorf("signing using private key '%s': %w", addr, ErrKeyInfoNotFound)
-	}
-
-	return Verify(ki.PrivateKey, sigByte, hash.Bytes())
+	return Verify(addr, sigByte, hash.Bytes())
 }
 
 func (w *LocalWallet) FindKey(addr string) (*KeyInfo, error) {
