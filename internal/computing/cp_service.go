@@ -716,9 +716,8 @@ func DoUbiTask(c *gin.Context) {
 			}
 			SaveUbiTaskMetadata(ubiTaskRun)
 		}()
-		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
-		k8sService := NewK8sService()
 
+		k8sService := NewK8sService()
 		if _, err = k8sService.GetNameSpace(context.TODO(), namespace, metaV1.GetOptions{}); err != nil {
 			if errors.IsNotFound(err) {
 				k8sNamespace := &v1.Namespace{
@@ -738,6 +737,43 @@ func DoUbiTask(c *gin.Context) {
 		ubiParamFilePathInContainer := filepath.Join("/var/tmp/fil-c2-param", ubiTask.Name+".json")
 		execCommand := []string{"ubi-bench", "c2", ubiParamFilePathInContainer}
 		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
+
+		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
+		delete(envVars, "FIL_PROOFS_PARAMETER_CACHE")
+		var useEnvVars []v1.EnvVar
+		for k, v := range envVars {
+			useEnvVars = append(useEnvVars, v1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+		}
+
+		useEnvVars = append(useEnvVars, v1.EnvVar{
+			Name:  "RECEIVE_PROOF_URL",
+			Value: receiveUrl,
+		},
+			v1.EnvVar{
+				Name:  "TASKID",
+				Value: strconv.Itoa(ubiTask.ID),
+			},
+			v1.EnvVar{
+				Name:  "TASK_TYPE",
+				Value: strconv.Itoa(ubiTask.Type),
+			},
+			v1.EnvVar{
+				Name:  "ZK_TYPE",
+				Value: ubiTask.ZkType,
+			},
+			v1.EnvVar{
+				Name:  "NAME_SPACE",
+				Value: namespace,
+			},
+			v1.EnvVar{
+				Name:  "PARAM_PATH",
+				Value: ubiParamDir,
+			},
+		)
+
 		job := &batchv1.Job{
 			ObjectMeta: metaV1.ObjectMeta{
 				Name:      JobName,
@@ -751,32 +787,7 @@ func DoUbiTask(c *gin.Context) {
 							{
 								Name:  JobName + generateString(5),
 								Image: "filswan/ubi-worker:v1.0",
-								Env: []v1.EnvVar{
-									{
-										Name:  "RECEIVE_PROOF_URL",
-										Value: receiveUrl,
-									},
-									{
-										Name:  "TASKID",
-										Value: strconv.Itoa(ubiTask.ID),
-									},
-									{
-										Name:  "TASK_TYPE",
-										Value: strconv.Itoa(ubiTask.Type),
-									},
-									{
-										Name:  "ZK_TYPE",
-										Value: ubiTask.ZkType,
-									},
-									{
-										Name:  "NAME_SPACE",
-										Value: namespace,
-									},
-									{
-										Name:  "PARAM_PATH",
-										Value: ubiParamDir,
-									},
-								},
+								Env:   useEnvVars,
 								VolumeMounts: []v1.VolumeMount{
 									{
 										Name:      "fil-c2-input-volume",
