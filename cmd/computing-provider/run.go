@@ -159,8 +159,8 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Domain:", domain})
 		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
 
-		taskData = append(taskData, []string{"Available（SWAN-ETH）:", balance})
-		taskData = append(taskData, []string{"Collateral（SWAN-ETH）:", collateralBalance})
+		taskData = append(taskData, []string{"Available(SWAN-ETH):", balance})
+		taskData = append(taskData, []string{"Collateral(SWAN-ETH):", collateralBalance})
 
 		taskData = append(taskData, []string{"UBI FLAG:", ubiFlag})
 		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
