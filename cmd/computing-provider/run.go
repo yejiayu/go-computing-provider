@@ -264,7 +264,7 @@ var initCmd = &cli.Command{
 			ubiTaskFlag = 1
 		}
 
-		contractAddress, tx, _, err := account.DeployAccount(auth, client, publicAddress, nodeID, []string{multiAddresses}, ubiTaskFlag, common.HexToAddress(beneficiaryAddress))
+		contractAddress, tx, _, err := account.DeployAccount(auth, client, nodeID, []string{multiAddresses}, ubiTaskFlag, common.HexToAddress(beneficiaryAddress))
 		if err != nil {
 			return fmt.Errorf("deploy cp account contract failed, error: %v", err)
 		}
