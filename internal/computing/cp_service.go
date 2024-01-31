@@ -1267,7 +1267,7 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
 
 		logs.GetLogger().Infof("checkResourceAvailableForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
-		logs.GetLogger().Infof("checkResourceAvailableForUbi: remainderCpu: %d, remainderMemory: %.2f, remainderStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
 		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
 			nodeName = node.Name
 			if taskType == 0 {

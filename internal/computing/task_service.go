@@ -134,14 +134,7 @@ func RunSyncTask(nodeId string) {
 		for _, node := range nodes.Items {
 			cpNode := node
 			if gpu, ok := nodeGpuInfoMap[cpNode.Name]; ok {
-				var gpuInfo struct {
-					Gpu models2.Gpu `json:"gpu"`
-				}
-				if err = json.Unmarshal([]byte(gpu.String()), &gpuInfo); err != nil {
-					logs.GetLogger().Errorf("convert to json, nodeName %s, error: %+v", cpNode.Name, err)
-					continue
-				}
-				for _, detail := range gpuInfo.Gpu.Details {
+				for _, detail := range gpu.Details {
 					if err = k8sService.AddNodeLabel(cpNode.Name, detail.ProductName); err != nil {
 						logs.GetLogger().Errorf("add node label, nodeName %s, gpuName: %s, error: %+v", cpNode.Name, detail.ProductName, err)
 						continue
