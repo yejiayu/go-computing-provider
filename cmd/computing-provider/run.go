@@ -166,7 +166,7 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
 
 		header := []string{"Owner:", ownerAddress}
-		NewVisualTable(header, taskData, []RowColor{}).Generate()
+		NewVisualTable(header, taskData, []RowColor{}).Generate(false)
 		return nil
 	},
 }
