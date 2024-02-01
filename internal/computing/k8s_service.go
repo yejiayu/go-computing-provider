@@ -337,54 +337,56 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 
 	for _, node := range nodes.Items {
 		nodeGpu, _, nodeResource := GetNodeResource(activePods, &node)
-
-		collectGpu := make(map[string]collectGpuInfo)
-		if gpu, ok := nodeGpuInfoMap[node.Name]; ok {
-			for index, gpuDetail := range gpu.Details {
-				gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
-				if v, ok := collectGpu[gpuName]; ok {
-					v.count += 1
-					collectGpu[gpuName] = v
-				} else {
-					collectGpu[gpuName] = collectGpuInfo{
-						index,
-						1,
-						0,
+		if nodeGpuInfoMap != nil {
+			collectGpu := make(map[string]collectGpuInfo)
+			if gpu, ok := nodeGpuInfoMap[node.Name]; ok {
+				for index, gpuDetail := range gpu.Details {
+					gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
+					if v, ok := collectGpu[gpuName]; ok {
+						v.count += 1
+						collectGpu[gpuName] = v
+					} else {
+						collectGpu[gpuName] = collectGpuInfo{
+							index,
+							1,
+							0,
+						}
 					}
 				}
-			}
 
-			for name, info := range collectGpu {
-				runCount := int(nodeGpu[name])
-				if runCount < info.count {
-					info.remainNum = info.count - runCount
-				} else {
-					info.remainNum = 0
+				for name, info := range collectGpu {
+					runCount := int(nodeGpu[name])
+					if runCount < info.count {
+						info.remainNum = info.count - runCount
+					} else {
+						info.remainNum = 0
+					}
+					collectGpu[name] = info
 				}
-				collectGpu[name] = info
-			}
 
-			var counter = make(map[string]int)
-			newGpu := make([]models.GpuDetail, 0)
-			for _, gpuDetail := range gpu.Details {
-				gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
-				newDetail := gpuDetail
-				g := collectGpu[gpuName]
-				if g.remainNum > 0 && counter[gpuName] < g.remainNum {
-					newDetail.Status = models.Available
-					counter[gpuName] += 1
-				} else {
-					newDetail.Status = models.Occupied
+				var counter = make(map[string]int)
+				newGpu := make([]models.GpuDetail, 0)
+				for _, gpuDetail := range gpu.Details {
+					gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
+					newDetail := gpuDetail
+					g := collectGpu[gpuName]
+					if g.remainNum > 0 && counter[gpuName] < g.remainNum {
+						newDetail.Status = models.Available
+						counter[gpuName] += 1
+					} else {
+						newDetail.Status = models.Occupied
+					}
+					newGpu = append(newGpu, newDetail)
 				}
-				newGpu = append(newGpu, newDetail)
-			}
-			nodeResource.Gpu = models.Gpu{
-				DriverVersion: gpu.DriverVersion,
-				CudaVersion:   gpu.CudaVersion,
-				AttachedGpus:  gpu.AttachedGpus,
-				Details:       newGpu,
+				nodeResource.Gpu = models.Gpu{
+					DriverVersion: gpu.DriverVersion,
+					CudaVersion:   gpu.CudaVersion,
+					AttachedGpus:  gpu.AttachedGpus,
+					Details:       newGpu,
+				}
 			}
 		}
+
 		nodeList = append(nodeList, nodeResource)
 	}
 	return nodeList, nil
