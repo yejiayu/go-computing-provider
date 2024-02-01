@@ -740,6 +740,11 @@ func DoUbiTask(c *gin.Context) {
 		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
 
 		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
+		if gpuFlag == "0" {
+			delete(envVars, "RUST_GPU_TOOLS_CUSTOM_GPU")
+			envVars["BELLMAN_NO_GPU"] = "1"
+		}
+
 		delete(envVars, "FIL_PROOFS_PARAMETER_CACHE")
 		var useEnvVars []v1.EnvVar
 		for k, v := range envVars {
