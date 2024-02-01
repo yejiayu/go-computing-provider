@@ -584,7 +584,7 @@ func DoUbiTask(c *gin.Context) {
 		return
 	}
 
-	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d,  type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
+	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
 	if !signature {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
 		return
