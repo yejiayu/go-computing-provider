@@ -337,68 +337,62 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 
 	for _, node := range nodes.Items {
 		nodeGpu, _, nodeResource := GetNodeResource(activePods, &node)
-
-		collectGpu := make(map[string]collectGpuInfo)
-		if gpu, ok := nodeGpuInfoMap[node.Name]; ok {
-			var gpuInfo struct {
-				Gpu models.Gpu `json:"gpu"`
-			}
-			if err := json.Unmarshal([]byte(gpu.String()), &gpuInfo); err != nil {
-				logs.GetLogger().Error("nodeName: %s, error: %+v", node.Name, err)
-				continue
-			}
-
-			for index, gpuDetail := range gpuInfo.Gpu.Details {
-				gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
-				if v, ok := collectGpu[gpuName]; ok {
-					v.count += 1
-					collectGpu[gpuName] = v
-				} else {
-					collectGpu[gpuName] = collectGpuInfo{
-						index,
-						1,
-						0,
+		if nodeGpuInfoMap != nil {
+			collectGpu := make(map[string]collectGpuInfo)
+			if gpu, ok := nodeGpuInfoMap[node.Name]; ok {
+				for index, gpuDetail := range gpu.Details {
+					gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
+					if v, ok := collectGpu[gpuName]; ok {
+						v.count += 1
+						collectGpu[gpuName] = v
+					} else {
+						collectGpu[gpuName] = collectGpuInfo{
+							index,
+							1,
+							0,
+						}
 					}
 				}
-			}
 
-			for name, info := range collectGpu {
-				runCount := int(nodeGpu[name])
-				if runCount < info.count {
-					info.remainNum = info.count - runCount
-				} else {
-					info.remainNum = 0
+				for name, info := range collectGpu {
+					runCount := int(nodeGpu[name])
+					if runCount < info.count {
+						info.remainNum = info.count - runCount
+					} else {
+						info.remainNum = 0
+					}
+					collectGpu[name] = info
 				}
-				collectGpu[name] = info
-			}
 
-			var counter = make(map[string]int)
-			newGpu := make([]models.GpuDetail, 0)
-			for _, gpuDetail := range gpuInfo.Gpu.Details {
-				gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
-				newDetail := gpuDetail
-				g := collectGpu[gpuName]
-				if g.remainNum > 0 && counter[gpuName] < g.remainNum {
-					newDetail.Status = models.Available
-					counter[gpuName] += 1
-				} else {
-					newDetail.Status = models.Occupied
+				var counter = make(map[string]int)
+				newGpu := make([]models.GpuDetail, 0)
+				for _, gpuDetail := range gpu.Details {
+					gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
+					newDetail := gpuDetail
+					g := collectGpu[gpuName]
+					if g.remainNum > 0 && counter[gpuName] < g.remainNum {
+						newDetail.Status = models.Available
+						counter[gpuName] += 1
+					} else {
+						newDetail.Status = models.Occupied
+					}
+					newGpu = append(newGpu, newDetail)
 				}
-				newGpu = append(newGpu, newDetail)
-			}
-			nodeResource.Gpu = models.Gpu{
-				DriverVersion: gpuInfo.Gpu.DriverVersion,
-				CudaVersion:   gpuInfo.Gpu.CudaVersion,
-				AttachedGpus:  gpuInfo.Gpu.AttachedGpus,
-				Details:       newGpu,
+				nodeResource.Gpu = models.Gpu{
+					DriverVersion: gpu.DriverVersion,
+					CudaVersion:   gpu.CudaVersion,
+					AttachedGpus:  gpu.AttachedGpus,
+					Details:       newGpu,
+				}
 			}
 		}
+
 		nodeList = append(nodeList, nodeResource)
 	}
 	return nodeList, nil
 }
 
-func (s *K8sService) GetPodLog(ctx context.Context) (map[string]*strings.Builder, error) {
+func (s *K8sService) GetPodLog(ctx context.Context) (map[string]models.Gpu, error) {
 	var num int64 = 1
 	podLogOptions := coreV1.PodLogOptions{
 		Container:  "",
@@ -414,7 +408,7 @@ func (s *K8sService) GetPodLog(ctx context.Context) (map[string]*strings.Builder
 		return nil, err
 	}
 
-	result := make(map[string]*strings.Builder)
+	result := make(map[string]models.Gpu)
 	for _, pod := range podList.Items {
 		req := s.k8sClient.CoreV1().Pods("kube-system").GetLogs(pod.Name, &podLogOptions)
 		buf, err := readLog(req)
@@ -422,7 +416,20 @@ func (s *K8sService) GetPodLog(ctx context.Context) (map[string]*strings.Builder
 			logs.GetLogger().Errorf("collect gpu log, nodeName: %s, please check resource-exporter pod status. error: %+v", pod.Spec.NodeName, err)
 			continue
 		}
-		result[pod.Spec.NodeName] = buf
+
+		if strings.Contains(buf.String(), "ERROR::") {
+			continue
+		}
+		var gpuInfo struct {
+			Gpu models.Gpu `json:"gpu"`
+		}
+
+		if err := json.Unmarshal([]byte(buf.String()), &gpuInfo); err != nil {
+			logs.GetLogger().Error("nodeName: %s, collect gpu error: %+v", pod.Spec.NodeName, err)
+			continue
+		}
+
+		result[pod.Spec.NodeName] = gpuInfo.Gpu
 	}
 	return result, nil
 }
@@ -519,17 +526,9 @@ func (s *K8sService) GetNodeGpuSummary(ctx context.Context) (map[string]map[stri
 	}
 
 	var nodeGpuSummary = make(map[string]map[string]int64)
-	for nodeName, gpuDetailStr := range nodeGpuInfoMap {
-		var gpuInfo struct {
-			Gpu models.Gpu `json:"gpu"`
-		}
-		if err := json.Unmarshal([]byte(gpuDetailStr.String()), &gpuInfo); err != nil {
-			logs.GetLogger().Error("nodeName: %s, error: %+v", nodeName, err)
-			continue
-		}
-
+	for nodeName, gpu := range nodeGpuInfoMap {
 		collectGpu := make(map[string]int64)
-		for _, gpuDetail := range gpuInfo.Gpu.Details {
+		for _, gpuDetail := range gpu.Details {
 			gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
 			if v, ok := collectGpu[gpuName]; ok {
 				v += 1

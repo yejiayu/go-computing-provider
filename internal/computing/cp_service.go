@@ -579,11 +579,12 @@ func DoUbiTask(c *gin.Context) {
 
 	signature, err := verifySignature(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
+		logs.GetLogger().Errorf("verifySignature for ubi task failed, error: %+v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "sign data failed"))
 		return
 	}
 
-	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d,  type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
+	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
 	if !signature {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
 		return
@@ -716,9 +717,8 @@ func DoUbiTask(c *gin.Context) {
 			}
 			SaveUbiTaskMetadata(ubiTaskRun)
 		}()
-		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
-		k8sService := NewK8sService()
 
+		k8sService := NewK8sService()
 		if _, err = k8sService.GetNameSpace(context.TODO(), namespace, metaV1.GetOptions{}); err != nil {
 			if errors.IsNotFound(err) {
 				k8sNamespace := &v1.Namespace{
@@ -738,6 +738,48 @@ func DoUbiTask(c *gin.Context) {
 		ubiParamFilePathInContainer := filepath.Join("/var/tmp/fil-c2-param", ubiTask.Name+".json")
 		execCommand := []string{"ubi-bench", "c2", ubiParamFilePathInContainer}
 		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
+
+		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
+		if gpuFlag == "0" {
+			delete(envVars, "RUST_GPU_TOOLS_CUSTOM_GPU")
+			envVars["BELLMAN_NO_GPU"] = "1"
+		}
+
+		delete(envVars, "FIL_PROOFS_PARAMETER_CACHE")
+		var useEnvVars []v1.EnvVar
+		for k, v := range envVars {
+			useEnvVars = append(useEnvVars, v1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+		}
+
+		useEnvVars = append(useEnvVars, v1.EnvVar{
+			Name:  "RECEIVE_PROOF_URL",
+			Value: receiveUrl,
+		},
+			v1.EnvVar{
+				Name:  "TASKID",
+				Value: strconv.Itoa(ubiTask.ID),
+			},
+			v1.EnvVar{
+				Name:  "TASK_TYPE",
+				Value: strconv.Itoa(ubiTask.Type),
+			},
+			v1.EnvVar{
+				Name:  "ZK_TYPE",
+				Value: ubiTask.ZkType,
+			},
+			v1.EnvVar{
+				Name:  "NAME_SPACE",
+				Value: namespace,
+			},
+			v1.EnvVar{
+				Name:  "PARAM_PATH",
+				Value: ubiParamDir,
+			},
+		)
+
 		job := &batchv1.Job{
 			ObjectMeta: metaV1.ObjectMeta{
 				Name:      JobName,
@@ -750,33 +792,8 @@ func DoUbiTask(c *gin.Context) {
 						Containers: []v1.Container{
 							{
 								Name:  JobName + generateString(5),
-								Image: "filswan/ubi-worker:v1.0",
-								Env: []v1.EnvVar{
-									{
-										Name:  "RECEIVE_PROOF_URL",
-										Value: receiveUrl,
-									},
-									{
-										Name:  "TASKID",
-										Value: strconv.Itoa(ubiTask.ID),
-									},
-									{
-										Name:  "TASK_TYPE",
-										Value: strconv.Itoa(ubiTask.Type),
-									},
-									{
-										Name:  "ZK_TYPE",
-										Value: ubiTask.ZkType,
-									},
-									{
-										Name:  "NAME_SPACE",
-										Value: namespace,
-									},
-									{
-										Name:  "PARAM_PATH",
-										Value: ubiParamDir,
-									},
-								},
+								Image: build.UBITaskImageVersion,
+								Env:   useEnvVars,
 								VolumeMounts: []v1.VolumeMount{
 									{
 										Name:      "fil-c2-input-volume",
@@ -842,18 +859,14 @@ func ReceiveUbiProof(c *gin.Context) {
 	var submitUBIProofTx string
 	var err error
 	defer func() {
-		var ubiTask = new(models.CacheUbiTaskDetail)
-		ubiTask.TaskId = c2Proof.TaskId
-		ubiTask.TaskType = c2Proof.TaskType
-		ubiTask.ZkType = c2Proof.ZkType
-		ubiTask.Tx = submitUBIProofTx
-
-		ubiTask.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+		key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
+		ubiTask, _ := RetrieveUbiTaskMetadata(key)
 		if err == nil {
 			ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
 		} else {
 			ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
 		}
+		ubiTask.Tx = submitUBIProofTx
 		SaveUbiTaskMetadata(ubiTask)
 		if strings.TrimSpace(c2Proof.NameSpace) != "" {
 			k8sService := NewK8sService()
@@ -1198,7 +1211,7 @@ func checkResourceAvailableForSpace(jobSourceURI string) (bool, error) {
 		needMemory := float64(hardwareDetail.Memory.Quantity)
 		needStorage := float64(hardwareDetail.Storage.Quantity)
 		logs.GetLogger().Infof("checkResourceAvailableForSpace: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
-		logs.GetLogger().Infof("checkResourceAvailableForSpace: remainderCpu: %d, remainderMemory: %.2f, remainderStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForSpace: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
 		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
 			if taskType == "CPU" {
 				return true, nil
@@ -1256,7 +1269,7 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
 
 		logs.GetLogger().Infof("checkResourceAvailableForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
-		logs.GetLogger().Infof("checkResourceAvailableForUbi: remainderCpu: %d, remainderMemory: %.2f, remainderStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
 		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
 			nodeName = node.Name
 			if taskType == 0 {

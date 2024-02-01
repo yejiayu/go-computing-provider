@@ -134,14 +134,7 @@ func RunSyncTask(nodeId string) {
 		for _, node := range nodes.Items {
 			cpNode := node
 			if gpu, ok := nodeGpuInfoMap[cpNode.Name]; ok {
-				var gpuInfo struct {
-					Gpu models2.Gpu `json:"gpu"`
-				}
-				if err = json.Unmarshal([]byte(gpu.String()), &gpuInfo); err != nil {
-					logs.GetLogger().Errorf("convert to json, nodeName %s, error: %+v", cpNode.Name, err)
-					continue
-				}
-				for _, detail := range gpuInfo.Gpu.Details {
+				for _, detail := range gpu.Details {
 					if err = k8sService.AddNodeLabel(cpNode.Name, detail.ProductName); err != nil {
 						logs.GetLogger().Errorf("add node label, nodeName %s, gpuName: %s, error: %+v", cpNode.Name, detail.ProductName, err)
 						continue
@@ -298,7 +291,7 @@ func watchExpiredTask() {
 }
 
 func watchNameSpaceForDeleted() {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(3 * time.Minute)
 	go func() {
 		for range ticker.C {
 			go func() {
@@ -320,7 +313,7 @@ func watchNameSpaceForDeleted() {
 						logs.GetLogger().Errorf("Failed get pods form namespace,namepace: %s, error: %+v", namespace, err)
 						continue
 					}
-					if !getPods && strings.HasPrefix(namespace, constants.K8S_NAMESPACE_NAME_PREFIX) {
+					if !getPods && (strings.HasPrefix(namespace, constants.K8S_NAMESPACE_NAME_PREFIX) || strings.HasPrefix(namespace, "ubi-task")) {
 						if err = service.DeleteNameSpace(context.TODO(), namespace); err != nil {
 							logs.GetLogger().Errorf("Failed delete namespace, namepace: %s, error: %+v", namespace, err)
 						}

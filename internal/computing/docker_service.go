@@ -300,10 +300,7 @@ func (ds *DockerService) CleanResource() {
 	}
 
 	for _, image := range images {
-		if image.Containers == 0 {
-			logs.GetLogger().Infof("start clean unused image, imageId: %s", image.ID)
-			ds.RemoveImage(image.ID)
-		}
+		ds.RemoveImage(image.ID)
 	}
 
 	ctx := context.Background()

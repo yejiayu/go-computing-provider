@@ -159,14 +159,14 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Domain:", domain})
 		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
 
-		taskData = append(taskData, []string{"Available（SWAN-ETH）:", balance})
-		taskData = append(taskData, []string{"Collateral（SWAN-ETH）:", collateralBalance})
+		taskData = append(taskData, []string{"Available(SWAN-ETH):", balance})
+		taskData = append(taskData, []string{"Collateral(SWAN-ETH):", collateralBalance})
 
 		taskData = append(taskData, []string{"UBI FLAG:", ubiFlag})
 		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
 
 		header := []string{"Owner:", ownerAddress}
-		NewVisualTable(header, taskData, []RowColor{}).Generate()
+		NewVisualTable(header, taskData, []RowColor{}).Generate(false)
 		return nil
 	},
 }
@@ -264,7 +264,7 @@ var initCmd = &cli.Command{
 			ubiTaskFlag = 1
 		}
 
-		contractAddress, tx, _, err := account.DeployAccount(auth, client, publicAddress, nodeID, []string{multiAddresses}, ubiTaskFlag, common.HexToAddress(beneficiaryAddress))
+		contractAddress, tx, _, err := account.DeployAccount(auth, client, nodeID, []string{multiAddresses}, ubiTaskFlag, common.HexToAddress(beneficiaryAddress))
 		if err != nil {
 			return fmt.Errorf("deploy cp account contract failed, error: %v", err)
 		}
