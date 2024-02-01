@@ -291,7 +291,7 @@ func watchExpiredTask() {
 }
 
 func watchNameSpaceForDeleted() {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(3 * time.Minute)
 	go func() {
 		for range ticker.C {
 			go func() {
@@ -313,7 +313,7 @@ func watchNameSpaceForDeleted() {
 						logs.GetLogger().Errorf("Failed get pods form namespace,namepace: %s, error: %+v", namespace, err)
 						continue
 					}
-					if !getPods && strings.HasPrefix(namespace, constants.K8S_NAMESPACE_NAME_PREFIX) {
+					if !getPods && (strings.HasPrefix(namespace, constants.K8S_NAMESPACE_NAME_PREFIX) || strings.HasPrefix(namespace, "ubi-task")) {
 						if err = service.DeleteNameSpace(context.TODO(), namespace); err != nil {
 							logs.GetLogger().Errorf("Failed delete namespace, namepace: %s, error: %+v", namespace, err)
 						}
