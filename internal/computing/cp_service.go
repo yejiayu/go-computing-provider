@@ -792,7 +792,7 @@ func DoUbiTask(c *gin.Context) {
 						Containers: []v1.Container{
 							{
 								Name:  JobName + generateString(5),
-								Image: "filswan/ubi-worker:v1.0",
+								Image: build.UBITaskImageVersion,
 								Env:   useEnvVars,
 								VolumeMounts: []v1.VolumeMount{
 									{
