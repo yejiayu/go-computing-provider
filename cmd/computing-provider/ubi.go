@@ -61,11 +61,6 @@ var ubiTaskList = &cli.Command{
 
 		sort.Sort(taskList)
 		for i, task := range taskList {
-			var taskType string
-			taskType = "CPU"
-			if task.TaskType == "1" {
-				taskType = "GPU"
-			}
 
 			reward, err := getReward(nodeID, task.TaskId)
 			if err != nil {
@@ -73,7 +68,7 @@ var ubiTaskList = &cli.Command{
 			}
 
 			taskData = append(taskData,
-				[]string{task.TaskId, taskType, task.ZkType, task.Tx, task.Status, reward, task.CreateTime})
+				[]string{task.TaskId, task.TaskType, task.ZkType, task.Tx, task.Status, reward, task.CreateTime})
 
 			var rowColor []tablewriter.Colors
 			if task.Status == constants.UBI_TASK_RECEIVED_STATUS {
