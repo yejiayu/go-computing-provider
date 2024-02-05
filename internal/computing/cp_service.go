@@ -1199,7 +1199,7 @@ func checkResourceAvailableForSpace(jobSourceURI string) (bool, error) {
 		needStorage := float64(hardwareDetail.Storage.Quantity)
 		logs.GetLogger().Infof("checkResourceAvailableForSpace: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
 		logs.GetLogger().Infof("checkResourceAvailableForSpace: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
-		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
+		if needCpu <= remainderCpu && needMemory <= remainderMemory && needStorage <= remainderStorage {
 			if taskType == "CPU" {
 				return true, nil
 			} else if taskType == "GPU" {
@@ -1256,7 +1256,7 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 
 		logs.GetLogger().Infof("checkResourceAvailableForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
 		logs.GetLogger().Infof("checkResourceAvailableForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
-		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
+		if needCpu <= remainderCpu && needMemory <= remainderMemory && needStorage <= remainderStorage {
 			architecture = node.Status.NodeInfo.Architecture
 			nodeName = node.Name
 			if taskType == 0 {
