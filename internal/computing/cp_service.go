@@ -613,7 +613,7 @@ func DoUbiTask(c *gin.Context) {
 
 	c2GpuConfig := envVars["RUST_GPU_TOOLS_CUSTOM_GPU"]
 	c2GpuConfig = convertGpuName(strings.TrimSpace(c2GpuConfig))
-	nodeName, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.Type, c2GpuConfig, ubiTask.Resource)
+	nodeName, architecture, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.Type, c2GpuConfig, ubiTask.Resource)
 	if err != nil {
 		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
 		SaveUbiTaskMetadata(ubiTaskToRedis)
@@ -628,6 +628,19 @@ func DoUbiTask(c *gin.Context) {
 		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, ubiTaskToRedis.TaskType)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
 		return
+	}
+
+	var ubiTaskImage string
+	if strings.Contains(architecture, "amd") {
+		ubiTaskImage = build.UBITaskImageAmdCpu
+		if gpuFlag == "1" {
+			ubiTaskImage = build.UBITaskImageAmdGpu
+		}
+	} else {
+		ubiTaskImage = build.UBITaskImageIntelCpu
+		if gpuFlag == "1" {
+			ubiTaskImage = build.UBITaskImageIntelGpu
+		}
 	}
 
 	mem := strings.Split(strings.TrimSpace(ubiTask.Resource.Memory), " ")[1]
@@ -779,7 +792,7 @@ func DoUbiTask(c *gin.Context) {
 						Containers: []v1.Container{
 							{
 								Name:  JobName + generateString(5),
-								Image: build.UBITaskImageVersion,
+								Image: ubiTaskImage,
 								Env:   useEnvVars,
 								VolumeMounts: []v1.VolumeMount{
 									{
@@ -787,8 +800,9 @@ func DoUbiTask(c *gin.Context) {
 										MountPath: "/var/tmp/filecoin-proof-parameters",
 									},
 								},
-								Command:   execCommand,
-								Resources: resourceRequirements,
+								Command:         execCommand,
+								Resources:       resourceRequirements,
+								ImagePullPolicy: coreV1.PullIfNotPresent,
 							},
 						},
 						Volumes: []v1.Volume{
@@ -1205,22 +1219,22 @@ func checkResourceAvailableForSpace(jobSourceURI string) (bool, error) {
 	return false, nil
 }
 
-func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models.TaskResource) (string, int64, int64, int64, error) {
+func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models.TaskResource) (string, string, int64, int64, int64, error) {
 	k8sService := NewK8sService()
 	activePods, err := k8sService.GetAllActivePod(context.TODO())
 	if err != nil {
-		return "", 0, 0, 0, err
+		return "", "", 0, 0, 0, err
 	}
 
 	nodes, err := k8sService.k8sClient.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
 	if err != nil {
-		return "", 0, 0, 0, err
+		return "", "", 0, 0, 0, err
 	}
 
 	nodeGpuSummary, err := k8sService.GetNodeGpuSummary(context.TODO())
 	if err != nil {
 		logs.GetLogger().Errorf("Failed collect k8s gpu, error: %+v", err)
-		return "", 0, 0, 0, err
+		return "", "", 0, 0, 0, err
 	}
 
 	needCpu, _ := strconv.ParseInt(resource.CPU, 10, 64)
@@ -1231,10 +1245,9 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 	}
 	if len(strings.Split(strings.TrimSpace(resource.Storage), " ")) > 0 {
 		needStorage, err = strconv.ParseFloat(strings.Split(strings.TrimSpace(resource.Storage), " ")[0], 64)
-
 	}
 
-	var nodeName string
+	var nodeName, architecture string
 	for _, node := range nodes.Items {
 		nodeGpu, remainderResource, _ := GetNodeResource(activePods, &node)
 		remainderCpu := remainderResource[ResourceCpu]
@@ -1244,9 +1257,10 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 		logs.GetLogger().Infof("checkResourceAvailableForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
 		logs.GetLogger().Infof("checkResourceAvailableForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
 		if needCpu < remainderCpu && needMemory < remainderMemory && needStorage < remainderStorage {
+			architecture = node.Status.NodeInfo.Architecture
 			nodeName = node.Name
 			if taskType == 0 {
-				return nodeName, needCpu, int64(needMemory), int64(needStorage), nil
+				return nodeName, architecture, needCpu, int64(needMemory), int64(needStorage), nil
 			} else if taskType == 1 {
 				if gpuName == "" {
 					nodeName = ""
@@ -1260,14 +1274,14 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 				}
 
 				if usedCount+1 <= nodeGpuSummary[node.Name][gpuName] {
-					return nodeName, needCpu, int64(needMemory), int64(needStorage), nil
+					return nodeName, architecture, needCpu, int64(needMemory), int64(needStorage), nil
 				}
 				nodeName = ""
 				continue
 			}
 		}
 	}
-	return nodeName, needCpu, int64(needMemory), int64(needStorage), nil
+	return nodeName, architecture, needCpu, int64(needMemory), int64(needStorage), nil
 }
 
 func generateString(length int) string {
