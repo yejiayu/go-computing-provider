@@ -300,7 +300,17 @@ func (ds *DockerService) CleanResource() {
 	}
 
 	for _, image := range images {
-		ds.RemoveImage(image.ID)
+		var ubiImage bool
+		for _, tag := range image.RepoTags {
+			if strings.HasPrefix(tag, "filswan/ubi-worker") {
+				ubiImage = true
+				break
+			}
+		}
+
+		if !ubiImage {
+			ds.RemoveImage(image.ID)
+		}
 	}
 
 	ctx := context.Background()
