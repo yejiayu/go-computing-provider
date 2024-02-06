@@ -735,8 +735,7 @@ func DoUbiTask(c *gin.Context) {
 		}
 
 		receiveUrl := fmt.Sprintf("%s:%d/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), conf.GetConfig().API.Port)
-		ubiParamFilePathInContainer := filepath.Join("/var/tmp/fil-c2-param", ubiTask.Name+".json")
-		execCommand := []string{"ubi-bench", "c2", ubiParamFilePathInContainer}
+		execCommand := []string{"ubi-bench", "c2"}
 		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
 
 		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
