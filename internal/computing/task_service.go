@@ -124,7 +124,13 @@ func RunSyncTask(nodeId string) {
 			return
 		}
 
-		nodeGpuInfoMap, err := k8sService.GetPodLog(context.TODO())
+		nodeGpuInfoMap, err := k8sService.GetResourceExporterPodLog(context.TODO())
+		if err != nil {
+			logs.GetLogger().Error(err)
+			return
+		}
+
+		nodeCpuInfoMap, err := k8sService.GetCpuModelCollectorPodLog(context.TODO())
 		if err != nil {
 			logs.GetLogger().Error(err)
 			return
@@ -139,6 +145,11 @@ func RunSyncTask(nodeId string) {
 						logs.GetLogger().Errorf("add node label, nodeName %s, gpuName: %s, error: %+v", cpNode.Name, detail.ProductName, err)
 						continue
 					}
+				}
+			}
+			if cpuModelName, ok := nodeCpuInfoMap[cpNode.Name]; ok {
+				if err = k8sService.AddNodeLabel(cpNode.Name, cpuModelName); err != nil {
+					logs.GetLogger().Errorf("add node label, nodeName %s, cpuName: %s, error: %+v", cpNode.Name, cpuModelName, err)
 				}
 			}
 		}

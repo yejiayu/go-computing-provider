@@ -1249,6 +1249,13 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 
 	var nodeName, architecture string
 	for _, node := range nodes.Items {
+		if _, ok := node.Labels[constants.CPU_INTEL]; ok {
+			architecture = "intel"
+		}
+		if _, ok := node.Labels[constants.CPU_AMD]; ok {
+			architecture = "amd"
+		}
+
 		nodeGpu, remainderResource, _ := GetNodeResource(activePods, &node)
 		remainderCpu := remainderResource[ResourceCpu]
 		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
@@ -1257,7 +1264,6 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 		logs.GetLogger().Infof("checkResourceAvailableForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
 		logs.GetLogger().Infof("checkResourceAvailableForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
 		if needCpu <= remainderCpu && needMemory <= remainderMemory && needStorage <= remainderStorage {
-			architecture = node.Status.NodeInfo.Architecture
 			nodeName = node.Name
 			if taskType == 0 {
 				return nodeName, architecture, needCpu, int64(needMemory), int64(needStorage), nil

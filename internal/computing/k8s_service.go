@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/lagrangedao/go-computing-provider/build"
 	"github.com/lagrangedao/go-computing-provider/constants"
 	"github.com/lagrangedao/go-computing-provider/internal/models"
 	"io"
@@ -330,7 +331,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 		return nil, err
 	}
 
-	nodeGpuInfoMap, err := s.GetPodLog(ctx)
+	nodeGpuInfoMap, err := s.GetResourceExporterPodLog(ctx)
 	if err != nil {
 		logs.GetLogger().Errorf("Collect cluster gpu info Failed, if have available gpu, please check resource-exporter. error: %+v", err)
 	}
@@ -392,7 +393,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 	return nodeList, nil
 }
 
-func (s *K8sService) GetPodLog(ctx context.Context) (map[string]models.Gpu, error) {
+func (s *K8sService) GetResourceExporterPodLog(ctx context.Context) (map[string]models.Gpu, error) {
 	var num int64 = 1
 	podLogOptions := coreV1.PodLogOptions{
 		Container:  "",
@@ -431,6 +432,75 @@ func (s *K8sService) GetPodLog(ctx context.Context) (map[string]models.Gpu, erro
 
 		result[pod.Spec.NodeName] = gpuInfo.Gpu
 	}
+	return result, nil
+}
+
+func (s *K8sService) GetCpuModelCollectorPodLog(ctx context.Context) (map[string]string, error) {
+	daemonSetName := "cpu-collect-daemonset"
+	daemonSet := &appV1.DaemonSet{
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      daemonSetName,
+			Namespace: coreV1.NamespaceDefault,
+		},
+		Spec: appV1.DaemonSetSpec{
+			Selector: &metaV1.LabelSelector{
+				MatchLabels: map[string]string{"app": daemonSetName},
+			},
+			Template: coreV1.PodTemplateSpec{
+				ObjectMeta: metaV1.ObjectMeta{Labels: map[string]string{"app": daemonSetName}},
+				Spec: coreV1.PodSpec{
+					Containers: []coreV1.Container{
+						{
+							Name:  "cpu-collect" + generateString(5),
+							Image: build.CpuCollectorImage,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err := s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Create(context.TODO(), daemonSet, metaV1.CreateOptions{})
+	if err != nil {
+		logs.GetLogger().Errorf("Error creating DaemonSet: %v", err)
+		return nil, err
+	}
+
+	err = wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
+		ds, err := s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Get(context.TODO(), daemonSetName, metaV1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		return ds.Status.NumberAvailable == ds.Status.DesiredNumberScheduled, nil
+	})
+	if err != nil {
+		logs.GetLogger().Errorf("Error waiting for cpu collect model name DaemonSet pods to be ready: %v", err)
+		return nil, err
+	}
+
+	pods, err := s.k8sClient.CoreV1().Pods(coreV1.NamespaceDefault).List(ctx, metaV1.ListOptions{
+		LabelSelector: "app=" + daemonSetName,
+	})
+	if err != nil {
+		logs.GetLogger().Errorf("Error listing pods: %v", err)
+		return nil, err
+	}
+
+	result := make(map[string]string)
+	for _, pod := range pods.Items {
+		podLog := s.k8sClient.CoreV1().Pods(coreV1.NamespaceDefault).GetLogs(pod.Name, &coreV1.PodLogOptions{})
+		buf, err := readLog(podLog)
+		if err != nil {
+			logs.GetLogger().Errorf("collect cpu model name, nodeName: %s, please check resource-exporter pod status. error: %v", pod.Spec.NodeName, err)
+			continue
+		}
+		if strings.Contains(strings.ToUpper(buf.String()), "AMD") {
+			result[pod.Spec.NodeName] = constants.CPU_AMD
+		} else if strings.Contains(strings.ToUpper(buf.String()), "INTEL") {
+			result[pod.Spec.NodeName] = constants.CPU_INTEL
+		}
+	}
+	s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Delete(context.TODO(), daemonSetName, metaV1.DeleteOptions{})
 	return result, nil
 }
 
@@ -519,7 +589,7 @@ func (s *K8sService) PodDoCommand(namespace, podName, containerName string, podC
 }
 
 func (s *K8sService) GetNodeGpuSummary(ctx context.Context) (map[string]map[string]int64, error) {
-	nodeGpuInfoMap, err := s.GetPodLog(ctx)
+	nodeGpuInfoMap, err := s.GetResourceExporterPodLog(ctx)
 	if err != nil {
 		logs.GetLogger().Errorf("Collect cluster gpu info Failed, if have available gpu, please check resource-exporter. error: %+v", err)
 		return map[string]map[string]int64{}, err
