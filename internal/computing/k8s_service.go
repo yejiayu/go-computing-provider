@@ -437,6 +437,10 @@ func (s *K8sService) GetResourceExporterPodLog(ctx context.Context) (map[string]
 
 func (s *K8sService) GetCpuModelCollectorPodLog(ctx context.Context) (map[string]string, error) {
 	daemonSetName := "cpu-collect-daemonset"
+	defer func() {
+		s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Delete(context.TODO(), daemonSetName, metaV1.DeleteOptions{})
+	}()
+
 	daemonSet := &appV1.DaemonSet{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name:      daemonSetName,
@@ -454,6 +458,7 @@ func (s *K8sService) GetCpuModelCollectorPodLog(ctx context.Context) (map[string
 							Name:            "cpu-collect-" + generateString(5),
 							Image:           build.CpuCollectorImage,
 							ImagePullPolicy: coreV1.PullIfNotPresent,
+							Command:         []string{"/bin/sh", "-c", "lscpu | grep 'Model name'"},
 						},
 					},
 				},
@@ -501,7 +506,7 @@ func (s *K8sService) GetCpuModelCollectorPodLog(ctx context.Context) (map[string
 			result[pod.Spec.NodeName] = constants.CPU_INTEL
 		}
 	}
-	s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Delete(context.TODO(), daemonSetName, metaV1.DeleteOptions{})
+
 	return result, nil
 }
 
