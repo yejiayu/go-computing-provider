@@ -437,9 +437,6 @@ func (s *K8sService) GetResourceExporterPodLog(ctx context.Context) (map[string]
 
 func (s *K8sService) GetCpuModelCollectorPodLog(ctx context.Context) (map[string]string, error) {
 	daemonSetName := "cpu-collect-daemonset"
-	defer func() {
-		s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Delete(context.TODO(), daemonSetName, metaV1.DeleteOptions{})
-	}()
 
 	daemonSet := &appV1.DaemonSet{
 		ObjectMeta: metaV1.ObjectMeta{
