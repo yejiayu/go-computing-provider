@@ -26,7 +26,7 @@ func NewVisualTable(header []string, data [][]string, rowColor []RowColor) *Visu
 	}
 }
 
-func (v *VisualTable) Generate() {
+func (v *VisualTable) Generate(formatHeaders bool) {
 	table := tablewriter.NewWriter(os.Stdout)
 
 	for index, datum := range v.Data {
@@ -52,7 +52,7 @@ func (v *VisualTable) Generate() {
 
 	table.SetHeader(v.Header)
 	table.SetAutoWrapText(false)
-	table.SetAutoFormatHeaders(true)
+	table.SetAutoFormatHeaders(formatHeaders)
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetHeaderLine(false)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)

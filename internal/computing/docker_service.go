@@ -300,8 +300,15 @@ func (ds *DockerService) CleanResource() {
 	}
 
 	for _, image := range images {
-		if image.Containers == 0 {
-			logs.GetLogger().Infof("start clean unused image, imageId: %s", image.ID)
+		var specialImage bool
+		for _, tag := range image.RepoTags {
+			if strings.HasPrefix(tag, "filswan/ubi-worker") || strings.HasPrefix(tag, "filswan/cpu-model-collector") {
+				specialImage = true
+				break
+			}
+		}
+
+		if !specialImage {
 			ds.RemoveImage(image.ID)
 		}
 	}

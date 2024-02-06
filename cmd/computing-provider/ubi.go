@@ -29,6 +29,12 @@ var ubiTaskCmd = &cli.Command{
 var ubiTaskList = &cli.Command{
 	Name:  "list",
 	Usage: "List ubi task",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "show-failed",
+			Usage: "show failed/failing ubi tasks",
+		},
+	},
 	Action: func(cctx *cli.Context) error {
 
 		cpPath, exit := os.LookupEnv("CP_PATH")
@@ -38,6 +44,8 @@ var ubiTaskList = &cli.Command{
 		if err := conf.InitConfig(cpPath); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
+
+		showFailed := cctx.Bool("show-failed")
 
 		nodeID := computing.GetNodeId(cpPath)
 
@@ -51,21 +59,30 @@ var ubiTaskList = &cli.Command{
 		var taskData [][]string
 		var rowColorList []RowColor
 		var taskList models.TaskList
-		for _, key := range keys {
-			ubiTask, err := computing.RetrieveUbiTaskMetadata(key)
-			if err != nil {
-				return fmt.Errorf("failed get ubi task: %s, error: %+v", key, err)
+
+		if showFailed {
+			for _, key := range keys {
+				ubiTask, err := computing.RetrieveUbiTaskMetadata(key)
+				if err != nil {
+					return fmt.Errorf("failed get ubi task: %s, error: %+v", key, err)
+				}
+				taskList = append(taskList, *ubiTask)
 			}
-			taskList = append(taskList, *ubiTask)
+		} else {
+			for _, key := range keys {
+				ubiTask, err := computing.RetrieveUbiTaskMetadata(key)
+				if err != nil {
+					return fmt.Errorf("failed get ubi task: %s, error: %+v", key, err)
+				}
+				if ubiTask.Status == constants.UBI_TASK_FAILED_STATUS {
+					continue
+				}
+				taskList = append(taskList, *ubiTask)
+			}
 		}
 
 		sort.Sort(taskList)
 		for i, task := range taskList {
-			var taskType string
-			taskType = "CPU"
-			if task.TaskType == "1" {
-				taskType = "GPU"
-			}
 
 			reward, err := getReward(nodeID, task.TaskId)
 			if err != nil {
@@ -73,7 +90,7 @@ var ubiTaskList = &cli.Command{
 			}
 
 			taskData = append(taskData,
-				[]string{task.TaskId, taskType, task.ZkType, task.Tx, task.Status, reward, task.CreateTime})
+				[]string{task.TaskId, task.TaskType, task.ZkType, task.Tx, task.Status, reward, task.CreateTime})
 
 			var rowColor []tablewriter.Colors
 			if task.Status == constants.UBI_TASK_RECEIVED_STATUS {
@@ -94,7 +111,7 @@ var ubiTaskList = &cli.Command{
 		}
 
 		header := []string{"TASK ID", "TASK TYPE", "ZK TYPE", "TRANSACTION HASH", "STATUS", "REWARD", "CREATE TIME"}
-		NewVisualTable(header, taskData, rowColorList).Generate()
+		NewVisualTable(header, taskData, rowColorList).Generate(true)
 
 		return nil
 

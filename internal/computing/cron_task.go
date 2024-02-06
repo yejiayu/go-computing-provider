@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
+	"github.com/gomodule/redigo/redis"
 	"github.com/lagrangedao/go-computing-provider/conf"
 	"github.com/lagrangedao/go-computing-provider/constants"
 	"github.com/robfig/cron/v3"
@@ -27,6 +28,7 @@ func NewCronTask() *CronTask {
 func (task *CronTask) RunTask() {
 	task.checkCollateralBalance()
 	task.cleanAbnormalDeployment()
+	task.setFailedUbiTaskStatus()
 }
 
 func (task *CronTask) checkCollateralBalance() {
@@ -125,6 +127,45 @@ func (task *CronTask) cleanAbnormalDeployment() {
 				}
 			}
 		}
+	})
+	c.Start()
+}
+
+func (task *CronTask) setFailedUbiTaskStatus() {
+	c := cron.New(cron.WithSeconds())
+	c.AddFunc("0 0/8 * * * ?", func() {
+		defer func() {
+			if err := recover(); err != nil {
+				logs.GetLogger().Errorf("task job: [cleanAbnormalDeployment], error: %+v", err)
+			}
+		}()
+
+		conn := redisPool.Get()
+		prefix := constants.REDIS_UBI_C2_PERFIX + "*"
+		keys, err := redis.Strings(conn.Do("KEYS", prefix))
+		if err != nil {
+			logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
+			return
+		}
+		for _, key := range keys {
+			ubiTask, err := RetrieveUbiTaskMetadata(key)
+			if err != nil {
+				logs.GetLogger().Errorf("Failed get ubi task from redis, key: %s, error: %+v", key, err)
+				return
+			}
+
+			JobName := strings.ToLower(ubiTask.ZkType) + "-" + ubiTask.TaskId
+			k8sNameSpace := "ubi-task-" + ubiTask.TaskId
+
+			service := NewK8sService()
+			if _, err = service.k8sClient.BatchV1().Jobs(k8sNameSpace).Get(context.TODO(), JobName, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
+				if ubiTask.Status != constants.UBI_TASK_SUCCESS_STATUS && ubiTask.Status != constants.UBI_TASK_FAILED_STATUS {
+					ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
+				}
+				SaveUbiTaskMetadata(ubiTask)
+			}
+		}
+
 	})
 	c.Start()
 }

@@ -116,7 +116,7 @@ var taskList = &cli.Command{
 		}
 
 		header := []string{"TASK UUID", "TASK TYPE", "WALLET ADDRESS", "SPACE UUID", "SPACE NAME", "STATUS"}
-		NewVisualTable(header, taskData, rowColorList).Generate()
+		NewVisualTable(header, taskData, rowColorList).Generate(true)
 
 		return nil
 
@@ -178,7 +178,7 @@ var taskDetail = &cli.Command{
 			column: []int{1},
 			color:  rowColor,
 		})
-		NewVisualTable(header, taskData, rowColorList).Generate()
+		NewVisualTable(header, taskData, rowColorList).Generate(false)
 		return nil
 	},
 }

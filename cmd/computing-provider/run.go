@@ -103,7 +103,7 @@ var infoCmd = &cli.Command{
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
-		nodeID := computing.GetNodeId(cpPath)
+		localNodeId := computing.GetNodeId(cpPath)
 
 		k8sService := computing.NewK8sService()
 		count, err := k8sService.GetDeploymentActiveCount()
@@ -122,7 +122,7 @@ var infoCmd = &cli.Command{
 		defer client.Close()
 
 		var balance, collateralBalance string
-		var contractAddress, ownerAddress, beneficiaryAddress, ubiFlag string
+		var contractAddress, ownerAddress, beneficiaryAddress, ubiFlag, chainNodeId string
 
 		cpStub, err := account.NewAccountStub(client)
 		if err == nil {
@@ -138,6 +138,7 @@ var infoCmd = &cli.Command{
 			contractAddress = cpStub.ContractAddress
 			ownerAddress = cpAccount.OwnerAddress
 			beneficiaryAddress = cpAccount.Beneficiary.BeneficiaryAddress
+			chainNodeId = cpAccount.NodeId
 		}
 
 		balance, err = wallet.Balance(context.TODO(), client, conf.GetConfig().HUB.WalletAddress)
@@ -155,18 +156,21 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Contract Address:", contractAddress})
 		taskData = append(taskData, []string{"Multi-Address:", conf.GetConfig().API.MultiAddress})
 		taskData = append(taskData, []string{"Name:", conf.GetConfig().API.NodeName})
-		taskData = append(taskData, []string{"Node ID:", nodeID})
+		taskData = append(taskData, []string{"Node ID:", localNodeId})
 		taskData = append(taskData, []string{"Domain:", domain})
 		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
 
-		taskData = append(taskData, []string{"Available（SWAN-ETH）:", balance})
-		taskData = append(taskData, []string{"Collateral（SWAN-ETH）:", collateralBalance})
+		taskData = append(taskData, []string{"Available(SWAN-ETH):", balance})
+		taskData = append(taskData, []string{"Collateral(SWAN-ETH):", collateralBalance})
 
 		taskData = append(taskData, []string{"UBI FLAG:", ubiFlag})
 		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
 
 		header := []string{"Owner:", ownerAddress}
-		NewVisualTable(header, taskData, []RowColor{}).Generate()
+		NewVisualTable(header, taskData, []RowColor{}).Generate(false)
+		if localNodeId != chainNodeId {
+			fmt.Printf("NodeId mismatch, local node id: %s, chain node id: %s.\n", localNodeId, chainNodeId)
+		}
 		return nil
 	},
 }
@@ -264,7 +268,7 @@ var initCmd = &cli.Command{
 			ubiTaskFlag = 1
 		}
 
-		contractAddress, tx, _, err := account.DeployAccount(auth, client, publicAddress, nodeID, []string{multiAddresses}, ubiTaskFlag, common.HexToAddress(beneficiaryAddress))
+		contractAddress, tx, _, err := account.DeployAccount(auth, client, nodeID, []string{multiAddresses}, ubiTaskFlag, common.HexToAddress(beneficiaryAddress))
 		if err != nil {
 			return fmt.Errorf("deploy cp account contract failed, error: %v", err)
 		}
