@@ -172,13 +172,13 @@ func checkClusterProviderStatus() (string, error) {
 	}
 
 	collectGpu := make(map[string]int64)
-	nodeGpuInfo, err := service.GetPodLog(context.TODO())
+	nodeGpuInfo, err := service.GetResourceExporterPodLog(context.TODO())
 	if err != nil {
 		logs.GetLogger().Error(err)
 		return "", err
 	}
 	for _, gpu := range nodeGpuInfo {
-		for _, gpuDetail := range gpu.Details {
+		for _, gpuDetail := range gpu.Gpu.Details {
 			collectGpu[gpuDetail.ProductName] = collectGpu[gpuDetail.ProductName] + 1
 		}
 	}

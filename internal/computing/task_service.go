@@ -124,7 +124,7 @@ func RunSyncTask(nodeId string) {
 			return
 		}
 
-		nodeGpuInfoMap, err := k8sService.GetPodLog(context.TODO())
+		nodeGpuInfoMap, err := k8sService.GetResourceExporterPodLog(context.TODO())
 		if err != nil {
 			logs.GetLogger().Error(err)
 			return
@@ -133,13 +133,14 @@ func RunSyncTask(nodeId string) {
 		logs.GetLogger().Infof("collect all node: %d", len(nodes.Items))
 		for _, node := range nodes.Items {
 			cpNode := node
-			if gpu, ok := nodeGpuInfoMap[cpNode.Name]; ok {
-				for _, detail := range gpu.Details {
+			if collectInfo, ok := nodeGpuInfoMap[cpNode.Name]; ok {
+				for _, detail := range collectInfo.Gpu.Details {
 					if err = k8sService.AddNodeLabel(cpNode.Name, detail.ProductName); err != nil {
 						logs.GetLogger().Errorf("add node label, nodeName %s, gpuName: %s, error: %+v", cpNode.Name, detail.ProductName, err)
 						continue
 					}
 				}
+				k8sService.AddNodeLabel(cpNode.Name, collectInfo.CpuName)
 			}
 		}
 	}()

@@ -330,7 +330,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 		return nil, err
 	}
 
-	nodeGpuInfoMap, err := s.GetPodLog(ctx)
+	nodeGpuInfoMap, err := s.GetResourceExporterPodLog(ctx)
 	if err != nil {
 		logs.GetLogger().Errorf("Collect cluster gpu info Failed, if have available gpu, please check resource-exporter. error: %+v", err)
 	}
@@ -340,7 +340,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 		if nodeGpuInfoMap != nil {
 			collectGpu := make(map[string]collectGpuInfo)
 			if gpu, ok := nodeGpuInfoMap[node.Name]; ok {
-				for index, gpuDetail := range gpu.Details {
+				for index, gpuDetail := range gpu.Gpu.Details {
 					gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
 					if v, ok := collectGpu[gpuName]; ok {
 						v.count += 1
@@ -366,7 +366,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 
 				var counter = make(map[string]int)
 				newGpu := make([]models.GpuDetail, 0)
-				for _, gpuDetail := range gpu.Details {
+				for _, gpuDetail := range gpu.Gpu.Details {
 					gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
 					newDetail := gpuDetail
 					g := collectGpu[gpuName]
@@ -379,9 +379,9 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 					newGpu = append(newGpu, newDetail)
 				}
 				nodeResource.Gpu = models.Gpu{
-					DriverVersion: gpu.DriverVersion,
-					CudaVersion:   gpu.CudaVersion,
-					AttachedGpus:  gpu.AttachedGpus,
+					DriverVersion: gpu.Gpu.DriverVersion,
+					CudaVersion:   gpu.Gpu.CudaVersion,
+					AttachedGpus:  gpu.Gpu.AttachedGpus,
 					Details:       newGpu,
 				}
 			}
@@ -392,7 +392,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 	return nodeList, nil
 }
 
-func (s *K8sService) GetPodLog(ctx context.Context) (map[string]models.Gpu, error) {
+func (s *K8sService) GetResourceExporterPodLog(ctx context.Context) (map[string]models.CollectNodeInfo, error) {
 	var num int64 = 1
 	podLogOptions := coreV1.PodLogOptions{
 		Container:  "",
@@ -408,7 +408,7 @@ func (s *K8sService) GetPodLog(ctx context.Context) (map[string]models.Gpu, erro
 		return nil, err
 	}
 
-	result := make(map[string]models.Gpu)
+	result := make(map[string]models.CollectNodeInfo)
 	for _, pod := range podList.Items {
 		req := s.k8sClient.CoreV1().Pods("kube-system").GetLogs(pod.Name, &podLogOptions)
 		buf, err := readLog(req)
@@ -420,16 +420,13 @@ func (s *K8sService) GetPodLog(ctx context.Context) (map[string]models.Gpu, erro
 		if strings.Contains(buf.String(), "ERROR::") {
 			continue
 		}
-		var gpuInfo struct {
-			Gpu models.Gpu `json:"gpu"`
-		}
 
-		if err := json.Unmarshal([]byte(buf.String()), &gpuInfo); err != nil {
+		var nodeInfo models.CollectNodeInfo
+		if err := json.Unmarshal([]byte(buf.String()), &nodeInfo); err != nil {
 			logs.GetLogger().Error("nodeName: %s, collect gpu error: %+v", pod.Spec.NodeName, err)
 			continue
 		}
-
-		result[pod.Spec.NodeName] = gpuInfo.Gpu
+		result[pod.Spec.NodeName] = nodeInfo
 	}
 	return result, nil
 }
@@ -519,7 +516,7 @@ func (s *K8sService) PodDoCommand(namespace, podName, containerName string, podC
 }
 
 func (s *K8sService) GetNodeGpuSummary(ctx context.Context) (map[string]map[string]int64, error) {
-	nodeGpuInfoMap, err := s.GetPodLog(ctx)
+	nodeGpuInfoMap, err := s.GetResourceExporterPodLog(ctx)
 	if err != nil {
 		logs.GetLogger().Errorf("Collect cluster gpu info Failed, if have available gpu, please check resource-exporter. error: %+v", err)
 		return map[string]map[string]int64{}, err
@@ -528,7 +525,7 @@ func (s *K8sService) GetNodeGpuSummary(ctx context.Context) (map[string]map[stri
 	var nodeGpuSummary = make(map[string]map[string]int64)
 	for nodeName, gpu := range nodeGpuInfoMap {
 		collectGpu := make(map[string]int64)
-		for _, gpuDetail := range gpu.Details {
+		for _, gpuDetail := range gpu.Gpu.Details {
 			gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
 			if v, ok := collectGpu[gpuName]; ok {
 				v += 1

@@ -17,6 +17,10 @@ type NodeResource struct {
 	Storage   Common `json:"storage"`
 }
 
+type CollectNodeInfo struct {
+	Gpu     Gpu    `json:"gpu"`
+	CpuName string `json:"cpu_name"`
+}
 type Gpu struct {
 	DriverVersion string      `json:"driver_version"`
 	CudaVersion   string      `json:"cuda_version"`
