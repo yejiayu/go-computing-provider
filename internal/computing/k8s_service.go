@@ -436,22 +436,19 @@ func (s *K8sService) GetResourceExporterPodLog(ctx context.Context) (map[string]
 }
 
 func (s *K8sService) GetCpuModelCollectorPodLog(ctx context.Context) (map[string]string, error) {
-	daemonSetName := "cpu-collect-daemonset"
-	defer func() {
-		s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Delete(context.TODO(), daemonSetName, metaV1.DeleteOptions{})
-	}()
+	s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Delete(context.TODO(), constants.CPU_DAEMONSET_NAME, metaV1.DeleteOptions{})
 
 	daemonSet := &appV1.DaemonSet{
 		ObjectMeta: metaV1.ObjectMeta{
-			Name:      daemonSetName,
+			Name:      constants.CPU_DAEMONSET_NAME,
 			Namespace: coreV1.NamespaceDefault,
 		},
 		Spec: appV1.DaemonSetSpec{
 			Selector: &metaV1.LabelSelector{
-				MatchLabels: map[string]string{"app": daemonSetName},
+				MatchLabels: map[string]string{"app": constants.CPU_DAEMONSET_NAME},
 			},
 			Template: coreV1.PodTemplateSpec{
-				ObjectMeta: metaV1.ObjectMeta{Labels: map[string]string{"app": daemonSetName}},
+				ObjectMeta: metaV1.ObjectMeta{Labels: map[string]string{"app": constants.CPU_DAEMONSET_NAME}},
 				Spec: coreV1.PodSpec{
 					Containers: []coreV1.Container{
 						{
@@ -473,7 +470,7 @@ func (s *K8sService) GetCpuModelCollectorPodLog(ctx context.Context) (map[string
 	}
 
 	err = wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
-		ds, err := s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Get(context.TODO(), daemonSetName, metaV1.GetOptions{})
+		ds, err := s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Get(context.TODO(), constants.CPU_DAEMONSET_NAME, metaV1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -485,7 +482,7 @@ func (s *K8sService) GetCpuModelCollectorPodLog(ctx context.Context) (map[string
 	}
 
 	pods, err := s.k8sClient.CoreV1().Pods(coreV1.NamespaceDefault).List(ctx, metaV1.ListOptions{
-		LabelSelector: "app=" + daemonSetName,
+		LabelSelector: "app=" + constants.CPU_DAEMONSET_NAME,
 	})
 	if err != nil {
 		logs.GetLogger().Errorf("Error listing pods: %v", err)
