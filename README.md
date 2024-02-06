@@ -317,7 +317,11 @@ systemctl start redis-server.service
 ```bash
 git clone https://github.com/swanchain/go-computing-provider.git
 cd go-computing-provider
+<<<<<<< HEAD
 git checkout releases
+=======
+git checkout v0.4.3
+>>>>>>> 6f694e1 (Update README.md)
 ```
 
 Then build the Computing provider follow the below steps:
