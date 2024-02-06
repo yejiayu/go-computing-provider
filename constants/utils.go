@@ -27,6 +27,5 @@ const UBI_TASK_RUNNING_STATUS = "running"
 const UBI_TASK_SUCCESS_STATUS = "success"
 const UBI_TASK_FAILED_STATUS = "failed"
 
-const CPU_AMD = "CPU-AMD"
-const CPU_INTEL = "CPU-INTEL"
-const CPU_DAEMONSET_NAME = "cpu-collect-daemonset"
+const CPU_AMD = "AMD"
+const CPU_INTEL = "INTEL"

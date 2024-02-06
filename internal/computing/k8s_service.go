@@ -7,7 +7,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/lagrangedao/go-computing-provider/build"
 	"github.com/lagrangedao/go-computing-provider/constants"
 	"github.com/lagrangedao/go-computing-provider/internal/models"
 	"io"
@@ -341,7 +340,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 		if nodeGpuInfoMap != nil {
 			collectGpu := make(map[string]collectGpuInfo)
 			if gpu, ok := nodeGpuInfoMap[node.Name]; ok {
-				for index, gpuDetail := range gpu.Details {
+				for index, gpuDetail := range gpu.Gpu.Details {
 					gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
 					if v, ok := collectGpu[gpuName]; ok {
 						v.count += 1
@@ -367,7 +366,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 
 				var counter = make(map[string]int)
 				newGpu := make([]models.GpuDetail, 0)
-				for _, gpuDetail := range gpu.Details {
+				for _, gpuDetail := range gpu.Gpu.Details {
 					gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
 					newDetail := gpuDetail
 					g := collectGpu[gpuName]
@@ -380,9 +379,9 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 					newGpu = append(newGpu, newDetail)
 				}
 				nodeResource.Gpu = models.Gpu{
-					DriverVersion: gpu.DriverVersion,
-					CudaVersion:   gpu.CudaVersion,
-					AttachedGpus:  gpu.AttachedGpus,
+					DriverVersion: gpu.Gpu.DriverVersion,
+					CudaVersion:   gpu.Gpu.CudaVersion,
+					AttachedGpus:  gpu.Gpu.AttachedGpus,
 					Details:       newGpu,
 				}
 			}
@@ -393,7 +392,7 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 	return nodeList, nil
 }
 
-func (s *K8sService) GetResourceExporterPodLog(ctx context.Context) (map[string]models.Gpu, error) {
+func (s *K8sService) GetResourceExporterPodLog(ctx context.Context) (map[string]models.CollectNodeInfo, error) {
 	var num int64 = 1
 	podLogOptions := coreV1.PodLogOptions{
 		Container:  "",
@@ -409,7 +408,7 @@ func (s *K8sService) GetResourceExporterPodLog(ctx context.Context) (map[string]
 		return nil, err
 	}
 
-	result := make(map[string]models.Gpu)
+	result := make(map[string]models.CollectNodeInfo)
 	for _, pod := range podList.Items {
 		req := s.k8sClient.CoreV1().Pods("kube-system").GetLogs(pod.Name, &podLogOptions)
 		buf, err := readLog(req)
@@ -421,89 +420,14 @@ func (s *K8sService) GetResourceExporterPodLog(ctx context.Context) (map[string]
 		if strings.Contains(buf.String(), "ERROR::") {
 			continue
 		}
-		var gpuInfo struct {
-			Gpu models.Gpu `json:"gpu"`
-		}
 
-		if err := json.Unmarshal([]byte(buf.String()), &gpuInfo); err != nil {
+		var nodeInfo models.CollectNodeInfo
+		if err := json.Unmarshal([]byte(buf.String()), &nodeInfo); err != nil {
 			logs.GetLogger().Error("nodeName: %s, collect gpu error: %+v", pod.Spec.NodeName, err)
 			continue
 		}
-
-		result[pod.Spec.NodeName] = gpuInfo.Gpu
+		result[pod.Spec.NodeName] = nodeInfo
 	}
-	return result, nil
-}
-
-func (s *K8sService) GetCpuModelCollectorPodLog(ctx context.Context) (map[string]string, error) {
-	s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Delete(context.TODO(), constants.CPU_DAEMONSET_NAME, metaV1.DeleteOptions{})
-
-	daemonSet := &appV1.DaemonSet{
-		ObjectMeta: metaV1.ObjectMeta{
-			Name:      constants.CPU_DAEMONSET_NAME,
-			Namespace: coreV1.NamespaceDefault,
-		},
-		Spec: appV1.DaemonSetSpec{
-			Selector: &metaV1.LabelSelector{
-				MatchLabels: map[string]string{"app": constants.CPU_DAEMONSET_NAME},
-			},
-			Template: coreV1.PodTemplateSpec{
-				ObjectMeta: metaV1.ObjectMeta{Labels: map[string]string{"app": constants.CPU_DAEMONSET_NAME}},
-				Spec: coreV1.PodSpec{
-					Containers: []coreV1.Container{
-						{
-							Name:            "cpu-collect-" + generateString(5),
-							Image:           build.CpuCollectorImage,
-							ImagePullPolicy: coreV1.PullIfNotPresent,
-							Command:         []string{"/bin/sh", "-c", "lscpu | grep 'Model name'"},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	_, err := s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Create(context.TODO(), daemonSet, metaV1.CreateOptions{})
-	if err != nil {
-		logs.GetLogger().Errorf("Error creating DaemonSet: %v", err)
-		return nil, err
-	}
-
-	err = wait.PollImmediate(5*time.Second, 10*time.Minute, func() (bool, error) {
-		ds, err := s.k8sClient.AppsV1().DaemonSets(coreV1.NamespaceDefault).Get(context.TODO(), constants.CPU_DAEMONSET_NAME, metaV1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		return ds.Status.NumberAvailable == ds.Status.DesiredNumberScheduled, nil
-	})
-	if err != nil {
-		logs.GetLogger().Errorf("Error waiting for cpu collect model name DaemonSet pods to be ready: %v", err)
-		return nil, err
-	}
-
-	pods, err := s.k8sClient.CoreV1().Pods(coreV1.NamespaceDefault).List(ctx, metaV1.ListOptions{
-		LabelSelector: "app=" + constants.CPU_DAEMONSET_NAME,
-	})
-	if err != nil {
-		logs.GetLogger().Errorf("Error listing pods: %v", err)
-		return nil, err
-	}
-
-	result := make(map[string]string)
-	for _, pod := range pods.Items {
-		podLog := s.k8sClient.CoreV1().Pods(coreV1.NamespaceDefault).GetLogs(pod.Name, &coreV1.PodLogOptions{})
-		buf, err := readLog(podLog)
-		if err != nil {
-			logs.GetLogger().Errorf("collect cpu model name, nodeName: %s, please check resource-exporter pod status. error: %v", pod.Spec.NodeName, err)
-			continue
-		}
-		if strings.Contains(strings.ToUpper(buf.String()), "AMD") {
-			result[pod.Spec.NodeName] = constants.CPU_AMD
-		} else if strings.Contains(strings.ToUpper(buf.String()), "INTEL") {
-			result[pod.Spec.NodeName] = constants.CPU_INTEL
-		}
-	}
-
 	return result, nil
 }
 
@@ -601,7 +525,7 @@ func (s *K8sService) GetNodeGpuSummary(ctx context.Context) (map[string]map[stri
 	var nodeGpuSummary = make(map[string]map[string]int64)
 	for nodeName, gpu := range nodeGpuInfoMap {
 		collectGpu := make(map[string]int64)
-		for _, gpuDetail := range gpu.Details {
+		for _, gpuDetail := range gpu.Gpu.Details {
 			gpuName := strings.ReplaceAll(gpuDetail.ProductName, " ", "-")
 			if v, ok := collectGpu[gpuName]; ok {
 				v += 1

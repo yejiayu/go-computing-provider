@@ -631,12 +631,12 @@ func DoUbiTask(c *gin.Context) {
 	}
 
 	var ubiTaskImage string
-	if strings.Contains(architecture, "amd") {
+	if architecture == constants.CPU_AMD {
 		ubiTaskImage = build.UBITaskImageAmdCpu
 		if gpuFlag == "1" {
 			ubiTaskImage = build.UBITaskImageAmdGpu
 		}
-	} else {
+	} else if architecture == constants.CPU_INTEL {
 		ubiTaskImage = build.UBITaskImageIntelCpu
 		if gpuFlag == "1" {
 			ubiTaskImage = build.UBITaskImageIntelGpu
@@ -1250,10 +1250,10 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 	var nodeName, architecture string
 	for _, node := range nodes.Items {
 		if _, ok := node.Labels[constants.CPU_INTEL]; ok {
-			architecture = "intel"
+			architecture = constants.CPU_INTEL
 		}
 		if _, ok := node.Labels[constants.CPU_AMD]; ok {
-			architecture = "amd"
+			architecture = constants.CPU_AMD
 		}
 
 		nodeGpu, remainderResource, _ := GetNodeResource(activePods, &node)

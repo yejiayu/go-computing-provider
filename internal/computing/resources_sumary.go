@@ -178,7 +178,7 @@ func checkClusterProviderStatus() (string, error) {
 		return "", err
 	}
 	for _, gpu := range nodeGpuInfo {
-		for _, gpuDetail := range gpu.Details {
+		for _, gpuDetail := range gpu.Gpu.Details {
 			collectGpu[gpuDetail.ProductName] = collectGpu[gpuDetail.ProductName] + 1
 		}
 	}
