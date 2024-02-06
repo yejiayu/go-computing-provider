@@ -451,8 +451,9 @@ func (s *K8sService) GetCpuModelCollectorPodLog(ctx context.Context) (map[string
 				Spec: coreV1.PodSpec{
 					Containers: []coreV1.Container{
 						{
-							Name:  "cpu-collect" + generateString(5),
-							Image: build.CpuCollectorImage,
+							Name:            "cpu-collect-" + generateString(5),
+							Image:           build.CpuCollectorImage,
+							ImagePullPolicy: coreV1.PullIfNotPresent,
 						},
 					},
 				},
