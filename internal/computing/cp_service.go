@@ -881,7 +881,7 @@ func ReceiveUbiProof(c *gin.Context) {
 	defer client.Close()
 
 	cpStub, err := account.NewAccountStub(client)
-	if err == nil {
+	if err != nil {
 		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
 		return
 	}
