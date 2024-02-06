@@ -873,24 +873,35 @@ func ReceiveUbiProof(c *gin.Context) {
 		return
 	}
 
-	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
-	if err != nil {
-		logs.GetLogger().Errorf("setup wallet ubi failed, error: %v,", err)
-		return
-	}
-
-	ki, err := localWallet.FindKey(conf.GetConfig().HUB.WalletAddress)
-	if err != nil || ki == nil {
-		logs.GetLogger().Errorf("the address: %s, private key %v,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
-		return
-	}
-
 	client, err := ethclient.Dial(chainUrl)
 	if err != nil {
 		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
 		return
 	}
 	defer client.Close()
+
+	cpStub, err := account.NewAccountStub(client)
+	if err == nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		return
+	}
+	cpAccount, err := cpStub.GetCpAccountInfo()
+	if err != nil {
+		logs.GetLogger().Errorf("get account info failed, error: %v,", err)
+		return
+	}
+
+	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+	if err != nil {
+		logs.GetLogger().Errorf("setup wallet failed, error: %v,", err)
+		return
+	}
+
+	ki, err := localWallet.FindKey(cpAccount.OwnerAddress)
+	if err != nil || ki == nil {
+		logs.GetLogger().Errorf("the address: %s, private key %v,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
+		return
+	}
 
 	accountStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
 	if err != nil {
@@ -900,7 +911,7 @@ func ReceiveUbiProof(c *gin.Context) {
 
 	taskType, err := strconv.ParseUint(c2Proof.TaskType, 10, 8)
 	if err != nil {
-		logs.GetLogger().Errorf("Conversion to uint8 error: %v", err)
+		logs.GetLogger().Errorf("conversion to uint8 error: %v", err)
 		return
 	}
 
