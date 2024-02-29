@@ -272,7 +272,8 @@ func watchExpiredTask() {
 						logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
 						return
 					}
-					if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Cancelled") {
+					if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") ||
+						strings.Contains(taskStatus, "Cancelled") || strings.Contains(taskStatus, "Failed") {
 						if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
 							deleteKey = append(deleteKey, key)
 							continue
