@@ -274,7 +274,7 @@ func watchExpiredTask() {
 					}
 					if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") ||
 						strings.Contains(taskStatus, "Cancelled") || strings.Contains(taskStatus, "Failed") {
-						logs.GetLogger().Infof("task_uuid: %s, current status is %s, starting to delete.", jobMetadata.TaskUuid, taskStatus)
+						logs.GetLogger().Infof("task_uuid: %s, current status is %s, starting to delete it.", jobMetadata.TaskUuid, taskStatus)
 						if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
 							deleteKey = append(deleteKey, key)
 							continue
