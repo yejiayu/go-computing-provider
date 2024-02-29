@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gomodule/redigo/redis"
 	"github.com/lagrangedao/go-computing-provider/conf"
 	"github.com/lagrangedao/go-computing-provider/constants"
 	models2 "github.com/lagrangedao/go-computing-provider/internal/models"
+	"io"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
@@ -263,8 +265,21 @@ func watchExpiredTask() {
 						return
 					}
 
+					namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobMetadata.WalletAddress)
+
+					taskStatus, err := checkTaskStatusByHub(jobMetadata.TaskUuid)
+					if err != nil {
+						logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
+						return
+					}
+					if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Cancelled") {
+						if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
+							deleteKey = append(deleteKey, key)
+							continue
+						}
+					}
+
 					if time.Now().Unix() > jobMetadata.ExpireTime {
-						namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobMetadata.WalletAddress)
 						expireTimeStr := time.Unix(jobMetadata.ExpireTime, 0).Format("2006-01-02 15:04:05")
 						logs.GetLogger().Infof("<timer-task> redis-key: %s, namespace: %s,expireTime: %s. the job starting terminated", key, namespace, expireTimeStr)
 						if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
@@ -324,4 +339,42 @@ func watchNameSpaceForDeleted() {
 			}()
 		}
 	}()
+}
+
+func checkTaskStatusByHub(taskUuid string) (string, error) {
+	url := fmt.Sprintf("%s/check_job_status/%s", conf.GetConfig().HUB.ServerUrl, taskUuid)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("offset", "0")
+	req.Header.Add("limit", "10")
+	req.Header.Add("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error making HTTP request:", err)
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	var taskStatus struct {
+		Data struct {
+			JobStatus  string `json:"job_status"`
+			TaskStatus string `json:"task_status"`
+		} `json:"data"`
+		Message string `json:"message"`
+		Status  string `json:"status"`
+	}
+	err = json.Unmarshal(respBody, &taskStatus)
+	if err != nil {
+		return "", err
+	}
+	return taskStatus.Status, nil
 }
