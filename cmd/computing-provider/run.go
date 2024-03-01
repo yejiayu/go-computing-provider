@@ -25,6 +25,7 @@ import (
 	"github.com/lagrangedao/go-computing-provider/wallet"
 	"github.com/lagrangedao/go-computing-provider/wallet/contract/collateral"
 	"github.com/urfave/cli/v2"
+	"io"
 	"math/big"
 	"net/http"
 	"os"
@@ -683,8 +684,24 @@ func DoSend(contractAddr, height string) error {
 	}
 	defer resp.Body.Close()
 
+	var resultResp struct {
+		Code int    `json:"code"`
+		Msg  string `json:"msg"`
+		Data any    `json:"data,omitempty"`
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		logs.GetLogger().Errorf("read response failed: %v", err)
+		return err
+	}
+	err = json.Unmarshal(body, &resultResp)
+	if err != nil {
+		logs.GetLogger().Errorf("response convert to json failed: %v", err)
+		return err
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("register cp to ubi hub failed")
+		return fmt.Errorf("register cp to ubi hub failed, error: %s", resultResp.Msg)
 	}
 	return nil
 }
