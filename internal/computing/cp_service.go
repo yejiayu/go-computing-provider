@@ -1242,8 +1242,13 @@ func checkResourceAvailableForSpace(jobSourceURI string) (bool, string, error) {
 					}
 				}
 
-				if usedCount+hardwareDetail.Gpu.Quantity <= nodeGpuSummary[node.Name][gpuName] {
-					return true, gpuProductName, nil
+				for gName, gCount := range nodeGpuSummary[node.Name] {
+					if strings.Contains(strings.ToUpper(gName), gpuName) {
+						gpuProductName = strings.ReplaceAll(strings.ToUpper(gName), " ", "-")
+						if usedCount+hardwareDetail.Gpu.Quantity <= gCount {
+							return true, gpuProductName, nil
+						}
+					}
 				}
 				continue
 			}
