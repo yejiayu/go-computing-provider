@@ -4,10 +4,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/filswan/go-mcs-sdk/mcs/api/bucket"
-	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
-	"github.com/filswan/go-mcs-sdk/mcs/api/user"
 	"github.com/lagrangedao/go-computing-provider/conf"
+	"github.com/sonic-chain/go-mcs-sdk/mcs/api/bucket"
+	"github.com/sonic-chain/go-mcs-sdk/mcs/api/common/logs"
+	"github.com/sonic-chain/go-mcs-sdk/mcs/api/user"
 )
 
 var storage *StorageService
