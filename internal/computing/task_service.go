@@ -314,7 +314,7 @@ func watchExpiredTask() {
 }
 
 func watchNameSpaceForDeleted() {
-	ticker := time.NewTicker(3 * time.Minute)
+	ticker := time.NewTicker(50 * time.Minute)
 	go func() {
 		for range ticker.C {
 			go func() {
