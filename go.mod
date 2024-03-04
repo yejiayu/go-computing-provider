@@ -1,4 +1,4 @@
-module github.com/lagrangedao/go-computing-provider
+module github.com/swanchain/go-computing-provider
 
 go 1.19
 

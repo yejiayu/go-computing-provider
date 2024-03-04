@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gomodule/redigo/redis"
-	"github.com/lagrangedao/go-computing-provider/conf"
-	"github.com/lagrangedao/go-computing-provider/constants"
-	models2 "github.com/lagrangedao/go-computing-provider/internal/models"
+	"github.com/swanchain/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/constants"
+	models2 "github.com/swanchain/go-computing-provider/internal/models"
 	"io"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -272,6 +272,11 @@ func watchExpiredTask() {
 						logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
 						return
 					}
+					if strings.Contains(taskStatus, "Task not found") {
+						deleteJob(namespace, jobMetadata.SpaceUuid)
+						deleteKey = append(deleteKey, key)
+						continue
+					}
 					if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") ||
 						strings.Contains(taskStatus, "Cancelled") || strings.Contains(taskStatus, "Failed") {
 						logs.GetLogger().Infof("task_uuid: %s, current status is %s, starting to delete it.", jobMetadata.TaskUuid, taskStatus)
@@ -377,6 +382,9 @@ func checkTaskStatusByHub(taskUuid string) (string, error) {
 	err = json.Unmarshal(respBody, &taskStatus)
 	if err != nil {
 		return "", err
+	}
+	if taskStatus.Status == "failed" {
+		return taskStatus.Message, nil
 	}
 	return taskStatus.Status, nil
 }

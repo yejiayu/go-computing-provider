@@ -7,7 +7,7 @@ import (
 	"github.com/filswan/go-mcs-sdk/mcs/api/bucket"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/filswan/go-mcs-sdk/mcs/api/user"
-	"github.com/lagrangedao/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/conf"
 )
 
 var storage *StorageService
