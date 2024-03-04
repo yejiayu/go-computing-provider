@@ -132,7 +132,7 @@ func (d *Deploy) DockerfileToK8s() {
 				},
 
 				Spec: coreV1.PodSpec{
-					NodeSelector: generateLabel(d.hardwareResource.Gpu.Unit),
+					NodeSelector: generateLabel(d.gpuProductName),
 					Containers: []coreV1.Container{{
 						Name:            constants.K8S_CONTAINER_NAME_PREFIX + d.spaceUuid,
 						Image:           d.image,
@@ -411,7 +411,7 @@ func (d *Deploy) ModelInferenceToK8s() error {
 				},
 
 				Spec: coreV1.PodSpec{
-					NodeSelector: generateLabel(d.hardwareResource.Gpu.Unit),
+					NodeSelector: generateLabel(d.gpuProductName),
 					Containers: []coreV1.Container{{
 						Name:            constants.K8S_CONTAINER_NAME_PREFIX + d.spaceUuid,
 						Image:           d.image,
