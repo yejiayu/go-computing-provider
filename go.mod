@@ -8,6 +8,7 @@ require (
 	github.com/docker/docker v23.0.6+incompatible
 	github.com/ethereum/go-ethereum v1.11.6
 	github.com/fatih/color v1.13.0
+	github.com/filswan/go-mcs-sdk v0.0.5
 	github.com/filswan/go-swan-lib v0.2.139
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.9.1
@@ -19,7 +20,6 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/robfig/cron/v3 v3.0.0
-	github.com/sonic-chain/go-mcs-sdk v0.0.5-0.20240302025151-1bc0c213a6dd
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/urfave/cli/v2 v2.24.4
 	github.com/valyala/gozstd v1.20.1

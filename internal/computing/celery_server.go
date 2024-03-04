@@ -6,9 +6,9 @@ import (
 
 	"github.com/lagrangedao/go-computing-provider/conf"
 
+	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gocelery/gocelery"
 	"github.com/gomodule/redigo/redis"
-	"github.com/sonic-chain/go-mcs-sdk/mcs/api/common/logs"
 )
 
 var redisPool *redis.Pool

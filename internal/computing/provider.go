@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/lagrangedao/go-computing-provider/conf"
-	"github.com/sonic-chain/go-mcs-sdk/mcs/api/common/logs"
 )
 
 func Reconnect(nodeID string) string {
