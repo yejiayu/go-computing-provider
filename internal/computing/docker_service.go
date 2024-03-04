@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lagrangedao/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/conf"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"

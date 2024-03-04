@@ -2,15 +2,15 @@ package initializer
 
 import (
 	"fmt"
-	"github.com/lagrangedao/go-computing-provider/internal/computing"
+	"github.com/swanchain/go-computing-provider/internal/computing"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/filswan/go-swan-lib/logs"
-	"github.com/lagrangedao/go-computing-provider/conf"
-	"github.com/lagrangedao/go-computing-provider/constants"
+	"github.com/swanchain/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/constants"
 )
 
 func sendHeartbeat(nodeId string) {

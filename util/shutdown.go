@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
-	"github.com/lagrangedao/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/conf"
 	"net/http"
 	"os"
 	"os/signal"
@@ -64,7 +64,7 @@ func ServeHttp(h http.Handler, name string, addr string) (StopFunc, error) {
 		certFile := conf.GetConfig().LOG.CrtFile
 		keyFile := conf.GetConfig().LOG.KeyFile
 		if _, err := os.Stat(certFile); err != nil {
-			logs.GetLogger().Fatalf("need to manually generate the wss authentication certificate.")
+			logs.GetLogger().Fatalf("need to manually generate the wss authentication certificate. error: %v", err)
 			return
 		}
 

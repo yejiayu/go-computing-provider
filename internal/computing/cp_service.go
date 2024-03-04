@@ -14,13 +14,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
-	"github.com/lagrangedao/go-computing-provider/account"
-	"github.com/lagrangedao/go-computing-provider/build"
-	"github.com/lagrangedao/go-computing-provider/conf"
-	"github.com/lagrangedao/go-computing-provider/constants"
-	"github.com/lagrangedao/go-computing-provider/internal/models"
-	"github.com/lagrangedao/go-computing-provider/util"
-	"github.com/lagrangedao/go-computing-provider/wallet"
+	"github.com/swanchain/go-computing-provider/account"
+	"github.com/swanchain/go-computing-provider/build"
+	"github.com/swanchain/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/constants"
+	"github.com/swanchain/go-computing-provider/internal/models"
+	"github.com/swanchain/go-computing-provider/util"
+	"github.com/swanchain/go-computing-provider/wallet"
 	"io"
 	batchv1 "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
@@ -1242,8 +1242,13 @@ func checkResourceAvailableForSpace(jobSourceURI string) (bool, string, error) {
 					}
 				}
 
-				if usedCount+hardwareDetail.Gpu.Quantity <= nodeGpuSummary[node.Name][gpuName] {
-					return true, gpuProductName, nil
+				for gName, gCount := range nodeGpuSummary[node.Name] {
+					if strings.Contains(strings.ToUpper(gName), gpuName) {
+						gpuProductName = strings.ReplaceAll(strings.ToUpper(gName), " ", "-")
+						if usedCount+hardwareDetail.Gpu.Quantity <= gCount {
+							return true, gpuProductName, nil
+						}
+					}
 				}
 				continue
 			}
