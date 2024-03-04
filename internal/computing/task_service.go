@@ -344,7 +344,7 @@ func watchNameSpaceForDeleted() {
 }
 
 func checkTaskStatusByHub(taskUuid string) (string, error) {
-	url := fmt.Sprintf("%s/check_job_status/%s", conf.GetConfig().HUB.ServerUrl, taskUuid)
+	url := fmt.Sprintf("%s/check_task_status/%s", conf.GetConfig().HUB.ServerUrl, taskUuid)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
