@@ -273,6 +273,7 @@ func watchExpiredTask() {
 						return
 					}
 					if strings.Contains(taskStatus, "Task not found") {
+						logs.GetLogger().Infof("task_uuid: %s, task not found on the orchestrator service, starting to delete it.", jobMetadata.TaskUuid)
 						deleteJob(namespace, jobMetadata.SpaceUuid)
 						deleteKey = append(deleteKey, key)
 						continue
@@ -288,7 +289,7 @@ func watchExpiredTask() {
 
 					if time.Now().Unix() > jobMetadata.ExpireTime {
 						expireTimeStr := time.Unix(jobMetadata.ExpireTime, 0).Format("2006-01-02 15:04:05")
-						logs.GetLogger().Infof("<timer-task> redis-key: %s, namespace: %s,expireTime: %s. the job starting terminated", key, namespace, expireTimeStr)
+						logs.GetLogger().Infof("<timer-task> redis-key: %s,expireTime: %s. the job starting terminated", key, expireTimeStr)
 						if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
 							deleteKey = append(deleteKey, key)
 							continue

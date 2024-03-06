@@ -31,14 +31,15 @@ type JobData struct {
 	Status   string `json:"status"`
 	Duration int    `json:"duration"`
 	//Hardware      string `json:"hardware"`
-	JobSourceURI  string `json:"job_source_uri"`
-	JobResultURI  string `json:"job_result_uri"`
-	StorageSource string `json:"storage_source"`
-	TaskUUID      string `json:"task_uuid"`
-	CreatedAt     string `json:"created_at"`
-	UpdatedAt     string `json:"updated_at"`
-	BuildLog      string `json:"build_log"`
-	ContainerLog  string `json:"container_log"`
+	JobSourceURI                string `json:"job_source_uri"`
+	JobResultURI                string `json:"job_result_uri"`
+	StorageSource               string `json:"storage_source"`
+	TaskUUID                    string `json:"task_uuid"`
+	CreatedAt                   string `json:"created_at"`
+	UpdatedAt                   string `json:"updated_at"`
+	BuildLog                    string `json:"build_log"`
+	ContainerLog                string `json:"container_log"`
+	NodeIdJobSourceUriSignature string `json:"node_id_job_source_uri_signature"`
 }
 
 type Job struct {
