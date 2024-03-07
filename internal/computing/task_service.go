@@ -427,7 +427,7 @@ func monitorDaemonSetPods() {
 				}
 				podLog, err := service.GetPodLogByPodName(namespace, pod.Name, &podLogOptions)
 				if err != nil {
-					logs.GetLogger().Errorf("collect gpu deatil info, nodeName: %s, error: %+v", pod.Spec.NodeName, err)
+					logs.GetLogger().Errorf("collect gpu deatil info, podName: %s, error: %+v", pod.Name, err)
 					continue
 				}
 				if strings.Contains(podLog, "ERROR:: unable to initialize NVML:") {
