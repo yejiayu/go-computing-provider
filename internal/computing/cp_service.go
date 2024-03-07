@@ -82,7 +82,7 @@ func ReceiveJob(c *gin.Context) {
 	cpRepoPath, _ := os.LookupEnv("CP_PATH")
 	nodeID := GetNodeId(cpRepoPath)
 
-	signature, err := verifySignature(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobData.JobSourceURI), jobData.NodeIdJobSourceUriSignature)
+	signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobData.JobSourceURI), jobData.NodeIdJobSourceUriSignature)
 	if err != nil {
 		logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
@@ -1567,6 +1567,27 @@ func verifySignature(pubKStr, data, signature string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func verifySignatureForHub(pubKStr string, message string, signedMessage string) (bool, error) {
+	hashedMessage := []byte("\x19Ethereum Signed Message:\n" + strconv.Itoa(len(message)) + message)
+	hash := crypto.Keccak256Hash(hashedMessage)
+
+	decodedMessage := hexutil.MustDecode(signedMessage)
+
+	if decodedMessage[64] == 27 || decodedMessage[64] == 28 {
+		decodedMessage[64] -= 27
+	}
+
+	sigPublicKeyECDSA, err := crypto.SigToPub(hash.Bytes(), decodedMessage)
+	if sigPublicKeyECDSA == nil {
+		err = fmt.Errorf("could not get a public get from the message signature")
+	}
+	if err != nil {
+		return false, err
+	}
+
+	return pubKStr == crypto.PubkeyToAddress(*sigPublicKeyECDSA).String(), nil
 }
 
 func convertGpuName(name string) string {
