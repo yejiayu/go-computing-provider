@@ -410,25 +410,34 @@ func (s *K8sService) GetResourceExporterPodLog(ctx context.Context) (map[string]
 
 	result := make(map[string]models.CollectNodeInfo)
 	for _, pod := range podList.Items {
-		req := s.k8sClient.CoreV1().Pods("kube-system").GetLogs(pod.Name, &podLogOptions)
-		buf, err := readLog(req)
+		podLog, err := s.GetPodLogByPodName("kube-system", pod.Name, &podLogOptions)
 		if err != nil {
-			logs.GetLogger().Errorf("collect gpu log, nodeName: %s, please check resource-exporter pod status. error: %+v", pod.Spec.NodeName, err)
+			logs.GetLogger().Errorf("collect gpu deatil info, nodeName: %s, error: %+v", pod.Spec.NodeName, err)
 			continue
 		}
 
-		if strings.Contains(buf.String(), "ERROR::") {
+		if strings.Contains(podLog, "ERROR::") {
 			continue
 		}
 
 		var nodeInfo models.CollectNodeInfo
-		if err := json.Unmarshal([]byte(buf.String()), &nodeInfo); err != nil {
+		if err := json.Unmarshal([]byte(podLog), &nodeInfo); err != nil {
 			logs.GetLogger().Error("nodeName: %s, collect gpu error: %+v", pod.Spec.NodeName, err)
 			continue
 		}
 		result[pod.Spec.NodeName] = nodeInfo
 	}
 	return result, nil
+}
+
+func (s *K8sService) GetPodLogByPodName(namespace, podName string, podLogOptions *coreV1.PodLogOptions) (string, error) {
+	req := s.k8sClient.CoreV1().Pods(namespace).GetLogs(podName, podLogOptions)
+	buf, err := readLog(req)
+	if err != nil {
+		logs.GetLogger().Errorf("get pod log failed, podName: %s, error: %+v", podName, err)
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func (s *K8sService) AddNodeLabel(nodeName, key string) error {
