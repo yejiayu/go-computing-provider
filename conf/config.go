@@ -51,6 +51,7 @@ type HUB struct {
 	AccessToken      string
 	BalanceThreshold float64
 	OrchestratorPk   string
+	SkipVerifySign   bool
 }
 
 type MCS struct {

@@ -78,20 +78,26 @@ func ReceiveJob(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
 
-	cpRepoPath, _ := os.LookupEnv("CP_PATH")
-	nodeID := GetNodeId(cpRepoPath)
+	if conf.GetConfig().HUB.SkipVerifySign {
+		if len(jobData.NodeIdJobSourceUriSignature) == 0 {
+			c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.SpaceSignatureError, "missing node_id_job_source_uri_signature field"))
+			return
+		}
+		cpRepoPath, _ := os.LookupEnv("CP_PATH")
+		nodeID := GetNodeId(cpRepoPath)
 
-	signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobData.JobSourceURI), jobData.NodeIdJobSourceUriSignature)
-	if err != nil {
-		logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
-		return
-	}
+		signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobData.JobSourceURI), jobData.NodeIdJobSourceUriSignature)
+		if err != nil {
+			logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
+			return
+		}
 
-	logs.GetLogger().Infof("space job sign verifing, task_id: %s,  verify: %v", jobData.TaskUUID, signature)
-	if !signature {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
-		return
+		logs.GetLogger().Infof("space job sign verifing, task_id: %s,  verify: %v", jobData.TaskUUID, signature)
+		if !signature {
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
+			return
+		}
 	}
 
 	available, gpuProductName, err := checkResourceAvailableForSpace(jobData.JobSourceURI)

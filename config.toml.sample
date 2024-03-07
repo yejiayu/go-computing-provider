@@ -22,6 +22,7 @@ AccessToken = ""                                    # The Orchestrator's access 
 WalletAddress = ""                                  # The cp‘s wallet address
 BalanceThreshold= 1                                # The cp’s collateral balance threshold
 OrchestratorPk = "0x29eD49c8E973696D07E7927f748F6E5Eacd5516D"
+SkipVerifySign = true
 
 [MCS]
 ApiKey = ""                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key
