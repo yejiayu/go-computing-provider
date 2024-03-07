@@ -76,8 +76,7 @@ func ReceiveJob(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	reqData, _ := json.Marshal(jobData)
-	logs.GetLogger().Infof("Job received Data: %+v", string(reqData))
+	logs.GetLogger().Infof("Job received Data: %+v", jobData)
 
 	cpRepoPath, _ := os.LookupEnv("CP_PATH")
 	nodeID := GetNodeId(cpRepoPath)
@@ -89,7 +88,7 @@ func ReceiveJob(c *gin.Context) {
 		return
 	}
 
-	logs.GetLogger().Infof("space job sign verifing, task_id: %d,  verify: %v", jobData.TaskUUID, signature)
+	logs.GetLogger().Infof("space job sign verifing, task_id: %s,  verify: %v", jobData.TaskUUID, signature)
 	if !signature {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
 		return
