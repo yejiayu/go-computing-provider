@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/swanchain/go-computing-provider/internal/models"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -64,7 +65,8 @@ func updateProviderInfo(nodeID, peerID, address string, status string) {
 		logs.GetLogger().Errorf("Error updating provider info: %v", err)
 	} else {
 		if resp.StatusCode == 400 {
-			logs.GetLogger().Info(resp.Body)
+			respData, _ := io.ReadAll(resp.Body)
+			logs.GetLogger().Info(string(respData))
 		}
 
 		err := resp.Body.Close()
