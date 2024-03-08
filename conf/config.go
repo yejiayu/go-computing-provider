@@ -50,6 +50,8 @@ type HUB struct {
 	ServerUrl        string
 	AccessToken      string
 	BalanceThreshold float64
+	OrchestratorPk   string
+	VerifySign       bool
 }
 
 type MCS struct {

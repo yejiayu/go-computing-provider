@@ -11,8 +11,10 @@ import (
 	"github.com/swanchain/go-computing-provider/constants"
 	models2 "github.com/swanchain/go-computing-provider/internal/models"
 	"io"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"strings"
 	"sync"
@@ -167,34 +169,9 @@ func RunSyncTask(nodeId string) {
 
 	}()
 
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				logs.GetLogger().Errorf("Failed report provider bid status, error: %+v", err)
-			}
-		}()
-
-		ticker := time.NewTicker(15 * time.Second)
-		defer ticker.Stop()
-
-		logs.GetLogger().Infof("provider status: %s", models2.ActiveStatus)
-
-		for range ticker.C {
-			providerStatus, err := checkClusterProviderStatus()
-			if err != nil {
-				logs.GetLogger().Errorf("check cluster resource failed, error: %+v", err)
-				return
-			}
-			if providerStatus == models2.InactiveStatus {
-				logs.GetLogger().Infof("provider status: %s", providerStatus)
-			}
-			updateProviderInfo(nodeId, "", "", providerStatus)
-		}
-
-	}()
-
 	watchExpiredTask()
 	watchNameSpaceForDeleted()
+	monitorDaemonSetPods()
 }
 
 func reportClusterResource(location, nodeId string) {
@@ -248,7 +225,7 @@ func watchExpiredTask() {
 			go func() {
 				defer func() {
 					if err := recover(); err != nil {
-						logs.GetLogger().Errorf("catch panic error: %+v", err)
+						logs.GetLogger().Errorf("watchExpiredTask catch panic error: %+v", err)
 					}
 				}()
 				conn := redisPool.Get()
@@ -273,6 +250,7 @@ func watchExpiredTask() {
 						return
 					}
 					if strings.Contains(taskStatus, "Task not found") {
+						logs.GetLogger().Infof("task_uuid: %s, task not found on the orchestrator service, starting to delete it.", jobMetadata.TaskUuid)
 						deleteJob(namespace, jobMetadata.SpaceUuid)
 						deleteKey = append(deleteKey, key)
 						continue
@@ -288,7 +266,7 @@ func watchExpiredTask() {
 
 					if time.Now().Unix() > jobMetadata.ExpireTime {
 						expireTimeStr := time.Unix(jobMetadata.ExpireTime, 0).Format("2006-01-02 15:04:05")
-						logs.GetLogger().Infof("<timer-task> redis-key: %s, namespace: %s,expireTime: %s. the job starting terminated", key, namespace, expireTimeStr)
+						logs.GetLogger().Infof("<timer-task> redis-key: %s,expireTime: %s. the job starting terminated", key, expireTimeStr)
 						if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
 							deleteKey = append(deleteKey, key)
 							continue
@@ -314,13 +292,13 @@ func watchExpiredTask() {
 }
 
 func watchNameSpaceForDeleted() {
-	ticker := time.NewTicker(3 * time.Minute)
+	ticker := time.NewTicker(50 * time.Minute)
 	go func() {
 		for range ticker.C {
 			go func() {
 				defer func() {
 					if err := recover(); err != nil {
-						logs.GetLogger().Errorf("catch panic error: %+v", err)
+						logs.GetLogger().Errorf("watchNameSpaceForDeleted catch panic error: %+v", err)
 					}
 				}()
 				service := NewK8sService()
@@ -387,4 +365,56 @@ func checkTaskStatusByHub(taskUuid string) (string, error) {
 		return taskStatus.Message, nil
 	}
 	return taskStatus.Status, nil
+}
+
+func monitorDaemonSetPods() {
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				logs.GetLogger().Errorf("monitorDaemonSetPods catch panic error: %+v", err)
+			}
+		}()
+
+		namespace := "kube-system"
+		service := NewK8sService()
+		stopCh := wait.NeverStop
+		var num int64 = 1
+		podLogOptions := corev1.PodLogOptions{
+			Container:  "",
+			TailLines:  &num,
+			Timestamps: false,
+		}
+
+		var errorCount = make(map[string]int)
+		wait.Until(func() {
+			pods, err := service.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
+				LabelSelector: "app=resource-exporter",
+			})
+			if err != nil {
+				logs.GetLogger().Errorf("get resource-exporter pods failed, error: %+v", err)
+				return
+			}
+
+			for _, pod := range pods.Items {
+				if pod.Status.Phase != corev1.PodRunning {
+					service.k8sClient.CoreV1().Pods(namespace).Delete(context.TODO(), pod.Name, metaV1.DeleteOptions{})
+					continue
+				}
+				podLog, err := service.GetPodLogByPodName(namespace, pod.Name, &podLogOptions)
+				if err != nil {
+					logs.GetLogger().Errorf("collect gpu deatil info, podName: %s, error: %+v", pod.Name, err)
+					continue
+				}
+				if strings.Contains(podLog, "ERROR::") {
+					if errorCount[pod.Name] > 2 {
+						service.k8sClient.CoreV1().Pods(namespace).Delete(context.TODO(), pod.Name, metaV1.DeleteOptions{})
+						delete(errorCount, pod.Name)
+						continue
+					}
+					errorCount[pod.Name]++
+				}
+			}
+		}, 2*time.Minute, stopCh)
+	}()
+
 }

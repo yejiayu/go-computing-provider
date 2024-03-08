@@ -85,7 +85,7 @@ func (task *CronTask) checkCollateralBalance() {
 
 func (task *CronTask) cleanAbnormalDeployment() {
 	c := cron.New(cron.WithSeconds())
-	c.AddFunc("* 0/5 * * * ?", func() {
+	c.AddFunc("* 0/30 * * * ?", func() {
 		defer func() {
 			if err := recover(); err != nil {
 				logs.GetLogger().Errorf("task job: [cleanAbnormalDeployment], error: %+v", err)
@@ -111,7 +111,7 @@ func (task *CronTask) cleanAbnormalDeployment() {
 					creationTimestamp := deployment.ObjectMeta.CreationTimestamp.Time
 					currentTime := time.Now()
 					age := currentTime.Sub(creationTimestamp)
-					if (deployment.Status.AvailableReplicas == 0 && age.Hours() >= 1) || age.Hours() > 24*15 {
+					if (deployment.Status.AvailableReplicas == 0 && age.Hours() >= 2) || age.Hours() > 24*15 {
 						logs.GetLogger().Infof("Cleaning up deployment %s in namespace %s", deployment.Name, namespace)
 						err := k8sService.k8sClient.AppsV1().Deployments(namespace).Delete(context.TODO(), deployment.Name, metav1.DeleteOptions{})
 						if err != nil {

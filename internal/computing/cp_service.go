@@ -78,6 +78,28 @@ func ReceiveJob(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
 
+	if conf.GetConfig().HUB.VerifySign {
+		if len(jobData.NodeIdJobSourceUriSignature) == 0 {
+			c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.SpaceSignatureError, "missing node_id_job_source_uri_signature field"))
+			return
+		}
+		cpRepoPath, _ := os.LookupEnv("CP_PATH")
+		nodeID := GetNodeId(cpRepoPath)
+
+		signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobData.JobSourceURI), jobData.NodeIdJobSourceUriSignature)
+		if err != nil {
+			logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
+			return
+		}
+
+		logs.GetLogger().Infof("space job sign verifing, task_id: %s,  verify: %v", jobData.TaskUUID, signature)
+		if !signature {
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
+			return
+		}
+	}
+
 	available, gpuProductName, err := checkResourceAvailableForSpace(jobData.JobSourceURI)
 	if err != nil {
 		logs.GetLogger().Errorf("check job resource failed, error: %+v", err)
@@ -325,12 +347,6 @@ func CancelJob(c *gin.Context) {
 		return
 	}
 
-	creatorWallet := c.Query("creator_wallet")
-	if creatorWallet == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "creator_wallet is required"})
-		return
-	}
-
 	conn := redisPool.Get()
 	prefix := constants.REDIS_SPACE_PREFIX + "*"
 	keys, err := redis.Strings(conn.Do("KEYS", prefix))
@@ -343,7 +359,7 @@ func CancelJob(c *gin.Context) {
 	for _, key := range keys {
 		jobMetadata, err := RetrieveJobMetadata(key)
 		if err != nil {
-			logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
+			logs.GetLogger().Errorf("Failed get redis key data for , key: %s, error: %+v", key, err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
 			return
 		}
@@ -1076,18 +1092,17 @@ func deleteJob(namespace, spaceUuid string) error {
 	serviceName := constants.K8S_SERVICE_NAME_PREFIX + spaceUuid
 	ingressName := constants.K8S_INGRESS_NAME_PREFIX + spaceUuid
 
+	logs.GetLogger().Infof("Start deleting space service, space_uuid: %s", spaceUuid)
 	k8sService := NewK8sService()
 	if err := k8sService.DeleteIngress(context.TODO(), namespace, ingressName); err != nil && !errors.IsNotFound(err) {
 		logs.GetLogger().Errorf("Failed delete ingress, ingressName: %s, error: %+v", deployName, err)
 		return err
 	}
-	logs.GetLogger().Infof("Deleted ingress %s finished", ingressName)
 
 	if err := k8sService.DeleteService(context.TODO(), namespace, serviceName); err != nil && !errors.IsNotFound(err) {
 		logs.GetLogger().Errorf("Failed delete service, serviceName: %s, error: %+v", serviceName, err)
 		return err
 	}
-	logs.GetLogger().Infof("Deleted service %s finished", serviceName)
 
 	dockerService := NewDockerService()
 	deployImageIds, err := k8sService.GetDeploymentImages(context.TODO(), namespace, deployName)
@@ -1104,7 +1119,6 @@ func deleteJob(namespace, spaceUuid string) error {
 		return err
 	}
 	time.Sleep(6 * time.Second)
-	logs.GetLogger().Infof("Deleted deployment %s finished", deployName)
 
 	if err := k8sService.DeleteDeployRs(context.TODO(), namespace, spaceUuid); err != nil && !errors.IsNotFound(err) {
 		logs.GetLogger().Errorf("Failed delete ReplicaSetsController, spaceUuid: %s, error: %+v", spaceUuid, err)
@@ -1131,10 +1145,11 @@ func deleteJob(namespace, spaceUuid string) error {
 			continue
 		}
 		if !getPods {
-			logs.GetLogger().Infof("Deleted all resource finised. spaceUuid: %s", spaceUuid)
 			break
 		}
 	}
+
+	logs.GetLogger().Infof("Deleted space service finished, space_uuid: %s", spaceUuid)
 	return nil
 }
 
@@ -1555,6 +1570,27 @@ func verifySignature(pubKStr, data, signature string) (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func verifySignatureForHub(pubKStr string, message string, signedMessage string) (bool, error) {
+	hashedMessage := []byte("\x19Ethereum Signed Message:\n" + strconv.Itoa(len(message)) + message)
+	hash := crypto.Keccak256Hash(hashedMessage)
+
+	decodedMessage := hexutil.MustDecode(signedMessage)
+
+	if decodedMessage[64] == 27 || decodedMessage[64] == 28 {
+		decodedMessage[64] -= 27
+	}
+
+	sigPublicKeyECDSA, err := crypto.SigToPub(hash.Bytes(), decodedMessage)
+	if sigPublicKeyECDSA == nil {
+		err = fmt.Errorf("could not get a public get from the message signature")
+	}
+	if err != nil {
+		return false, err
+	}
+
+	return pubKStr == crypto.PubkeyToAddress(*sigPublicKeyECDSA).String(), nil
 }
 
 func convertGpuName(name string) string {
