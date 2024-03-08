@@ -78,7 +78,7 @@ func ReceiveJob(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
 
-	if conf.GetConfig().HUB.SkipVerifySign {
+	if conf.GetConfig().HUB.VerifySign {
 		if len(jobData.NodeIdJobSourceUriSignature) == 0 {
 			c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.SpaceSignatureError, "missing node_id_job_source_uri_signature field"))
 			return
