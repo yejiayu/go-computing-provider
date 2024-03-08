@@ -411,6 +411,7 @@ func monitorDaemonSetPods() {
 			Timestamps: false,
 		}
 
+		var errorCount = make(map[string]int)
 		wait.Until(func() {
 			pods, err := service.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
 				LabelSelector: "app=resource-exporter",
@@ -430,12 +431,16 @@ func monitorDaemonSetPods() {
 					logs.GetLogger().Errorf("collect gpu deatil info, podName: %s, error: %+v", pod.Name, err)
 					continue
 				}
-				if strings.Contains(podLog, "ERROR:: unable to initialize NVML:") {
-					service.k8sClient.CoreV1().Pods(namespace).Delete(context.TODO(), pod.Name, metaV1.DeleteOptions{})
-					continue
+				if strings.Contains(podLog, "ERROR::") {
+					if errorCount[pod.Name] > 2 {
+						service.k8sClient.CoreV1().Pods(namespace).Delete(context.TODO(), pod.Name, metaV1.DeleteOptions{})
+						delete(errorCount, pod.Name)
+						continue
+					}
+					errorCount[pod.Name]++
 				}
 			}
-		}, 3*time.Minute, stopCh)
+		}, 2*time.Minute, stopCh)
 	}()
 
 }
