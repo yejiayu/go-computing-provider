@@ -169,32 +169,6 @@ func RunSyncTask(nodeId string) {
 
 	}()
 
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				logs.GetLogger().Errorf("Failed report provider bid status, error: %+v", err)
-			}
-		}()
-
-		ticker := time.NewTicker(15 * time.Second)
-		defer ticker.Stop()
-
-		logs.GetLogger().Infof("provider status: %s", models2.ActiveStatus)
-
-		for range ticker.C {
-			providerStatus, err := checkClusterProviderStatus()
-			if err != nil {
-				logs.GetLogger().Errorf("check cluster resource failed, error: %+v", err)
-				return
-			}
-			if providerStatus == models2.InactiveStatus {
-				logs.GetLogger().Infof("provider status: %s", providerStatus)
-			}
-			updateProviderInfo(nodeId, "", "", providerStatus)
-		}
-
-	}()
-
 	watchExpiredTask()
 	watchNameSpaceForDeleted()
 	monitorDaemonSetPods()
