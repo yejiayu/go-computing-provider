@@ -1149,7 +1149,7 @@ func deleteJob(namespace, spaceUuid string) error {
 		}
 	}
 
-	logs.GetLogger().Infof("Deleted service finished, space_uuid: %s", spaceUuid)
+	logs.GetLogger().Infof("Deleted space service finished, space_uuid: %s", spaceUuid)
 	return nil
 }
 
