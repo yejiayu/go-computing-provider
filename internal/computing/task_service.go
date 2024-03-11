@@ -4,13 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gomodule/redigo/redis"
-	"github.com/lagrangedao/go-computing-provider/conf"
-	"github.com/lagrangedao/go-computing-provider/constants"
-	models2 "github.com/lagrangedao/go-computing-provider/internal/models"
+	"github.com/swanchain/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/constants"
+	models2 "github.com/swanchain/go-computing-provider/internal/models"
+	"io"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"strings"
 	"sync"
@@ -165,34 +169,9 @@ func RunSyncTask(nodeId string) {
 
 	}()
 
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				logs.GetLogger().Errorf("Failed report provider bid status, error: %+v", err)
-			}
-		}()
-
-		ticker := time.NewTicker(15 * time.Second)
-		defer ticker.Stop()
-
-		logs.GetLogger().Infof("provider status: %s", models2.ActiveStatus)
-
-		for range ticker.C {
-			providerStatus, err := checkClusterProviderStatus()
-			if err != nil {
-				logs.GetLogger().Errorf("check cluster resource failed, error: %+v", err)
-				return
-			}
-			if providerStatus == models2.InactiveStatus {
-				logs.GetLogger().Infof("provider status: %s", providerStatus)
-			}
-			updateProviderInfo(nodeId, "", "", providerStatus)
-		}
-
-	}()
-
 	watchExpiredTask()
 	watchNameSpaceForDeleted()
+	monitorDaemonSetPods()
 }
 
 func reportClusterResource(location, nodeId string) {
@@ -239,14 +218,14 @@ func reportClusterResource(location, nodeId string) {
 }
 
 func watchExpiredTask() {
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(5 * time.Minute)
 	go func() {
 		var deleteKey []string
 		for range ticker.C {
 			go func() {
 				defer func() {
 					if err := recover(); err != nil {
-						logs.GetLogger().Errorf("catch panic error: %+v", err)
+						logs.GetLogger().Errorf("watchExpiredTask catch panic error: %+v", err)
 					}
 				}()
 				conn := redisPool.Get()
@@ -263,10 +242,31 @@ func watchExpiredTask() {
 						return
 					}
 
+					namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobMetadata.WalletAddress)
+
+					taskStatus, err := checkTaskStatusByHub(jobMetadata.TaskUuid)
+					if err != nil {
+						logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
+						return
+					}
+					if strings.Contains(taskStatus, "Task not found") {
+						logs.GetLogger().Infof("task_uuid: %s, task not found on the orchestrator service, starting to delete it.", jobMetadata.TaskUuid)
+						deleteJob(namespace, jobMetadata.SpaceUuid)
+						deleteKey = append(deleteKey, key)
+						continue
+					}
+					if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") ||
+						strings.Contains(taskStatus, "Cancelled") || strings.Contains(taskStatus, "Failed") {
+						logs.GetLogger().Infof("task_uuid: %s, current status is %s, starting to delete it.", jobMetadata.TaskUuid, taskStatus)
+						if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
+							deleteKey = append(deleteKey, key)
+							continue
+						}
+					}
+
 					if time.Now().Unix() > jobMetadata.ExpireTime {
-						namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobMetadata.WalletAddress)
 						expireTimeStr := time.Unix(jobMetadata.ExpireTime, 0).Format("2006-01-02 15:04:05")
-						logs.GetLogger().Infof("<timer-task> redis-key: %s, namespace: %s,expireTime: %s. the job starting terminated", key, namespace, expireTimeStr)
+						logs.GetLogger().Infof("<timer-task> redis-key: %s,expireTime: %s. the job starting terminated", key, expireTimeStr)
 						if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
 							deleteKey = append(deleteKey, key)
 							continue
@@ -292,13 +292,13 @@ func watchExpiredTask() {
 }
 
 func watchNameSpaceForDeleted() {
-	ticker := time.NewTicker(3 * time.Minute)
+	ticker := time.NewTicker(50 * time.Minute)
 	go func() {
 		for range ticker.C {
 			go func() {
 				defer func() {
 					if err := recover(); err != nil {
-						logs.GetLogger().Errorf("catch panic error: %+v", err)
+						logs.GetLogger().Errorf("watchNameSpaceForDeleted catch panic error: %+v", err)
 					}
 				}()
 				service := NewK8sService()
@@ -324,4 +324,97 @@ func watchNameSpaceForDeleted() {
 			}()
 		}
 	}()
+}
+
+func checkTaskStatusByHub(taskUuid string) (string, error) {
+	url := fmt.Sprintf("%s/check_task_status/%s", conf.GetConfig().HUB.ServerUrl, taskUuid)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Add("offset", "0")
+	req.Header.Add("limit", "10")
+	req.Header.Add("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println("Error making HTTP request:", err)
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	var taskStatus struct {
+		Data struct {
+			JobStatus  string `json:"job_status"`
+			TaskStatus string `json:"task_status"`
+		} `json:"data"`
+		Message string `json:"message"`
+		Status  string `json:"status"`
+	}
+	err = json.Unmarshal(respBody, &taskStatus)
+	if err != nil {
+		return "", err
+	}
+	if taskStatus.Status == "failed" {
+		return taskStatus.Message, nil
+	}
+	return taskStatus.Status, nil
+}
+
+func monitorDaemonSetPods() {
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				logs.GetLogger().Errorf("monitorDaemonSetPods catch panic error: %+v", err)
+			}
+		}()
+
+		namespace := "kube-system"
+		service := NewK8sService()
+		stopCh := wait.NeverStop
+		var num int64 = 1
+		podLogOptions := corev1.PodLogOptions{
+			Container:  "",
+			TailLines:  &num,
+			Timestamps: false,
+		}
+
+		var errorCount = make(map[string]int)
+		wait.Until(func() {
+			pods, err := service.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
+				LabelSelector: "app=resource-exporter",
+			})
+			if err != nil {
+				logs.GetLogger().Errorf("get resource-exporter pods failed, error: %+v", err)
+				return
+			}
+
+			for _, pod := range pods.Items {
+				if pod.Status.Phase != corev1.PodRunning {
+					service.k8sClient.CoreV1().Pods(namespace).Delete(context.TODO(), pod.Name, metaV1.DeleteOptions{})
+					continue
+				}
+				podLog, err := service.GetPodLogByPodName(namespace, pod.Name, &podLogOptions)
+				if err != nil {
+					logs.GetLogger().Errorf("collect gpu deatil info, podName: %s, error: %+v", pod.Name, err)
+					continue
+				}
+				if strings.Contains(podLog, "ERROR::") {
+					if errorCount[pod.Name] > 2 {
+						service.k8sClient.CoreV1().Pods(namespace).Delete(context.TODO(), pod.Name, metaV1.DeleteOptions{})
+						delete(errorCount, pod.Name)
+						continue
+					}
+					errorCount[pod.Name]++
+				}
+			}
+		}, 2*time.Minute, stopCh)
+	}()
+
 }

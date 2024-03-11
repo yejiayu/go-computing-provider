@@ -102,6 +102,7 @@ func (ws *WsClient) HandleLogs(reader io.Reader) {
 			}
 		}
 	}
+	close(ws.message)
 }
 
 func (ws *WsClient) writeMessage() {
@@ -114,7 +115,11 @@ func (ws *WsClient) writeMessage() {
 
 		for {
 			select {
-			case msg := <-ws.message:
+			case msg, ok := <-ws.message:
+				if !ok && string(msg.data) == "" {
+					ws.Close()
+					return
+				}
 				if err := ws.client.WriteMessage(msg.msgType, msg.data); err != nil {
 					return
 				}

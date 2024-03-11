@@ -7,7 +7,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/lagrangedao/go-computing-provider/internal/models"
+	"github.com/swanchain/go-computing-provider/internal/models"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -15,7 +16,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
-	"github.com/lagrangedao/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/conf"
 )
 
 func Reconnect(nodeID string) string {
@@ -64,7 +65,8 @@ func updateProviderInfo(nodeID, peerID, address string, status string) {
 		logs.GetLogger().Errorf("Error updating provider info: %v", err)
 	} else {
 		if resp.StatusCode == 400 {
-			logs.GetLogger().Info(resp.Body)
+			respData, _ := io.ReadAll(resp.Body)
+			logs.GetLogger().Info(string(respData))
 		}
 
 		err := resp.Body.Close()

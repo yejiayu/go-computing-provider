@@ -1,4 +1,4 @@
-module github.com/lagrangedao/go-computing-provider
+module github.com/swanchain/go-computing-provider
 
 go 1.19
 
@@ -8,7 +8,7 @@ require (
 	github.com/docker/docker v23.0.6+incompatible
 	github.com/ethereum/go-ethereum v1.11.6
 	github.com/fatih/color v1.13.0
-	github.com/filswan/go-mcs-sdk v0.0.3
+	github.com/filswan/go-mcs-sdk v0.0.5
 	github.com/filswan/go-swan-lib v0.2.139
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.9.1

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
-	"github.com/lagrangedao/go-computing-provider/conf"
-	"github.com/lagrangedao/go-computing-provider/internal/models"
+	"github.com/swanchain/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/internal/models"
 	"io"
 	"io/fs"
 	"log"
@@ -30,7 +30,6 @@ func BuildSpaceTaskImage(spaceUuid string, files []models.SpaceFile) (bool, stri
 			if err = downloadFile(filepath.Join(buildFolder, file.Name), file.URL); err != nil {
 				return false, "", "", "", fmt.Errorf("error downloading file: %w", err)
 			}
-			logs.GetLogger().Infof("Download %s successfully.", spaceUuid)
 		}
 
 		imagePath := filepath.Join(buildFolder, getDownloadPath(files[0].Name))

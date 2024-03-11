@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/lagrangedao/go-computing-provider/build"
+	"github.com/swanchain/go-computing-provider/build"
 	"github.com/urfave/cli/v2"
 	"os"
 )

@@ -51,21 +51,23 @@ func CreateErrorResponse(code int, errMsg ...string) BasicResponse {
 const (
 	SuccessCode = 200
 	JsonError   = 400
+	ServerError = 500
 
-	ProofParamError   = 7001
-	ProofReadLogError = 7002
-	ProofError        = 7003
-
-	UbiTaskParamError   = 8001
-	UbiTaskReadLogError = 8002
-	UbiTaskError        = 8003
-
+	SpaceSignatureError     = 6001
+	ProofParamError         = 7001
+	ProofReadLogError       = 7002
+	ProofError              = 7003
+	UbiTaskParamError       = 8001
+	UbiTaskReadLogError     = 8002
+	UbiTaskError            = 8003
 	CheckResourcesError     = 9001
 	CheckAvailableResources = 9002
 )
 
 var codeMsg = map[int]string{
-	JsonError: "An error occurred while converting to json",
+	JsonError:           "An error occurred while converting to json",
+	ServerError:         "Service failed",
+	SpaceSignatureError: "Verify signature failed",
 
 	ProofReadLogError: "An error occurred while read the log of proof",
 	ProofError:        "An error occurred while executing the calculation task",

@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gomodule/redigo/redis"
-	"github.com/lagrangedao/go-computing-provider/constants"
-	"github.com/lagrangedao/go-computing-provider/internal/models"
-	"github.com/lagrangedao/go-computing-provider/internal/yaml"
-	"github.com/lagrangedao/go-computing-provider/util"
+	"github.com/swanchain/go-computing-provider/constants"
+	"github.com/swanchain/go-computing-provider/internal/models"
+	"github.com/swanchain/go-computing-provider/internal/yaml"
+	"github.com/swanchain/go-computing-provider/util"
 	appV1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -132,7 +132,7 @@ func (d *Deploy) DockerfileToK8s() {
 				},
 
 				Spec: coreV1.PodSpec{
-					NodeSelector: generateLabel(d.hardwareResource.Gpu.Unit),
+					NodeSelector: generateLabel(d.gpuProductName),
 					Containers: []coreV1.Container{{
 						Name:            constants.K8S_CONTAINER_NAME_PREFIX + d.spaceUuid,
 						Image:           d.image,
@@ -411,7 +411,7 @@ func (d *Deploy) ModelInferenceToK8s() error {
 				},
 
 				Spec: coreV1.PodSpec{
-					NodeSelector: generateLabel(d.hardwareResource.Gpu.Unit),
+					NodeSelector: generateLabel(d.gpuProductName),
 					Containers: []coreV1.Container{{
 						Name:            constants.K8S_CONTAINER_NAME_PREFIX + d.spaceUuid,
 						Image:           d.image,
@@ -594,7 +594,7 @@ func getHardwareDetail(description string) (string, models.Resource) {
 		oldName := strings.TrimSpace(confSplits[0])
 		hardwareResource.Gpu.Unit = strings.ReplaceAll(oldName, "Nvidia", "NVIDIA")
 
-		hardwareResource.Storage.Quantity = 20
+		hardwareResource.Storage.Quantity = 30
 	}
 	hardwareResource.Storage.Unit = "Gi"
 

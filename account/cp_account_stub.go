@@ -8,7 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/lagrangedao/go-computing-provider/internal/models"
+	"github.com/swanchain/go-computing-provider/internal/models"
 	"math/big"
 	"os"
 	"path/filepath"

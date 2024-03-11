@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lagrangedao/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/conf"
 
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gocelery/gocelery"
