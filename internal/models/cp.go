@@ -161,6 +161,53 @@ type Account struct {
 	}
 }
 
+// ===== private job =====
+
+type PrivateJobReq struct {
+	UUID      string  `json:"uuid"`
+	Name      string  `json:"name"`
+	Duration  int     `json:"duration"`
+	SourceURI string  `json:"job_source_uri"`
+	Type      int     `json:"type"` // 1 ssh  2 space
+	Source    string  `json:"storage_source"`
+	Signature string  `json:"signature"`
+	User      string  `json:"user"` // wallet
+	Config    *Config `json:"config"`
+}
+
+type Config struct {
+	Description  string `json:"description"`
+	Hardware     string `json:"hardware"`
+	HardwareID   int64  `json:"hardware_id"`
+	HardwareType string `json:"hardware_type"`
+	Memory       int64  `json:"memory"`
+	Name         string `json:"name"`
+	PricePerHour int64  `json:"price_per_hour"`
+	Vcpu         int64  `json:"vcpu"`
+}
+
+type PrivateJobResp struct {
+	UUID         string `json:"uuid"`
+	ResultURI    string `json:"result_uri"`
+	RealURI      string `json:"real_uri"`
+	UpdatedAt    string `json:"updated_at"`
+	ContainerLog string `json:"container_log"`
+	BuildLog     string `json:"build_log"`
+	Status       int    `json:"status"`
+}
+
+type PrivateJobStatusReq struct {
+	UUID   string `json:"uuid"`
+	Status int    `json:"status"` // 1: deploying; 2: running; 3: Available; 4: unavailable
+}
+
+type PrivateJobExtendReq struct {
+	UUID     string `json:"uuid"`
+	Duration int    `json:"duration"`
+}
+
+// ===== private job =====
+
 type TaskList []CacheUbiTaskDetail
 
 func (t TaskList) Len() int {

@@ -100,7 +100,14 @@ func ReceiveJob(c *gin.Context) {
 		}
 	}
 
-	available, gpuProductName, err := checkResourceAvailableForSpace(jobData.JobSourceURI)
+	spaceDetail, err := getSpaceDetail(jobData.JobSourceURI)
+	if err != nil {
+		logs.GetLogger().Errorln(err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError, "Failed to retrieve resource configuration"))
+		return
+	}
+
+	available, gpuProductName, err := checkResourceAvailableForSpace(spaceDetail.Data.Space.ActiveOrder.Config.Description)
 	if err != nil {
 		logs.GetLogger().Errorf("check job resource failed, error: %+v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
@@ -124,7 +131,7 @@ func ReceiveJob(c *gin.Context) {
 		logHost = "log." + conf.GetConfig().API.Domain
 	}
 
-	if _, err = celeryService.DelayTask(constants.TASK_DEPLOY, jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName); err != nil {
+	if _, err = celeryService.DelayTask(constants.TASK_DEPLOY, jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName, "", false); err != nil {
 		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
 		return
 	}
@@ -194,7 +201,14 @@ func RedeployJob(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("redeploy Job received: %+v", jobData)
 
-	available, gpuProductName, err := checkResourceAvailableForSpace(jobData.JobSourceURI)
+	spaceDetail, err := getSpaceDetail(jobData.JobSourceURI)
+	if err != nil {
+		logs.GetLogger().Errorln(err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError, "Failed to retrieve resource configuration"))
+		return
+	}
+
+	available, gpuProductName, err := checkResourceAvailableForSpace(spaceDetail.Data.Space.ActiveOrder.Config.Description)
 	if err != nil {
 		logs.GetLogger().Errorf("check job resource failed, error: %+v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
@@ -240,7 +254,7 @@ func RedeployJob(c *gin.Context) {
 		hostName = generateString(10) + conf.GetConfig().API.Domain
 	}
 
-	delayTask, err := celeryService.DelayTask(constants.TASK_DEPLOY, jobData.JobResultURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName)
+	delayTask, err := celeryService.DelayTask(constants.TASK_DEPLOY, jobData.JobResultURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName, "", false)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
 		return
@@ -1004,7 +1018,15 @@ func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail,
 	}
 }
 
-func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string, taskUuid string, gpuProductName string) string {
+func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string, taskUuid string, gpuProductName string, wallet string, isPrivate bool) string {
+	if isPrivate {
+		return deployPrivateSpace(jobSourceURI, hostName, duration, taskUuid, gpuProductName, wallet)
+	} else {
+		return deployPublicSpace(jobSourceURI, hostName, duration, jobUuid, taskUuid, gpuProductName)
+	}
+}
+
+func deployPublicSpace(jobSourceURI, hostName string, duration int, jobUuid string, taskUuid string, gpuProductName string) string {
 	updateJobStatus(jobUuid, models.JobUploadResult)
 
 	var success bool
@@ -1031,6 +1053,88 @@ func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string
 	walletAddress = spaceDetail.Data.Owner.PublicAddress
 	spaceName := spaceDetail.Data.Space.Name
 	spaceUuid = strings.ToLower(spaceDetail.Data.Space.Uuid)
+	spaceHardware := spaceDetail.Data.Space.ActiveOrder.Config
+
+	conn := redisPool.Get()
+	fullArgs := []interface{}{constants.REDIS_SPACE_PREFIX + spaceUuid}
+	fields := map[string]string{
+		"wallet_address": walletAddress,
+		"space_name":     spaceName,
+		"expire_time":    strconv.Itoa(int(time.Now().Unix()) + duration),
+		"space_uuid":     spaceUuid,
+		"task_uuid":      taskUuid,
+	}
+
+	for key, val := range fields {
+		fullArgs = append(fullArgs, key, val)
+	}
+	_, _ = conn.Do("HSET", fullArgs...)
+
+	logs.GetLogger().Infof("uuid: %s, spaceName: %s, hardwareName: %s", spaceUuid, spaceName, spaceHardware.Description)
+	if len(spaceHardware.Description) == 0 {
+		return ""
+	}
+
+	deploy := NewDeploy(jobUuid, hostName, walletAddress, spaceHardware.Description, int64(duration), taskUuid)
+	deploy.WithSpaceInfo(spaceUuid, spaceName)
+	deploy.WithGpuProductName(gpuProductName)
+
+	spacePath := filepath.Join("build", walletAddress, "spaces", spaceName)
+	os.RemoveAll(spacePath)
+	updateJobStatus(jobUuid, models.JobDownloadSource)
+	containsYaml, yamlPath, imagePath, modelsSettingFile, err := BuildSpaceTaskImage(spaceUuid, spaceDetail.Data.Files)
+	if err != nil {
+		logs.GetLogger().Error(err)
+		return ""
+	}
+
+	deploy.WithSpacePath(imagePath)
+	if len(modelsSettingFile) > 0 {
+		err := deploy.WithModelSettingFile(modelsSettingFile).ModelInferenceToK8s()
+		if err != nil {
+			logs.GetLogger().Error(err)
+			return ""
+		}
+		return hostName
+	}
+
+	if containsYaml {
+		deploy.WithYamlInfo(yamlPath).YamlToK8s()
+	} else {
+		imageName, dockerfilePath := BuildImagesByDockerfile(jobUuid, spaceUuid, spaceName, imagePath)
+		deploy.WithDockerfile(imageName, dockerfilePath).DockerfileToK8s()
+	}
+	success = true
+
+	return hostName
+}
+
+func deployPrivateSpace(jobSourceURI, hostName string, duration int, taskUuid string, gpuProductName string, walletAddress string) string {
+	updateJobStatus(taskUuid, models.JobUploadResult)
+
+	var success bool
+	var spaceUuid string
+
+	defer func() {
+		if !success {
+			k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(walletAddress)
+			deleteJob(k8sNameSpace, spaceUuid)
+		}
+
+		if err := recover(); err != nil {
+			logs.GetLogger().Errorf("deploy space task painc, error: %+v", err)
+			return
+		}
+	}()
+
+	spaceDetail, err := getSpaceDetail(jobSourceURI)
+	if err != nil {
+		logs.GetLogger().Errorln(err)
+		return ""
+	}
+
+	spaceName := spaceDetail.Data.Space.Name
+	spaceUuid = strings.ToLower(taskUuid)
 	spaceHardware := spaceDetail.Data.Space.ActiveOrder.Config
 
 	conn := redisPool.Get()
@@ -1204,14 +1308,8 @@ func getSpaceDetail(jobSourceURI string) (models.SpaceJSON, error) {
 	return spaceJson, nil
 }
 
-func checkResourceAvailableForSpace(jobSourceURI string) (bool, string, error) {
-	spaceDetail, err := getSpaceDetail(jobSourceURI)
-	if err != nil {
-		logs.GetLogger().Errorln(err)
-		return false, "", err
-	}
-
-	taskType, hardwareDetail := getHardwareDetail(spaceDetail.Data.Space.ActiveOrder.Config.Description)
+func checkResourceAvailableForSpace(configDescription string) (bool, string, error) {
+	taskType, hardwareDetail := getHardwareDetail(configDescription)
 	k8sService := NewK8sService()
 
 	activePods, err := k8sService.GetAllActivePod(context.TODO())
