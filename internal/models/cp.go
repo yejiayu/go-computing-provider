@@ -40,6 +40,7 @@ type JobData struct {
 	BuildLog                    string `json:"build_log"`
 	ContainerLog                string `json:"container_log"`
 	NodeIdJobSourceUriSignature string `json:"node_id_job_source_uri_signature"`
+	JobRealUri                  string `json:"job_real_uri"`
 }
 
 type Job struct {

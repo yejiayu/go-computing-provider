@@ -130,13 +130,13 @@ func ReceiveJob(c *gin.Context) {
 	}
 
 	jobData.JobResultURI = fmt.Sprintf("https://%s", hostName)
-
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 	jobSourceUri := jobData.JobSourceURI
 	spaceUuid := jobSourceUri[strings.LastIndex(jobSourceUri, "/")+1:]
 	wsUrl := fmt.Sprintf("wss://%s:%s/api/v1/computing/lagrange/spaces/log?space_id=%s", logHost, multiAddressSplit[4], spaceUuid)
 	jobData.BuildLog = wsUrl + "&type=build"
 	jobData.ContainerLog = wsUrl + "&type=container"
+	jobData.JobRealUri = jobData.JobResultURI
 
 	if err = submitJob(&jobData); err != nil {
 		jobData.JobResultURI = ""
