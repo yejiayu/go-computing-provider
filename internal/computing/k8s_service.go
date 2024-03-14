@@ -182,7 +182,7 @@ func (s *K8sService) CreateServiceByNodePort(ctx context.Context, nameSpace, tas
 				},
 			},
 			Selector: map[string]string{
-				"lad_app": taskUuid,
+				"hub-private": taskUuid,
 			},
 		},
 	}
