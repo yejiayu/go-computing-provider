@@ -163,6 +163,32 @@ func (s *K8sService) CreateService(ctx context.Context, nameSpace, spaceUuid str
 	return s.k8sClient.CoreV1().Services(nameSpace).Create(ctx, service, metaV1.CreateOptions{})
 }
 
+func (s *K8sService) CreateServiceByNodePort(ctx context.Context, nameSpace, taskUuid string, containerPort int32) (result *coreV1.Service, err error) {
+	service := &coreV1.Service{
+		TypeMeta: metaV1.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      constants.K8S_SERVICE_NAME_PREFIX + taskUuid,
+			Namespace: nameSpace,
+		},
+		Spec: coreV1.ServiceSpec{
+			Type: coreV1.ServiceTypeNodePort,
+			Ports: []coreV1.ServicePort{
+				{
+					Name: "tcp",
+					Port: containerPort,
+				},
+			},
+			Selector: map[string]string{
+				"lad_app": taskUuid,
+			},
+		},
+	}
+	return s.k8sClient.CoreV1().Services(nameSpace).Create(ctx, service, metaV1.CreateOptions{})
+}
+
 func (s *K8sService) DeleteService(ctx context.Context, namespace, serviceName string) error {
 	return s.k8sClient.CoreV1().Services(namespace).Delete(ctx, serviceName, metaV1.DeleteOptions{})
 }
@@ -458,7 +484,7 @@ func (s *K8sService) AddNodeLabel(nodeName, key string) error {
 	return nil
 }
 
-func (s *K8sService) WaitForPodRunning(namespace, spaceUuid, serviceIp string) (string, error) {
+func (s *K8sService) WaitForPodRunningByHttp(namespace, spaceUuid, serviceIp string) (string, error) {
 	var podName string
 	var podErr = errors.New("get pod status failed")
 
@@ -481,6 +507,48 @@ func (s *K8sService) WaitForPodRunning(namespace, spaceUuid, serviceIp string) (
 		podName = podList.Items[0].Name
 
 		return nil
+	})
+
+	if retryErr != nil {
+		return podName, fmt.Errorf("failed waiting for pods to be running: %v", retryErr)
+	}
+	return podName, nil
+}
+
+func (s *K8sService) WaitForPodRunningByTcp(namespace, taskUuid string) (string, error) {
+	var podName string
+	var podErr = errors.New("get pod status failed")
+
+	retryErr := retry.OnError(wait.Backoff{
+		Steps:    120,
+		Duration: 10 * time.Second,
+	}, func(err error) bool {
+		return err != nil && err.Error() == podErr.Error()
+	}, func() error {
+
+		podList, err := s.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
+			LabelSelector: fmt.Sprintf("hub-private==%s", taskUuid),
+		})
+		if err != nil {
+			logs.GetLogger().Error(err)
+			return podErr
+		}
+
+		var finished bool
+		for _, pod := range podList.Items {
+			if pod.Status.Phase == "Running" {
+				podName = pod.Name
+				finished = true
+				break
+			} else {
+				continue
+			}
+		}
+		if finished {
+			return nil
+		} else {
+			return fmt.Errorf("deploing private task")
+		}
 	})
 
 	if retryErr != nil {

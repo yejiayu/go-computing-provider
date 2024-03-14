@@ -12,7 +12,9 @@ const BiddingCompleted string = "completed"
 const BiddingCancelled string = "cancelled"
 
 const TASK_DEPLOY string = "worker.deploy"
+const PRIVATE_DEPLOY string = "private.deploy"
 
+const K8S_PRIVATE_NAMESPACE_NAME_PREFIX = "vm-"
 const K8S_NAMESPACE_NAME_PREFIX = "ns-"
 const K8S_CONTAINER_NAME_PREFIX = "pod-"
 const K8S_INGRESS_NAME_PREFIX = "ing-"

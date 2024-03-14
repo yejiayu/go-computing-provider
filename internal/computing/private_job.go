@@ -77,7 +77,7 @@ func ReceivePrivateJob(c *gin.Context) {
 		logHost = "log." + conf.GetConfig().API.Domain
 	}
 
-	if _, err = celeryService.DelayTask(constants.TASK_DEPLOY, jobData.SourceURI, hostName, jobData.Duration, jobData.UUID, jobData.UUID, gpuProductName, jobData.User, true); err != nil {
+	if _, err = celeryService.DelayTask(constants.PRIVATE_DEPLOY, jobData.Name, jobData.SourceURI, hostName, jobData.Duration, jobData.UUID, gpuProductName, jobData.User); err != nil {
 		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
 		return
 	}
@@ -136,4 +136,69 @@ func submitPrivateJob(jobData *models.PrivateJobResp) error {
 	}
 	jobData.ResultURI = *gatewayUrl + "/ipfs/" + mcsOssFile.PayloadCid
 	return nil
+}
+
+func DeployPrivateTask(name string, jobSourceURI, hostName string, duration int, taskUuid string, gpuProductName string, configDesc string, walletAddress string) string {
+	//updateJobStatus(taskUuid, models.JobUploadResult)
+
+	var success bool
+	var spaceUuid string
+
+	defer func() {
+		if !success {
+			k8sNameSpace := constants.K8S_PRIVATE_NAMESPACE_NAME_PREFIX + strings.ToLower(walletAddress)
+			deleteJob(k8sNameSpace, spaceUuid)
+		}
+
+		if err := recover(); err != nil {
+			logs.GetLogger().Errorf("deploy private task painc, error: %+v", err)
+			return
+		}
+	}()
+
+	spaceUuid = strings.ToLower(taskUuid)
+
+	spaceDetail, err := getSpaceDetail(jobSourceURI)
+	if err != nil {
+		logs.GetLogger().Errorln(err)
+		return ""
+	}
+
+	conn := redisPool.Get()
+	fullArgs := []interface{}{constants.REDIS_SPACE_PREFIX + spaceUuid}
+	fields := map[string]string{
+		"wallet_address": walletAddress,
+		"space_name":     name,
+		"expire_time":    strconv.Itoa(int(time.Now().Unix()) + duration),
+		"task_uuid":      taskUuid,
+	}
+
+	for key, val := range fields {
+		fullArgs = append(fullArgs, key, val)
+	}
+	_, _ = conn.Do("HSET", fullArgs...)
+
+	logs.GetLogger().Infof("uuid: %s, private task name: %s, hardwareName: %s", spaceUuid, name, configDesc)
+	if len(configDesc) == 0 {
+		return ""
+	}
+
+	deploy := NewDeploy(spaceUuid, hostName, walletAddress, configDesc, int64(duration), taskUuid)
+	deploy.WithSpaceInfo(spaceUuid, name)
+	deploy.WithGpuProductName(gpuProductName)
+
+	spacePath := filepath.Join("build", walletAddress, "spaces", name)
+	os.RemoveAll(spacePath)
+	//updateJobStatus(spaceUuid, models.JobDownloadSource)
+	_, _, _, _, sshPublicKey, err := BuildSpaceTaskImage(spaceUuid, spaceDetail.Data.Files)
+	if err != nil {
+		logs.GetLogger().Error(err)
+		return ""
+	}
+
+	deploy.WithSshKeyFile(sshPublicKey).DeploySshTaskToK8s()
+
+	success = true
+
+	return hostName
 }
