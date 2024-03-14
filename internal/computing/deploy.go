@@ -514,7 +514,7 @@ func (d *Deploy) DeploySshTaskToK8s() error {
 		return err
 	}
 
-	podCmd := []string{"echo", fmt.Sprintf("'%s'", sshPublicKey), ">", "/home/vm-user/.ssh/authorized_keys", "&&", "/usr/sbin/sshd", "-d"}
+	podCmd := []string{"sh", "-c", fmt.Sprintf("echo '%s' > /home/vm-user/.ssh/authorized_keys", sshPublicKey)}
 	if err = k8sService.PodDoCommand(d.k8sNameSpace, podName, "", podCmd); err != nil {
 		logs.GetLogger().Error(err)
 		return err
@@ -522,7 +522,7 @@ func (d *Deploy) DeploySshTaskToK8s() error {
 
 	createService, err := k8sService.CreateServiceByNodePort(context.TODO(), d.k8sNameSpace, d.taskUuid, 22)
 	if err != nil {
-		return fmt.Errorf("failed creata service, error: %w", err)
+		return fmt.Errorf("failed to create service, error: %w", err)
 	}
 	logs.GetLogger().Infof("Created service successfully: %s", createService.GetObjectMeta().GetName())
 
