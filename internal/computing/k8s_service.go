@@ -534,14 +534,11 @@ func (s *K8sService) WaitForPodRunningByTcp(namespace, taskUuid string) (string,
 			return podErr
 		}
 
-		for _, pod := range podList.Items {
-			if pod.Status.Phase == "Running" {
-				podName = pod.Name
-				break
-			} else {
-				continue
-			}
+		if err != nil {
+			logs.GetLogger().Error(err)
+			return podErr
 		}
+		podName = podList.Items[0].Name
 		return nil
 	})
 
