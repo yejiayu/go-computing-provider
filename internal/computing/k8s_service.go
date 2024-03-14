@@ -534,10 +534,6 @@ func (s *K8sService) WaitForPodRunningByTcp(namespace, taskUuid string) (string,
 			return podErr
 		}
 
-		if err != nil {
-			logs.GetLogger().Error(err)
-			return podErr
-		}
 		podName = podList.Items[0].Name
 		return nil
 	})
