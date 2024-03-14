@@ -514,7 +514,7 @@ func (d *Deploy) DeploySshTaskToK8s() error {
 		return err
 	}
 
-	podCmd := []string{"echo", sshPublicKey, ">", "/home/vm-user/.ssh/authorized_keys"}
+	podCmd := []string{"echo", fmt.Sprintf("'%s'", sshPublicKey), ">", "/home/vm-user/.ssh/authorized_keys", "&&", "/usr/sbin/sshd", "-d"}
 	if err = k8sService.PodDoCommand(d.k8sNameSpace, podName, "", podCmd); err != nil {
 		logs.GetLogger().Error(err)
 		return err
