@@ -77,7 +77,7 @@ func ReceivePrivateJob(c *gin.Context) {
 		logHost = "log." + conf.GetConfig().API.Domain
 	}
 
-	if _, err = celeryService.DelayTask(constants.PRIVATE_DEPLOY, jobData.Name, jobData.SourceURI, hostName, jobData.Duration, jobData.UUID, gpuProductName, jobData.User); err != nil {
+	if _, err = celeryService.DelayTask(constants.PRIVATE_DEPLOY, jobData.Name, jobData.SourceURI, hostName, jobData.Duration, jobData.UUID, gpuProductName, jobData.Config.Description, jobData.User); err != nil {
 		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
 		return
 	}
