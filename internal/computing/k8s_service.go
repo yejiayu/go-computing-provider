@@ -565,7 +565,7 @@ func (s *K8sService) PodDoCommand(namespace, podName, containerName string, podC
 			Stdin:     true,
 			Stdout:    true,
 			Stderr:    true,
-			TTY:       false,
+			TTY:       true,
 		}, scheme.ParameterCodec)
 
 	executor, err := remotecommand.NewSPDYExecutor(s.config, "POST", req.URL())
@@ -577,7 +577,7 @@ func (s *K8sService) PodDoCommand(namespace, podName, containerName string, podC
 		Stdin:  reader,
 		Stdout: writer,
 		Stderr: writer,
-		Tty:    false,
+		Tty:    true,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create stream: %w", err)
