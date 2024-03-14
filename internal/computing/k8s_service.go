@@ -534,21 +534,15 @@ func (s *K8sService) WaitForPodRunningByTcp(namespace, taskUuid string) (string,
 			return podErr
 		}
 
-		var finished bool
 		for _, pod := range podList.Items {
 			if pod.Status.Phase == "Running" {
 				podName = pod.Name
-				finished = true
 				break
 			} else {
 				continue
 			}
 		}
-		if finished {
-			return nil
-		} else {
-			return fmt.Errorf("deploing private task")
-		}
+		return nil
 	})
 
 	if retryErr != nil {
