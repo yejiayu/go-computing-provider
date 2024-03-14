@@ -525,7 +525,7 @@ func (s *K8sService) WaitForPodRunningByTcp(namespace, taskUuid string) (string,
 	}, func(err error) bool {
 		return err != nil && err.Error() == podErr.Error()
 	}, func() error {
-
+		time.Sleep(10 * time.Second)
 		podList, err := s.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
 			LabelSelector: fmt.Sprintf("hub-private==%s", taskUuid),
 		})
