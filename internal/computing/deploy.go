@@ -530,7 +530,7 @@ func (d *Deploy) DeploySshTaskToK8s() error {
 
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 
-	serviceHost := fmt.Sprintf("ssh vm-user@%s -p%d", multiAddressSplit[2], createService.Spec.Ports[0].Port)
+	serviceHost := fmt.Sprintf("ssh vm-user@%s -p%d", multiAddressSplit[2], createService.Spec.Ports[0].NodePort)
 
 	println(serviceHost)
 
