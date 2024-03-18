@@ -176,14 +176,10 @@ type PrivateJobReq struct {
 }
 
 type Config struct {
-	Description  string `json:"description"`
-	Hardware     string `json:"hardware"`
-	HardwareID   int64  `json:"hardware_id"`
-	HardwareType string `json:"hardware_type"`
-	Memory       int64  `json:"memory"`
-	Name         string `json:"name"`
-	PricePerHour int64  `json:"price_per_hour"`
-	Vcpu         int64  `json:"vcpu"`
+	Vcpu    int    `json:"vcpu"`
+	Memory  int    `json:"memory"`
+	Storage int    `json:"storage"`
+	GPU     string `json:"gpu"`
 }
 
 type PrivateJobResp struct {

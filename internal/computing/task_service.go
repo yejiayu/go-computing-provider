@@ -215,6 +215,31 @@ func reportClusterResource(location, nodeId string) {
 		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
 		return
 	}
+	sendResourceToUb(payload)
+}
+
+func sendResourceToUb(payload []byte) {
+	client := &http.Client{}
+	url := conf.GetConfig().UBI.UbiUrl + "/cp"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		logs.GetLogger().Errorf("Error creating request: %v", err)
+		return
+	}
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logs.GetLogger().Errorf("report cluster node resources to UBI failed, status code: %d", resp.StatusCode)
+		return
+	}
+
 }
 
 func watchExpiredTask() {

@@ -425,6 +425,7 @@ func StatisticalSources(c *gin.Context) {
 func GetSpaceLog(c *gin.Context) {
 	spaceUuid := c.Query("space_id")
 	logType := c.Query("type")
+	orderType := c.Query("order")
 	if strings.TrimSpace(spaceUuid) == "" {
 		logs.GetLogger().Errorf("get space log failed, space_id is empty: %s", spaceUuid)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: space_id"})
@@ -457,7 +458,12 @@ func GetSpaceLog(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "upgrading connection failed"})
 		return
 	}
-	handleConnection(conn, spaceDetail, logType)
+
+	if orderType == "private" {
+		handlePodEvent(conn, spaceDetail.SpaceUuid, spaceDetail.WalletAddress)
+	} else {
+		handleConnection(conn, spaceDetail, logType)
+	}
 }
 
 func DoProof(c *gin.Context) {
@@ -969,6 +975,28 @@ func ReceiveUbiProof(c *gin.Context) {
 
 	fmt.Printf("submitUBIProofTx: %s", submitUBIProofTx)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
+}
+
+func handlePodEvent(conn *websocket.Conn, spaceUuid string, walletAddress string) {
+	client := NewWsClient(conn)
+
+	k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(walletAddress)
+	k8sService := NewK8sService()
+	events, err := k8sService.k8sClient.CoreV1().Events(k8sNameSpace).List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		logs.GetLogger().Errorf("get pod events failed, error: %v", err)
+		return
+	}
+
+	var buffer strings.Builder
+	for _, event := range events.Items {
+		if strings.Contains(event.InvolvedObject.Name, spaceUuid) {
+			buffer.WriteString(event.Message)
+			buffer.WriteString("\n")
+		}
+	}
+	client.HandleLogs(strings.NewReader(buffer.String()))
+
 }
 
 func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail, logType string) {

@@ -1,6 +1,8 @@
 package computing
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/filswan/go-swan-lib/logs"
@@ -10,6 +12,8 @@ import (
 	"github.com/swanchain/go-computing-provider/constants"
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"github.com/swanchain/go-computing-provider/util"
+	"io"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -32,8 +36,18 @@ func ReceivePrivateJob(c *gin.Context) {
 		return
 	}
 
-	if len(strings.TrimSpace(jobData.Config.Description)) == 0 {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing config.description field"))
+	if jobData.Config.Vcpu == 0 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing config.Vcpu field"))
+		return
+	}
+
+	if jobData.Config.Memory == 0 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing config.Memory field"))
+		return
+	}
+
+	if jobData.Config.Storage == 0 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing config.Storage field"))
 		return
 	}
 
@@ -53,7 +67,7 @@ func ReceivePrivateJob(c *gin.Context) {
 	//	return
 	//}
 
-	available, gpuProductName, err := checkResourceAvailableForSpace(jobData.Config.Description)
+	available, gpuProductName, err := checkResourceAvailableForPrivate(jobData.Config.Vcpu, jobData.Config.Memory, jobData.Config.Storage, jobData.Config.GPU)
 	if err != nil {
 		logs.GetLogger().Errorf("check job resource failed, error: %+v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
@@ -77,7 +91,7 @@ func ReceivePrivateJob(c *gin.Context) {
 		logHost = "log." + conf.GetConfig().API.Domain
 	}
 
-	if _, err = celeryService.DelayTask(constants.PRIVATE_DEPLOY, jobData.Name, jobData.SourceURI, hostName, jobData.Duration, jobData.UUID, gpuProductName, jobData.Config.Description, jobData.User); err != nil {
+	if _, err = celeryService.DelayTask(constants.PRIVATE_DEPLOY, jobData.Name, jobData.SourceURI, logHost, jobData.Duration, jobData.UUID, gpuProductName, jobData.User); err != nil {
 		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
 		return
 	}
@@ -95,7 +109,7 @@ func ReceivePrivateJob(c *gin.Context) {
 		privateJob.ResultURI = ""
 	}
 	logs.GetLogger().Infof("submit private job detail: %+v", jobData)
-	c.JSON(http.StatusOK, privateJob)
+	c.JSON(http.StatusOK, util.CreateSuccessResponse(privateJob))
 }
 
 func submitPrivateJob(jobData *models.PrivateJobResp) error {
@@ -109,14 +123,12 @@ func submitPrivateJob(jobData *models.PrivateJobResp) error {
 	os.MkdirAll(filepath.Join(fileCachePath, folderPath), os.ModePerm)
 	taskDetailFilePath := filepath.Join(fileCachePath, jobDetailFile)
 
-	jobData.Status = 1
-	jobData.UpdatedAt = strconv.FormatInt(time.Now().Unix(), 10)
-	bytes, err := json.Marshal(jobData)
+	jobBytes, err := json.Marshal(jobData)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed Marshal JobData, error: %v", err)
 		return err
 	}
-	if err = os.WriteFile(taskDetailFilePath, bytes, os.ModePerm); err != nil {
+	if err = os.WriteFile(taskDetailFilePath, jobBytes, os.ModePerm); err != nil {
 		logs.GetLogger().Errorf("Failed jobData write to file, error: %v", err)
 		return err
 	}
@@ -138,15 +150,14 @@ func submitPrivateJob(jobData *models.PrivateJobResp) error {
 	return nil
 }
 
-func DeployPrivateTask(name string, jobSourceURI, hostName string, duration int, taskUuid string, gpuProductName string, configDesc string, walletAddress string) string {
-	//updateJobStatus(taskUuid, models.JobUploadResult)
-
+func DeployPrivateTask(name string, jobSourceURI, logHost string, duration int, taskUuid string, gpuProductName string, walletAddress string, cpu, memory, storage int, gpu string) {
+	updatePrivateStatus(taskUuid, JobStatusDeploying, "", "")
 	var success bool
 	var spaceUuid string
 
 	defer func() {
 		if !success {
-			k8sNameSpace := constants.K8S_PRIVATE_NAMESPACE_NAME_PREFIX + strings.ToLower(walletAddress)
+			k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(walletAddress)
 			deleteJob(k8sNameSpace, spaceUuid)
 		}
 
@@ -161,7 +172,7 @@ func DeployPrivateTask(name string, jobSourceURI, hostName string, duration int,
 	spaceDetail, err := getSpaceDetail(jobSourceURI)
 	if err != nil {
 		logs.GetLogger().Errorln(err)
-		return ""
+		return
 	}
 
 	conn := redisPool.Get()
@@ -178,27 +189,149 @@ func DeployPrivateTask(name string, jobSourceURI, hostName string, duration int,
 	}
 	_, _ = conn.Do("HSET", fullArgs...)
 
-	logs.GetLogger().Infof("uuid: %s, private task name: %s, hardwareName: %s", spaceUuid, name, configDesc)
-	if len(configDesc) == 0 {
-		return ""
-	}
-
-	deploy := NewDeploy(spaceUuid, hostName, walletAddress, configDesc, int64(duration), taskUuid)
+	deploy := NewDeploy(spaceUuid, "", walletAddress, "", int64(duration), taskUuid)
 	deploy.WithSpaceInfo(spaceUuid, name)
 	deploy.WithGpuProductName(gpuProductName)
+	deploy.WithHardware(cpu, memory, storage, gpu)
 
 	spacePath := filepath.Join("build", walletAddress, "spaces", name)
 	os.RemoveAll(spacePath)
-	//updateJobStatus(spaceUuid, models.JobDownloadSource)
 	_, _, _, _, sshPublicKey, err := BuildSpaceTaskImage(spaceUuid, spaceDetail.Data.Files)
 	if err != nil {
 		logs.GetLogger().Error(err)
-		return ""
+		return
 	}
 
-	deploy.WithSshKeyFile(sshPublicKey).DeploySshTaskToK8s()
+	sshUrl, err := deploy.WithSshKeyFile(sshPublicKey).DeploySshTaskToK8s()
+	if err != nil {
+		logs.GetLogger().Error(err)
+		return
+	}
+
+	var privateJob models.PrivateJobResp
+	privateJob.UUID = taskUuid
+	privateJob.RealURI = sshUrl
+
+	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
+	wsUrl := fmt.Sprintf("wss://%s:%s/api/v1/computing/lagrange/spaces/log?space_id=%s", logHost, multiAddressSplit[4], taskUuid)
+	privateJob.ContainerLog = wsUrl + "&type=container&order=private"
+	privateJob.UpdatedAt = strconv.FormatInt(time.Now().Unix(), 10)
+	privateJob.RealURI = sshUrl
+	if err = submitPrivateJob(&privateJob); err != nil {
+		privateJob.ResultURI = ""
+	}
+	updatePrivateStatus(taskUuid, JobStatusRunning, sshUrl, privateJob.ResultURI)
 
 	success = true
+}
 
-	return hostName
+type PrivateJobStatus int
+
+const (
+	JobStatusDeploying PrivateJobStatus = 3
+	JobStatusRunning   PrivateJobStatus = 4
+)
+
+func updatePrivateStatus(jobUuid string, jobStatus PrivateJobStatus, result, resultUri string) {
+	reqParam := make(map[string]interface{})
+	reqParam["job_uuid"] = jobUuid
+	reqParam["status"] = jobStatus
+	if result != "" {
+		reqParam["real_uri"] = result
+	}
+	if resultUri != "" {
+		reqParam["result_uri"] = resultUri
+	}
+
+	payload, err := json.Marshal(reqParam)
+	if err != nil {
+		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
+		return
+	}
+
+	client := &http.Client{}
+	url := conf.GetConfig().UBI.UbiUrl + "/jobs/" + jobUuid
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(payload))
+	if err != nil {
+		logs.GetLogger().Errorf("Error creating request: %v", err)
+		return
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyData, _ := io.ReadAll(resp.Body)
+		logs.GetLogger().Errorf("report private job status failed, %s", string(bodyData))
+		return
+	}
+	return
+}
+
+func checkResourceAvailableForPrivate(cpu, memory, storage int, gpu string) (bool, string, error) {
+	taskType, hardwareDetail := getHardwareDetailForPrivate(cpu, memory, storage, gpu)
+	k8sService := NewK8sService()
+
+	activePods, err := k8sService.GetAllActivePod(context.TODO())
+	if err != nil {
+		return false, "", err
+	}
+
+	nodes, err := k8sService.k8sClient.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
+	if err != nil {
+		return false, "", err
+	}
+
+	nodeGpuSummary, err := k8sService.GetNodeGpuSummary(context.TODO())
+	if err != nil {
+		logs.GetLogger().Errorf("Failed collect k8s gpu, error: %+v", err)
+		return false, "", err
+	}
+
+	for _, node := range nodes.Items {
+		nodeGpu, remainderResource, _ := GetNodeResource(activePods, &node)
+		remainderCpu := remainderResource[ResourceCpu]
+		remainderMemory := float64(remainderResource[ResourceMem] / 1024 / 1024 / 1024)
+		remainderStorage := float64(remainderResource[ResourceStorage] / 1024 / 1024 / 1024)
+
+		needCpu := hardwareDetail.Cpu.Quantity
+		needMemory := float64(hardwareDetail.Memory.Quantity)
+		needStorage := float64(hardwareDetail.Storage.Quantity)
+		logs.GetLogger().Infof("checkResourceAvailableForPrivate: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForPrivate: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
+		if needCpu <= remainderCpu && needMemory <= remainderMemory && needStorage <= remainderStorage {
+			if taskType == "CPU" {
+				return true, "", nil
+			} else if taskType == "GPU" {
+				var usedCount int64 = 0
+				gpuName := strings.ToUpper(strings.ReplaceAll(hardwareDetail.Gpu.Unit, " ", "-"))
+				logs.GetLogger().Infof("gpuName: %s, nodeGpu: %+v, nodeGpuSummary: %+v", gpuName, nodeGpu, nodeGpuSummary)
+				var gpuProductName = ""
+				for name, count := range nodeGpu {
+					if strings.Contains(strings.ToUpper(name), gpuName) {
+						usedCount = count
+						gpuProductName = strings.ReplaceAll(strings.ToUpper(name), " ", "-")
+						break
+					}
+				}
+
+				for gName, gCount := range nodeGpuSummary[node.Name] {
+					if strings.Contains(strings.ToUpper(gName), gpuName) {
+						gpuProductName = strings.ReplaceAll(strings.ToUpper(gName), " ", "-")
+						if usedCount+hardwareDetail.Gpu.Quantity <= gCount {
+							return true, gpuProductName, nil
+						}
+					}
+				}
+				continue
+			}
+		}
+	}
+	return false, "", nil
 }

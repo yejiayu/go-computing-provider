@@ -517,30 +517,27 @@ func (s *K8sService) WaitForPodRunningByHttp(namespace, spaceUuid, serviceIp str
 
 func (s *K8sService) WaitForPodRunningByTcp(namespace, taskUuid string) (string, error) {
 	var podName string
-	var podErr = errors.New("get pod status failed")
-
-	retryErr := retry.OnError(wait.Backoff{
-		Steps:    120,
-		Duration: 10 * time.Second,
-	}, func(err error) bool {
-		return err != nil && err.Error() == podErr.Error()
-	}, func() error {
-		time.Sleep(10 * time.Second)
+	err := wait.PollImmediate(time.Second*5, time.Minute*10, func() (done bool, err error) {
 		podList, err := s.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
 			LabelSelector: fmt.Sprintf("hub-private==%s", taskUuid),
 		})
 		if err != nil {
 			logs.GetLogger().Error(err)
-			return podErr
+			return false, err
 		}
-
+		for _, pod := range podList.Items {
+			if pod.Status.Phase != coreV1.PodRunning {
+				return false, nil
+			}
+		}
 		podName = podList.Items[0].Name
-		return nil
+		return true, nil
 	})
 
-	if retryErr != nil {
-		return podName, fmt.Errorf("failed waiting for pods to be running: %v", retryErr)
+	if err != nil {
+		return "", fmt.Errorf("get pod status failed, error: %v", err)
 	}
+
 	return podName, nil
 }
 

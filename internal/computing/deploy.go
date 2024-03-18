@@ -50,7 +50,12 @@ type Deploy struct {
 }
 
 func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration int64, taskUuid string) *Deploy {
-	taskType, hardwareDetail := getHardwareDetail(hardwareDesc)
+
+	var taskType string
+	var hardwareDetail models.Resource
+	if hardwareDesc != "" {
+		taskType, hardwareDetail = getHardwareDetail(hardwareDesc)
+	}
 	return &Deploy{
 		jobUuid:          jobUuid,
 		hostName:         hostName,
@@ -62,6 +67,13 @@ func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration i
 		hardwareDesc:     hardwareDesc,
 		taskUuid:         taskUuid,
 	}
+}
+
+func (d *Deploy) WithHardware(cpu, memory, storage int, gpu string) *Deploy {
+	taskType, hardwareDetail := getHardwareDetailForPrivate(cpu, memory, storage, gpu)
+	d.hardwareResource = hardwareDetail
+	d.TaskType = taskType
+	return d
 }
 
 func (d *Deploy) WithSshKeyFile(sshKeyFile string) *Deploy {
@@ -453,7 +465,7 @@ func (d *Deploy) ModelInferenceToK8s() error {
 	return nil
 }
 
-func (d *Deploy) DeploySshTaskToK8s() error {
+func (d *Deploy) DeploySshTaskToK8s() (string, error) {
 	sshKeyFile, _ := os.ReadFile(d.sshKeyFile)
 	sshPublicKey := string(sshKeyFile)
 
@@ -461,7 +473,7 @@ func (d *Deploy) DeploySshTaskToK8s() error {
 
 	if err := d.deployNamespace(); err != nil {
 		logs.GetLogger().Error(err)
-		return err
+		return "", err
 	}
 
 	k8sService := NewK8sService()
@@ -488,7 +500,7 @@ func (d *Deploy) DeploySshTaskToK8s() error {
 				Spec: coreV1.PodSpec{
 					NodeSelector: generateLabel(d.gpuProductName),
 					Containers: []coreV1.Container{{
-						Name:            constants.K8S_CONTAINER_NAME_PREFIX + d.taskUuid,
+						Name:            constants.K8S_PRIVATE_CONTAINER_PREFIX + d.taskUuid,
 						Image:           build.PRIVATE_UBUNTU_2204,
 						ImagePullPolicy: coreV1.PullIfNotPresent,
 						Ports: []coreV1.ContainerPort{{
@@ -502,7 +514,7 @@ func (d *Deploy) DeploySshTaskToK8s() error {
 	createDeployment, err := k8sService.CreateDeployment(context.TODO(), d.k8sNameSpace, deployment)
 	if err != nil {
 		logs.GetLogger().Error(err)
-		return err
+		return "", err
 	}
 
 	logs.GetLogger().Infof("Created deployment: %s", createDeployment.GetObjectMeta().GetName())
@@ -511,34 +523,28 @@ func (d *Deploy) DeploySshTaskToK8s() error {
 	podName, err := k8sService.WaitForPodRunningByTcp(d.k8sNameSpace, d.taskUuid)
 	if err != nil {
 		logs.GetLogger().Error(err)
-		return err
+		return "", err
 	}
-
-	logs.GetLogger().Infof("namespace: %s, podName: %s", d.k8sNameSpace, podName)
 
 	podCmd := []string{"sh", "-c", fmt.Sprintf("echo '%s' > /home/vm-user/.ssh/authorized_keys", sshPublicKey)}
 	if err = k8sService.PodDoCommand(d.k8sNameSpace, podName, "", podCmd); err != nil {
 		logs.GetLogger().Error(err)
-		return err
+		return "", err
 	}
 
 	createService, err := k8sService.CreateServiceByNodePort(context.TODO(), d.k8sNameSpace, d.taskUuid, 22)
 	if err != nil {
-		return fmt.Errorf("failed to create service, error: %w", err)
+		return "", fmt.Errorf("failed to create service, error: %w", err)
 	}
 	logs.GetLogger().Infof("Created service successfully: %s", createService.GetObjectMeta().GetName())
 
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 
-	serviceHost := fmt.Sprintf("ssh vm-user@%s -p%d", multiAddressSplit[2], createService.Spec.Ports[0].NodePort)
+	result := fmt.Sprintf("ssh vm-user@%s -p%d", multiAddressSplit[2], createService.Spec.Ports[0].NodePort)
 
-	println(serviceHost)
-
-	//updateJobStatus(d.jobUuid, models.JobPullImage)
-
-	//updateJobStatus(d.jobUuid, models.JobDeployToK8s)
-	//d.watchContainerRunningTime()
-	return nil
+	updatePrivateStatus(d.taskUuid, JobStatusRunning, result, "")
+	d.watchContainerRunningTime()
+	return result, nil
 }
 
 func (d *Deploy) deployNamespace() error {
@@ -705,6 +711,25 @@ func getHardwareDetail(description string) (string, models.Resource) {
 	mem, _ := strconv.ParseInt(memSplits[1], 10, 64)
 	hardwareResource.Memory.Quantity = mem
 	hardwareResource.Memory.Unit = strings.ReplaceAll(memSplits[2], "B", "")
+
+	return taskType, hardwareResource
+}
+
+func getHardwareDetailForPrivate(cpu, memory, storage int, gpu string) (string, models.Resource) {
+	var taskType string
+	var hardwareResource models.Resource
+
+	hardwareResource.Cpu.Quantity = int64(cpu)
+	hardwareResource.Cpu.Unit = "vCPU"
+
+	hardwareResource.Memory.Quantity = int64(memory)
+	hardwareResource.Memory.Unit = "Gi"
+
+	hardwareResource.Storage.Quantity = int64(storage)
+	hardwareResource.Storage.Unit = "Gi"
+
+	hardwareResource.Gpu.Quantity = 1
+	hardwareResource.Gpu.Unit = strings.ReplaceAll(gpu, "Nvidia", "NVIDIA")
 
 	return taskType, hardwareResource
 }
