@@ -80,14 +80,10 @@ func ReceivePrivateJob(c *gin.Context) {
 		return
 	}
 
-	var hostName string
 	var logHost string
-	prefixStr := generateString(10)
 	if strings.HasPrefix(conf.GetConfig().API.Domain, ".") {
-		hostName = prefixStr + conf.GetConfig().API.Domain
 		logHost = "log" + conf.GetConfig().API.Domain
 	} else {
-		hostName = strings.Join([]string{prefixStr, conf.GetConfig().API.Domain}, ".")
 		logHost = "log." + conf.GetConfig().API.Domain
 	}
 
@@ -101,7 +97,7 @@ func ReceivePrivateJob(c *gin.Context) {
 	privateJob.UUID = jobData.UUID
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 	wsUrl := fmt.Sprintf("wss://%s:%s/api/v1/computing/lagrange/spaces/log?space_id=%s", logHost, multiAddressSplit[4], jobData.UUID)
-	privateJob.ContainerLog = wsUrl + "&type=container"
+	privateJob.ContainerLog = wsUrl + "&type=container&order=private"
 
 	if err = submitPrivateJob(&privateJob); err != nil {
 		privateJob.ResultURI = ""
