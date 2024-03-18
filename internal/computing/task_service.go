@@ -220,7 +220,7 @@ func reportClusterResource(location, nodeId string) {
 
 func sendResourceToUb(payload []byte) {
 	client := &http.Client{}
-	url := conf.GetConfig().UBI.UbiUrl + "/cp"
+	url := conf.GetConfig().UBI.UbiUrl + "/cps"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		logs.GetLogger().Errorf("Error creating request: %v", err)
