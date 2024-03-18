@@ -99,11 +99,8 @@ func ReceivePrivateJob(c *gin.Context) {
 
 	var privateJob models.PrivateJobResp
 	privateJob.UUID = jobData.UUID
-	privateJob.RealURI = fmt.Sprintf("https://%s", hostName)
-
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 	wsUrl := fmt.Sprintf("wss://%s:%s/api/v1/computing/lagrange/spaces/log?space_id=%s", logHost, multiAddressSplit[4], jobData.UUID)
-	privateJob.BuildLog = wsUrl + "&type=build"
 	privateJob.ContainerLog = wsUrl + "&type=container"
 
 	if err = submitPrivateJob(&privateJob); err != nil {
