@@ -730,6 +730,11 @@ func getHardwareDetailForPrivate(cpu, memory, storage int, gpu string) (string, 
 
 	hardwareResource.Gpu.Quantity = 1
 	hardwareResource.Gpu.Unit = strings.ReplaceAll(gpu, "Nvidia", "NVIDIA")
+	if len(strings.TrimSpace(gpu)) == 0 {
+		taskType = "CPU"
+	} else {
+		taskType = "GPU"
+	}
 
 	return taskType, hardwareResource
 }

@@ -215,10 +215,17 @@ func reportClusterResource(location, nodeId string) {
 		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
 		return
 	}
-	sendResourceToUb(payload)
+	sendResourceToUb(clusterSource)
 }
 
-func sendResourceToUb(payload []byte) {
+func sendResourceToUb(clusterSource models2.ClusterResource) {
+	clusterSource.NodeName = conf.GetConfig().API.NodeName
+	clusterSource.MultiAddress = conf.GetConfig().API.MultiAddress
+	payload, err := json.Marshal(clusterSource)
+	if err != nil {
+		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
+		return
+	}
 	client := &http.Client{}
 	url := conf.GetConfig().UBI.UbiUrl + "/cps"
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
