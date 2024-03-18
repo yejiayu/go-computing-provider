@@ -32,15 +32,15 @@ type JobData struct {
 	Duration int    `json:"duration"`
 	//Hardware      string `json:"hardware"`
 	JobSourceURI                string `json:"job_source_uri"`
-	JobResultURI                string `json:"job_result_uri"`
-	StorageSource               string `json:"storage_source"`
+	JobResultURI                string `json:"job_result_uri,omitempty"`
+	StorageSource               string `json:"storage_source,omitempty"`
 	TaskUUID                    string `json:"task_uuid"`
 	CreatedAt                   string `json:"created_at"`
-	UpdatedAt                   string `json:"updated_at"`
-	BuildLog                    string `json:"build_log"`
+	UpdatedAt                   string `json:"updated_at,omitempty"`
+	BuildLog                    string `json:"build_log,omitempty"`
 	ContainerLog                string `json:"container_log"`
 	NodeIdJobSourceUriSignature string `json:"node_id_job_source_uri_signature"`
-	JobRealUri                  string `json:"job_real_uri"`
+	JobRealUri                  string `json:"job_real_uri,omitempty"`
 }
 
 type Job struct {
@@ -185,11 +185,11 @@ type Config struct {
 type PrivateJobResp struct {
 	UUID         string `json:"uuid"`
 	ResultURI    string `json:"result_uri"`
-	RealURI      string `json:"real_uri"`
-	UpdatedAt    string `json:"updated_at"`
-	ContainerLog string `json:"container_log"`
-	BuildLog     string `json:"build_log"`
-	Status       int    `json:"status"`
+	RealURI      string `json:"real_uri,omitempty"`
+	UpdatedAt    string `json:"updated_at,omitempty"`
+	ContainerLog string `json:"container_log,omitempty"`
+	BuildLog     string `json:"build_log,omitempty"`
+	Status       int    `json:"status,omitempty"`
 }
 
 type PrivateJobStatusReq struct {
