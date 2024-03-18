@@ -530,6 +530,9 @@ func (s *K8sService) WaitForPodRunningByTcp(namespace, taskUuid string) (string,
 				return false, nil
 			}
 		}
+		if len(podList.Items) > 0 {
+			return false, nil
+		}
 		podName = podList.Items[0].Name
 		return true, nil
 	})
