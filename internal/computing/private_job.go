@@ -88,7 +88,7 @@ func ReceivePrivateJob(c *gin.Context) {
 	}
 
 	if _, err = celeryService.DelayTask(constants.PRIVATE_DEPLOY, jobData.Name, logHost, jobData.Duration, jobData.UUID, gpuProductName, jobData.User,
-		jobData.Config.Vcpu, jobData.Config.Memory, jobData.Config.Storage, jobData.Config.GPU, jobData.Config.SshKey, jobData.Config.Image, jobData.Config.GPU); err != nil {
+		jobData.Config.Vcpu, jobData.Config.Memory, jobData.Config.Storage, jobData.Config.GPUModel, jobData.Config.SshKey, jobData.Config.Image, jobData.Config.GPU); err != nil {
 		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
 		return
 	}
@@ -141,7 +141,7 @@ func submitPrivateJob(jobData *models.PrivateJobResp) error {
 	return nil
 }
 
-func DeployPrivateTask(name string, logHost string, duration int, taskUuid string, gpuProductName string, walletAddress string, cpu, memory, storage int, gpu, sshKey, image string, gpuNum int) {
+func DeployPrivateTask(name string, logHost string, duration int, taskUuid string, gpuProductName string, walletAddress string, cpu, memory, storage int, gpModel, sshKey, image string, gpuNum int) {
 	updatePrivateStatus(taskUuid, JobStatusDeploying, "", "")
 	var success bool
 	var spaceUuid string
@@ -177,7 +177,7 @@ func DeployPrivateTask(name string, logHost string, duration int, taskUuid strin
 	deploy := NewDeploy(spaceUuid, "", walletAddress, "", int64(duration), taskUuid)
 	deploy.WithSpaceInfo(spaceUuid, name)
 	deploy.WithGpuProductName(gpuProductName)
-	deploy.WithHardware(cpu, memory, storage, gpu, gpuNum)
+	deploy.WithHardware(cpu, memory, storage, gpModel, gpuNum)
 	deploy.WithImage(image)
 
 	sshUrl, err := deploy.WithSshKey(sshKey).DeploySshTaskToK8s()
