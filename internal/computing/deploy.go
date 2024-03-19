@@ -499,8 +499,7 @@ func (d *Deploy) DeploySshTaskToK8s() (string, error) {
 				},
 
 				Spec: coreV1.PodSpec{
-					RestartPolicy: coreV1.RestartPolicyOnFailure,
-					NodeSelector:  generateLabel(d.gpuProductName),
+					NodeSelector: generateLabel(d.gpuProductName),
 					Containers: []coreV1.Container{{
 						Name:            constants.K8S_PRIVATE_CONTAINER_PREFIX + d.taskUuid,
 						Image:           d.image,
