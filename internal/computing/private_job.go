@@ -51,21 +51,21 @@ func ReceivePrivateJob(c *gin.Context) {
 		return
 	}
 
-	cpRepoPath, _ := os.LookupEnv("CP_PATH")
-	nodeID := GetNodeId(cpRepoPath)
-
-	signature, err := verifySignatureForHub(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%s", nodeID, jobData.UUID), jobData.Signature)
-	if err != nil {
-		logs.GetLogger().Errorf("verifySignature for private job failed, error: %+v", err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
-		return
-	}
-
-	logs.GetLogger().Infof("private job sign verifing, task_id: %s,  verify: %v", jobData.UUID, signature)
-	if !signature {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
-		return
-	}
+	//cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	//nodeID := GetNodeId(cpRepoPath)
+	//
+	//signature, err := verifySignatureForHub(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%s", nodeID, jobData.UUID), jobData.Signature)
+	//if err != nil {
+	//	logs.GetLogger().Errorf("verifySignature for private job failed, error: %+v", err)
+	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
+	//	return
+	//}
+	//
+	//logs.GetLogger().Infof("private job sign verifing, task_id: %s,  verify: %v", jobData.UUID, signature)
+	//if !signature {
+	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
+	//	return
+	//}
 
 	available, gpuProductName, err := checkResourceAvailableForPrivate(jobData.Config.Vcpu, jobData.Config.Memory, jobData.Config.Storage, jobData.Config.GPUModel, jobData.Config.GPU)
 	if err != nil {
