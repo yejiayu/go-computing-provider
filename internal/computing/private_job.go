@@ -207,9 +207,9 @@ func DeployPrivateTask(name string, jobSourceURI, logHost string, duration int, 
 	privateJob.RealURI = sshUrl
 
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
-	wsUrl := fmt.Sprintf("wss://%s:%s/api/v1/computing/lagrange/spaces/log?space_id=%s", logHost, multiAddressSplit[4], taskUuid)
-	privateJob.ContainerLog = wsUrl + "&type=container&order=private"
-	privateJob.UpdatedAt = strconv.FormatInt(time.Now().Unix(), 10)
+	privateJob.ContainerLog = fmt.Sprintf("wss://%s:%s/api/v1/computing/lagrange/spaces/log?space_id=%s&type=container&order=private",
+		logHost, multiAddressSplit[4], taskUuid)
+	privateJob.UpdatedAt = time.Now().Unix()
 	privateJob.RealURI = sshUrl
 	if err = submitPrivateJob(&privateJob); err != nil {
 		privateJob.ResultURI = ""
