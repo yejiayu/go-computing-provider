@@ -51,23 +51,23 @@ func ReceivePrivateJob(c *gin.Context) {
 		return
 	}
 
-	//cpRepoPath, _ := os.LookupEnv("CP_PATH")
-	//nodeID := GetNodeId(cpRepoPath)
-	//
-	//signature, err := verifySignatureForHub(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%s", nodeID, jobData.SourceURI), jobData.Signature)
-	//if err != nil {
-	//	logs.GetLogger().Errorf("verifySignature for private job failed, error: %+v", err)
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
-	//	return
-	//}
-	//
-	//logs.GetLogger().Infof("private job sign verifing, task_id: %s,  verify: %v", jobData.UUID, signature)
-	//if !signature {
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
-	//	return
-	//}
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	nodeID := GetNodeId(cpRepoPath)
 
-	available, gpuProductName, err := checkResourceAvailableForPrivate(jobData.Config.Vcpu, jobData.Config.Memory, jobData.Config.Storage, jobData.Config.GPU)
+	signature, err := verifySignatureForHub(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%s", nodeID, jobData.UUID), jobData.Signature)
+	if err != nil {
+		logs.GetLogger().Errorf("verifySignature for private job failed, error: %+v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
+		return
+	}
+
+	logs.GetLogger().Infof("private job sign verifing, task_id: %s,  verify: %v", jobData.UUID, signature)
+	if !signature {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
+		return
+	}
+
+	available, gpuProductName, err := checkResourceAvailableForPrivate(jobData.Config.Vcpu, jobData.Config.Memory, jobData.Config.Storage, jobData.Config.GPUModel, jobData.Config.GPU)
 	if err != nil {
 		logs.GetLogger().Errorf("check job resource failed, error: %+v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
@@ -87,8 +87,8 @@ func ReceivePrivateJob(c *gin.Context) {
 		logHost = "log." + conf.GetConfig().API.Domain
 	}
 
-	if _, err = celeryService.DelayTask(constants.PRIVATE_DEPLOY, jobData.Name, jobData.SourceURI, logHost, jobData.Duration, jobData.UUID, gpuProductName, jobData.User,
-		jobData.Config.Vcpu, jobData.Config.Memory, jobData.Config.Storage, jobData.Config.GPU); err != nil {
+	if _, err = celeryService.DelayTask(constants.PRIVATE_DEPLOY, jobData.Name, logHost, jobData.Duration, jobData.UUID, gpuProductName, jobData.User,
+		jobData.Config.Vcpu, jobData.Config.Memory, jobData.Config.Storage, jobData.Config.GPU, jobData.Config.SshKey, jobData.Config.Image, jobData.Config.GPU); err != nil {
 		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
 		return
 	}
@@ -98,10 +98,7 @@ func ReceivePrivateJob(c *gin.Context) {
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 	wsUrl := fmt.Sprintf("wss://%s:%s/api/v1/computing/lagrange/spaces/log?space_id=%s", logHost, multiAddressSplit[4], jobData.UUID)
 	privateJob.ContainerLog = wsUrl + "&type=container&order=private"
-
-	if err = submitPrivateJob(&privateJob); err != nil {
-		privateJob.ResultURI = ""
-	}
+	privateJob.UpdatedAt = time.Now().Unix()
 	logs.GetLogger().Infof("submit private job detail: %+v", jobData)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse(privateJob))
 }
@@ -144,7 +141,7 @@ func submitPrivateJob(jobData *models.PrivateJobResp) error {
 	return nil
 }
 
-func DeployPrivateTask(name string, jobSourceURI, logHost string, duration int, taskUuid string, gpuProductName string, walletAddress string, cpu, memory, storage int, gpu string) {
+func DeployPrivateTask(name string, logHost string, duration int, taskUuid string, gpuProductName string, walletAddress string, cpu, memory, storage int, gpu, sshKey, image string, gpuNum int) {
 	updatePrivateStatus(taskUuid, JobStatusDeploying, "", "")
 	var success bool
 	var spaceUuid string
@@ -163,12 +160,6 @@ func DeployPrivateTask(name string, jobSourceURI, logHost string, duration int, 
 
 	spaceUuid = strings.ToLower(taskUuid)
 
-	spaceDetail, err := getSpaceDetail(jobSourceURI)
-	if err != nil {
-		logs.GetLogger().Errorln(err)
-		return
-	}
-
 	conn := redisPool.Get()
 	fullArgs := []interface{}{constants.REDIS_SPACE_PREFIX + spaceUuid}
 	fields := map[string]string{
@@ -186,17 +177,10 @@ func DeployPrivateTask(name string, jobSourceURI, logHost string, duration int, 
 	deploy := NewDeploy(spaceUuid, "", walletAddress, "", int64(duration), taskUuid)
 	deploy.WithSpaceInfo(spaceUuid, name)
 	deploy.WithGpuProductName(gpuProductName)
-	deploy.WithHardware(cpu, memory, storage, gpu)
+	deploy.WithHardware(cpu, memory, storage, gpu, gpuNum)
+	deploy.WithImage(image)
 
-	spacePath := filepath.Join("build", walletAddress, "spaces", name)
-	os.RemoveAll(spacePath)
-	_, _, _, _, sshPublicKey, err := BuildSpaceTaskImage(spaceUuid, spaceDetail.Data.Files)
-	if err != nil {
-		logs.GetLogger().Error(err)
-		return
-	}
-
-	sshUrl, err := deploy.WithSshKeyFile(sshPublicKey).DeploySshTaskToK8s()
+	sshUrl, err := deploy.WithSshKey(sshKey).DeploySshTaskToK8s()
 	if err != nil {
 		logs.GetLogger().Error(err)
 		return
@@ -268,8 +252,8 @@ func updatePrivateStatus(jobUuid string, jobStatus PrivateJobStatus, result, res
 	return
 }
 
-func checkResourceAvailableForPrivate(cpu, memory, storage int, gpu string) (bool, string, error) {
-	taskType, hardwareDetail := getHardwareDetailForPrivate(cpu, memory, storage, gpu)
+func checkResourceAvailableForPrivate(cpu, memory, storage int, gpuModel string, gpuNum int) (bool, string, error) {
+	taskType, hardwareDetail := getHardwareDetailForPrivate(cpu, memory, storage, gpuModel, gpuNum)
 	k8sService := NewK8sService()
 
 	activePods, err := k8sService.GetAllActivePod(context.TODO())

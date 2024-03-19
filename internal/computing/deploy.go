@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gomodule/redigo/redis"
-	"github.com/swanchain/go-computing-provider/build"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
 	"github.com/swanchain/go-computing-provider/internal/models"
@@ -46,7 +45,7 @@ type Deploy struct {
 	gpuProductName    string
 
 	//====
-	sshKeyFile string
+	sshKey string
 }
 
 func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration int64, taskUuid string) *Deploy {
@@ -69,15 +68,20 @@ func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration i
 	}
 }
 
-func (d *Deploy) WithHardware(cpu, memory, storage int, gpu string) *Deploy {
-	taskType, hardwareDetail := getHardwareDetailForPrivate(cpu, memory, storage, gpu)
+func (d *Deploy) WithHardware(cpu, memory, storage int, gpuModel string, gpuNum int) *Deploy {
+	taskType, hardwareDetail := getHardwareDetailForPrivate(cpu, memory, storage, gpuModel, gpuNum)
 	d.hardwareResource = hardwareDetail
 	d.TaskType = taskType
 	return d
 }
 
-func (d *Deploy) WithSshKeyFile(sshKeyFile string) *Deploy {
-	d.sshKeyFile = sshKeyFile
+func (d *Deploy) WithSshKey(sshKey string) *Deploy {
+	d.sshKey = sshKey
+	return d
+}
+
+func (d *Deploy) WithImage(images string) *Deploy {
+	d.image = images
 	return d
 }
 
@@ -466,9 +470,6 @@ func (d *Deploy) ModelInferenceToK8s() error {
 }
 
 func (d *Deploy) DeploySshTaskToK8s() (string, error) {
-	sshKeyFile, _ := os.ReadFile(d.sshKeyFile)
-	sshPublicKey := string(sshKeyFile)
-
 	deleteJob(d.k8sNameSpace, d.taskUuid)
 
 	if err := d.deployNamespace(); err != nil {
@@ -502,7 +503,7 @@ func (d *Deploy) DeploySshTaskToK8s() (string, error) {
 					NodeSelector:  generateLabel(d.gpuProductName),
 					Containers: []coreV1.Container{{
 						Name:            constants.K8S_PRIVATE_CONTAINER_PREFIX + d.taskUuid,
-						Image:           build.PRIVATE_UBUNTU_2204,
+						Image:           d.image,
 						ImagePullPolicy: coreV1.PullIfNotPresent,
 						Ports: []coreV1.ContainerPort{{
 							ContainerPort: int32(22),
@@ -518,16 +519,14 @@ func (d *Deploy) DeploySshTaskToK8s() (string, error) {
 		return "", err
 	}
 
-	logs.GetLogger().Infof("Created deployment: %s", createDeployment.GetObjectMeta().GetName())
 	d.DeployName = createDeployment.GetName()
-
 	podName, err := k8sService.WaitForPodRunningByTcp(d.k8sNameSpace, d.taskUuid)
 	if err != nil {
 		logs.GetLogger().Error(err)
 		return "", err
 	}
 
-	podCmd := []string{"sh", "-c", fmt.Sprintf("echo '%s' > /home/vm-user/.ssh/authorized_keys", sshPublicKey)}
+	podCmd := []string{"sh", "-c", fmt.Sprintf("echo '%s' > /root/.ssh/authorized_keys", d.sshKey)}
 	if err = k8sService.PodDoCommand(d.k8sNameSpace, podName, "", podCmd); err != nil {
 		logs.GetLogger().Error(err)
 		return "", err
@@ -541,9 +540,8 @@ func (d *Deploy) DeploySshTaskToK8s() (string, error) {
 
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 
-	result := fmt.Sprintf("ssh vm-user@%s -p%d", multiAddressSplit[2], createService.Spec.Ports[0].NodePort)
+	result := fmt.Sprintf("ssh root@%s -p%d", multiAddressSplit[2], createService.Spec.Ports[0].NodePort)
 
-	updatePrivateStatus(d.taskUuid, JobStatusRunning, result, "")
 	d.watchContainerRunningTime()
 	return result, nil
 }
@@ -716,7 +714,7 @@ func getHardwareDetail(description string) (string, models.Resource) {
 	return taskType, hardwareResource
 }
 
-func getHardwareDetailForPrivate(cpu, memory, storage int, gpu string) (string, models.Resource) {
+func getHardwareDetailForPrivate(cpu, memory, storage int, gpuModel string, gpuNum int) (string, models.Resource) {
 	var taskType string
 	var hardwareResource models.Resource
 
@@ -729,9 +727,9 @@ func getHardwareDetailForPrivate(cpu, memory, storage int, gpu string) (string, 
 	hardwareResource.Storage.Quantity = int64(storage)
 	hardwareResource.Storage.Unit = "Gi"
 
-	hardwareResource.Gpu.Quantity = 1
-	hardwareResource.Gpu.Unit = strings.ReplaceAll(gpu, "Nvidia", "NVIDIA")
-	if len(strings.TrimSpace(gpu)) == 0 {
+	hardwareResource.Gpu.Quantity = int64(gpuNum)
+	hardwareResource.Gpu.Unit = strings.ReplaceAll(gpuModel, "Nvidia", "NVIDIA")
+	if len(strings.TrimSpace(gpuModel)) == 0 {
 		taskType = "CPU"
 	} else {
 		taskType = "GPU"

@@ -176,10 +176,13 @@ type PrivateJobReq struct {
 }
 
 type Config struct {
-	Vcpu    int    `json:"vcpu"`
-	Memory  int    `json:"memory"`
-	Storage int    `json:"storage"`
-	GPU     string `json:"gpu"`
+	Vcpu     int    `json:"vcpu"`
+	Memory   int    `json:"memory"`
+	Storage  int    `json:"storage"`
+	GPU      int    `json:"gpu,omitempty"`
+	GPUModel string `json:"gpu_model,omitempty"`
+	Image    string `json:"image,omitempty"`
+	SshKey   string `json:"ssh_key,omitempty"`
 }
 
 type PrivateJobResp struct {

@@ -33,7 +33,7 @@ func NewScheduleTask() *ScheduleTask {
 
 func (s *ScheduleTask) Run() {
 	go func() {
-		ticker := time.NewTicker(3 * time.Minute)
+		ticker := time.NewTicker(30 * time.Minute)
 		for {
 			select {
 			case <-ticker.C:
@@ -42,23 +42,13 @@ func (s *ScheduleTask) Run() {
 					job.Count++
 					s.TaskMap.Store(job.Uuid, job)
 
-					if job.Count > 50 {
+					if job.Count > 2 {
 						s.TaskMap.Delete(job.Uuid)
 						return true
 					}
 
 					if job.Status != models2.JobDeployToK8s {
 						return true
-					}
-
-					response, err := http.Get(job.Url)
-					if err != nil {
-						return true
-					}
-					defer response.Body.Close()
-
-					if response.StatusCode == 200 {
-						s.TaskMap.Delete(job.Uuid)
 					}
 					return true
 				})
