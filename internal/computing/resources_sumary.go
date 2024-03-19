@@ -110,7 +110,9 @@ func cpuInPod(pod *corev1.Pod) (cpuCount int64) {
 			continue
 		}
 		cpuCount += val.Value()
+		fmt.Printf("containerName: %s, cpu: %d \n", container.Name, val.Value())
 	}
+	fmt.Printf("total cpu: %d \n", cpuCount)
 	return cpuCount
 }
 
