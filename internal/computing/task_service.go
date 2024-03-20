@@ -32,43 +32,16 @@ func NewScheduleTask() *ScheduleTask {
 }
 
 func (s *ScheduleTask) Run() {
-	go func() {
-		ticker := time.NewTicker(3 * time.Minute)
-		for {
-			select {
-			case <-ticker.C:
-				s.TaskMap.Range(func(key, value any) bool {
-					job := value.(*models2.Job)
-					job.Count++
-					s.TaskMap.Store(job.Uuid, job)
-
-					if job.Count > 1 {
-						s.TaskMap.Delete(job.Uuid)
-						return true
-					}
-
-					if job.Status != models2.JobDeployToK8s {
-						return true
-					}
-					return true
-				})
-			}
-		}
-	}()
-
 	for {
 		select {
 		case job := <-deployingChan:
 			s.TaskMap.Store(job.Uuid, &job)
 		case <-time.After(3 * time.Second):
-			fmt.Println("start report task status")
 			s.TaskMap.Range(func(key, value any) bool {
 				jobUuid := key.(string)
 				job := value.(*models2.Job)
-				fmt.Printf("jobUuid: %s, status: %s \n", jobUuid, job.Status)
-				if !reportJobStatus(jobUuid, job.Status) {
-					job.Count = 0
-					s.TaskMap.Store(job.Uuid, job)
+				if reportJobStatus(jobUuid, job.Status) {
+					s.TaskMap.Delete(jobUuid)
 				}
 				return true
 			})
@@ -77,7 +50,7 @@ func (s *ScheduleTask) Run() {
 }
 
 func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) bool {
-	logs.GetLogger().Debugf("reportJobStatus jobuuid: %s, status: %s", jobUuid, jobStatus)
+	logs.GetLogger().Infof("reportJobStatus jobuuid: %s, status: %s", jobUuid, jobStatus)
 
 	reqParam := map[string]interface{}{
 		"job_uuid":       jobUuid,

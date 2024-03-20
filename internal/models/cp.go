@@ -47,7 +47,6 @@ type Job struct {
 	Uuid   string
 	Status JobStatus
 	Url    string
-	Count  int
 }
 
 type JobStatus string

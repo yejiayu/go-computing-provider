@@ -1215,14 +1215,12 @@ func updateJobStatus(jobUuid string, jobStatus models.JobStatus, url ...string) 
 			deployingChan <- models.Job{
 				Uuid:   jobUuid,
 				Status: jobStatus,
-				Count:  0,
 				Url:    url[0],
 			}
 		} else {
 			deployingChan <- models.Job{
 				Uuid:   jobUuid,
 				Status: jobStatus,
-				Count:  0,
 				Url:    "",
 			}
 		}
