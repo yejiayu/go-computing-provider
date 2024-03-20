@@ -524,19 +524,19 @@ func (d *Deploy) DeploySshTaskToK8s() (string, error) {
 										{
 											Path: "limits/cpu",
 											FieldRef: &coreV1.ObjectFieldSelector{
-												FieldPath: "spec.containers[?(@.name=='df-container')].resources.limits.cpu",
+												FieldPath: fmt.Sprintf("spec.containers[?(@.name=='%s')].resources.limits.cpu", constants.K8S_PRIVATE_CONTAINER_PREFIX+d.taskUuid),
 											},
 										},
 										{
 											Path: "limits/memory",
 											FieldRef: &coreV1.ObjectFieldSelector{
-												FieldPath: "spec.containers[?(@.name=='df-container')].resources.limits.memory",
+												FieldPath: fmt.Sprintf("spec.containers[?(@.name=='%s')].resources.limits.memory", constants.K8S_PRIVATE_CONTAINER_PREFIX+d.taskUuid),
 											},
 										},
 										{
 											Path: "limits/nvidia.com/gpu",
 											FieldRef: &coreV1.ObjectFieldSelector{
-												FieldPath: "spec.containers[?(@.name=='df-container')].resources.limits.nvidia.com/gpu",
+												FieldPath: fmt.Sprintf("spec.containers[?(@.name=='%s')].resources.limits.nvidia.com/gpu", constants.K8S_PRIVATE_CONTAINER_PREFIX+d.taskUuid),
 											},
 										},
 									},
