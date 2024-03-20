@@ -40,7 +40,7 @@ func (s *ScheduleTask) Run() {
 			s.TaskMap.Range(func(key, value any) bool {
 				jobUuid := key.(string)
 				job := value.(*models2.Job)
-				if reportJobStatus(jobUuid, job.Status) {
+				if reportJobStatus(jobUuid, job.Status) && job.Status == models2.JobDeployToK8s {
 					s.TaskMap.Delete(jobUuid)
 				}
 				return true
@@ -50,6 +50,7 @@ func (s *ScheduleTask) Run() {
 }
 
 func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) bool {
+	logs.GetLogger().Infof("reportJobStatus: jobuuid: %s, status: %s", jobUuid, jobStatus)
 	reqParam := map[string]interface{}{
 		"job_uuid":       jobUuid,
 		"status":         jobStatus,

@@ -98,8 +98,8 @@ func ReceiveJob(c *gin.Context) {
 			return
 		}
 
-		logs.GetLogger().Infof("space job sign verifing, task_id: %s,  verify: %v", jobData.TaskUUID, signature)
 		if !signature {
+			logs.GetLogger().Errorf("space job sign verifing, task_id: %s, verify: %v", jobData.TaskUUID, signature)
 			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
 			return
 		}
@@ -384,8 +384,8 @@ func CancelJob(c *gin.Context) {
 			return
 		}
 
-		logs.GetLogger().Infof("space job sign verifing, task_id: %s,  verify: %v", taskUuid, signature)
 		if !signature {
+			logs.GetLogger().Errorf("space job sign verifing, task_id: %s,  verify: %v", taskUuid, signature)
 			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
 			return
 		}
