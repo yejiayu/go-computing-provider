@@ -78,6 +78,11 @@ func ReceiveJob(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
 
+	if conf.GetConfig().HUB.BidMode == conf.BidMode_Private || conf.GetConfig().HUB.BidMode == conf.BidMode_None {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "the provider does not accept auto bid task"))
+		return
+	}
+
 	if conf.GetConfig().HUB.VerifySign {
 		if len(jobData.NodeIdJobSourceUriSignature) == 0 {
 			c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.SpaceSignatureError, "missing node_id_job_source_uri_signature field"))
@@ -359,6 +364,31 @@ func CancelJob(c *gin.Context) {
 	if taskUuid == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "task_uuid is required"})
 		return
+	}
+
+	nodeIdAndTaskUuidSignature := c.Query("node_id_task_uuid_signature")
+	if len(nodeIdAndTaskUuidSignature) == 0 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.SpaceSignatureError, "missing node_id_task_uuid_signature field"))
+		return
+	}
+
+	if conf.GetConfig().HUB.VerifySign {
+
+		cpRepoPath, _ := os.LookupEnv("CP_PATH")
+		nodeID := GetNodeId(cpRepoPath)
+
+		signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, taskUuid), nodeIdAndTaskUuidSignature)
+		if err != nil {
+			logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
+			return
+		}
+
+		logs.GetLogger().Infof("space job sign verifing, task_id: %s,  verify: %v", taskUuid, signature)
+		if !signature {
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
+			return
+		}
 	}
 
 	conn := redisPool.Get()

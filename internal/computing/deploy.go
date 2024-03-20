@@ -507,42 +507,7 @@ func (d *Deploy) DeploySshTaskToK8s() (string, error) {
 							ContainerPort: int32(22),
 						}},
 						Resources: d.createResources(),
-						VolumeMounts: []coreV1.VolumeMount{
-							{
-								Name:      "pod-resources",
-								MountPath: "/etc/pod-resources",
-							},
-						},
 					},
-					},
-					Volumes: []coreV1.Volume{
-						{
-							Name: "pod-resources",
-							VolumeSource: coreV1.VolumeSource{
-								DownwardAPI: &coreV1.DownwardAPIVolumeSource{
-									Items: []coreV1.DownwardAPIVolumeFile{
-										{
-											Path: "limits/cpu",
-											FieldRef: &coreV1.ObjectFieldSelector{
-												FieldPath: fmt.Sprintf("spec.containers[?(@.name=='%s')].resources.limits.cpu", constants.K8S_PRIVATE_CONTAINER_PREFIX+d.taskUuid),
-											},
-										},
-										{
-											Path: "limits/memory",
-											FieldRef: &coreV1.ObjectFieldSelector{
-												FieldPath: fmt.Sprintf("spec.containers[?(@.name=='%s')].resources.limits.memory", constants.K8S_PRIVATE_CONTAINER_PREFIX+d.taskUuid),
-											},
-										},
-										{
-											Path: "limits/nvidia.com/gpu",
-											FieldRef: &coreV1.ObjectFieldSelector{
-												FieldPath: fmt.Sprintf("spec.containers[?(@.name=='%s')].resources.limits.nvidia.com/gpu", constants.K8S_PRIVATE_CONTAINER_PREFIX+d.taskUuid),
-											},
-										},
-									},
-								},
-							},
-						},
 					},
 				},
 			},
