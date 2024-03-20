@@ -24,6 +24,11 @@ import (
 )
 
 func ReceivePrivateJob(c *gin.Context) {
+	if conf.GetConfig().HUB.BidMode == conf.BidMode_Auto || conf.GetConfig().HUB.BidMode == conf.BidMode_None {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "the provider does not accept private task"))
+		return
+	}
+
 	var jobData models.PrivateJobReq
 	if err := c.ShouldBindJSON(&jobData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

@@ -191,6 +191,7 @@ func reportClusterResource(location, nodeId string) {
 func sendResourceToUb(clusterSource models2.ClusterResource) {
 	clusterSource.NodeName = conf.GetConfig().API.NodeName
 	clusterSource.MultiAddress = conf.GetConfig().API.MultiAddress
+	clusterSource.TaskFlag = conf.GetConfig().HUB.BidMode
 	payload, err := json.Marshal(clusterSource)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)

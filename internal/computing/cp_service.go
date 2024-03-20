@@ -71,17 +71,17 @@ func GetServiceProviderInfo(c *gin.Context) {
 }
 
 func ReceiveJob(c *gin.Context) {
+	if conf.GetConfig().HUB.BidMode == conf.BidMode_Private || conf.GetConfig().HUB.BidMode == conf.BidMode_None {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "the provider does not accept auto bid task"))
+		return
+	}
+
 	var jobData models.JobData
 	if err := c.ShouldBindJSON(&jobData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
-
-	if conf.GetConfig().HUB.BidMode == conf.BidMode_Private || conf.GetConfig().HUB.BidMode == conf.BidMode_None {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "the provider does not accept auto bid task"))
-		return
-	}
 
 	if conf.GetConfig().HUB.VerifySign {
 		if len(jobData.NodeIdJobSourceUriSignature) == 0 {
