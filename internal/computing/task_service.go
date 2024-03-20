@@ -42,7 +42,7 @@ func (s *ScheduleTask) Run() {
 					job.Count++
 					s.TaskMap.Store(job.Uuid, job)
 
-					if job.Count > 2 {
+					if job.Count > 1 {
 						s.TaskMap.Delete(job.Uuid)
 						return true
 					}
@@ -64,14 +64,19 @@ func (s *ScheduleTask) Run() {
 			s.TaskMap.Range(func(key, value any) bool {
 				jobUuid := key.(string)
 				job := value.(*models2.Job)
-				reportJobStatus(jobUuid, job.Status)
+				if !reportJobStatus(jobUuid, job.Status) {
+					job.Count = 0
+					s.TaskMap.Store(job.Uuid, &job)
+				}
 				return true
 			})
 		}
 	}
 }
 
-func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
+func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) bool {
+	logs.GetLogger().Debugf("reportJobStatus jobuuid: %s, status: %s", jobUuid, jobStatus)
+
 	reqParam := map[string]interface{}{
 		"job_uuid":       jobUuid,
 		"status":         jobStatus,
@@ -81,7 +86,7 @@ func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
 	payload, err := json.Marshal(reqParam)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
-		return
+		return false
 	}
 
 	client := &http.Client{}
@@ -89,7 +94,7 @@ func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		logs.GetLogger().Errorf("Error creating request: %v", err)
-		return
+		return false
 	}
 	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
 	req.Header.Add("Content-Type", "application/json")
@@ -97,16 +102,16 @@ func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
 	resp, err := client.Do(req)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
-		return
+		return false
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return
+		return false
 	}
 
 	logs.GetLogger().Debugf("report job status successfully. uuid: %s, status: %s", jobUuid, jobStatus)
-	return
+	return true
 }
 
 func RunSyncTask(nodeId string) {

@@ -547,7 +547,6 @@ func (d *Deploy) DeploySshTaskToK8s() (string, error) {
 
 func (d *Deploy) deployNamespace() error {
 	k8sService := NewK8sService()
-	// create namespace
 	if _, err := k8sService.GetNameSpace(context.TODO(), d.k8sNameSpace, metaV1.GetOptions{}); err != nil {
 		if errors.IsNotFound(err) {
 			namespace := &coreV1.Namespace{
@@ -558,11 +557,10 @@ func (d *Deploy) deployNamespace() error {
 					},
 				},
 			}
-			createdNamespace, err := k8sService.CreateNameSpace(context.TODO(), namespace, metaV1.CreateOptions{})
+			_, err = k8sService.CreateNameSpace(context.TODO(), namespace, metaV1.CreateOptions{})
 			if err != nil {
 				return fmt.Errorf("failed create namespace, error: %w", err)
 			}
-			logs.GetLogger().Infof("create namespace successfully, namespace: %s", createdNamespace.Name)
 
 			//networkPolicy, err := k8sService.CreateNetworkPolicy(context.TODO(), k8sNameSpace)
 			//if err != nil {
@@ -637,15 +635,13 @@ func (d *Deploy) deployK8sResource(containerPort int32) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed creata service, error: %w", err)
 	}
-	logs.GetLogger().Infof("Created service successfully: %s", createService.GetObjectMeta().GetName())
 
 	serviceHost := fmt.Sprintf("http://%s:%d", createService.Spec.ClusterIP, createService.Spec.Ports[0].Port)
 
-	createIngress, err := k8sService.CreateIngress(context.TODO(), d.k8sNameSpace, d.spaceUuid, d.hostName, containerPort)
+	_, err = k8sService.CreateIngress(context.TODO(), d.k8sNameSpace, d.spaceUuid, d.hostName, containerPort)
 	if err != nil {
 		return "", fmt.Errorf("failed creata ingress, error: %w", err)
 	}
-	logs.GetLogger().Infof("Created Ingress successfully: %s", createIngress.GetObjectMeta().GetName())
 	return serviceHost, nil
 }
 
