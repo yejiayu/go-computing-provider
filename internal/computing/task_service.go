@@ -66,7 +66,7 @@ func (s *ScheduleTask) Run() {
 				job := value.(*models2.Job)
 				if !reportJobStatus(jobUuid, job.Status) {
 					job.Count = 0
-					s.TaskMap.Store(job.Uuid, &job)
+					s.TaskMap.Store(job.Uuid, job)
 				}
 				return true
 			})
