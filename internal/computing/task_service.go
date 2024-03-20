@@ -50,7 +50,6 @@ func (s *ScheduleTask) Run() {
 }
 
 func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) bool {
-	logs.GetLogger().Infof("reportJobStatus: jobuuid: %s, status: %s", jobUuid, jobStatus)
 	reqParam := map[string]interface{}{
 		"job_uuid":       jobUuid,
 		"status":         jobStatus,
