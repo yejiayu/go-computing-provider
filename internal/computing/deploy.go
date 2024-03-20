@@ -507,7 +507,43 @@ func (d *Deploy) DeploySshTaskToK8s() (string, error) {
 							ContainerPort: int32(22),
 						}},
 						Resources: d.createResources(),
-					}},
+						VolumeMounts: []coreV1.VolumeMount{
+							{
+								Name:      "pod-resources",
+								MountPath: "/etc/pod-resources",
+							},
+						},
+					},
+					},
+					Volumes: []coreV1.Volume{
+						{
+							Name: "pod-resources",
+							VolumeSource: coreV1.VolumeSource{
+								DownwardAPI: &coreV1.DownwardAPIVolumeSource{
+									Items: []coreV1.DownwardAPIVolumeFile{
+										{
+											Path: "limits/cpu",
+											FieldRef: &coreV1.ObjectFieldSelector{
+												FieldPath: "spec.containers[?(@.name=='df-container')].resources.limits.cpu",
+											},
+										},
+										{
+											Path: "limits/memory",
+											FieldRef: &coreV1.ObjectFieldSelector{
+												FieldPath: "spec.containers[?(@.name=='df-container')].resources.limits.memory",
+											},
+										},
+										{
+											Path: "limits/nvidia.com/gpu",
+											FieldRef: &coreV1.ObjectFieldSelector{
+												FieldPath: "spec.containers[?(@.name=='df-container')].resources.limits.nvidia.com/gpu",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		}}
