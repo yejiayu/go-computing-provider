@@ -332,7 +332,6 @@ func (d *Deploy) YamlToK8s() {
 		}
 		d.DeployName = createDeployment.GetName()
 		updateJobStatus(d.jobUuid, models.JobPullImage)
-		logs.GetLogger().Infof("Created deployment: %s", createDeployment.GetObjectMeta().GetName())
 
 		serviceHost, err := d.deployK8sResource(cr.Ports[0].ContainerPort)
 		if err != nil {
