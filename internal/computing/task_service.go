@@ -33,7 +33,7 @@ func NewScheduleTask() *ScheduleTask {
 
 func (s *ScheduleTask) Run() {
 	go func() {
-		ticker := time.NewTicker(30 * time.Minute)
+		ticker := time.NewTicker(3 * time.Minute)
 		for {
 			select {
 			case <-ticker.C:
@@ -60,10 +60,12 @@ func (s *ScheduleTask) Run() {
 		select {
 		case job := <-deployingChan:
 			s.TaskMap.Store(job.Uuid, &job)
-		case <-time.After(15 * time.Second):
+		case <-time.After(3 * time.Second):
+			fmt.Println("start report task status")
 			s.TaskMap.Range(func(key, value any) bool {
 				jobUuid := key.(string)
 				job := value.(*models2.Job)
+				fmt.Printf("jobUuid: %s, status: %s \n", jobUuid, job.Status)
 				if !reportJobStatus(jobUuid, job.Status) {
 					job.Count = 0
 					s.TaskMap.Store(job.Uuid, job)
