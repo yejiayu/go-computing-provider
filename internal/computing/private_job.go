@@ -57,6 +57,14 @@ func ReceivePrivateJob(c *gin.Context) {
 		return
 	}
 
+	if jobData.Config.GPU != 0 && len(strings.TrimSpace(jobData.Config.GPUModel)) == 0 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing config.gpu_model field"))
+	}
+
+	if jobData.Config.GPU == 0 && len(strings.TrimSpace(jobData.Config.GPUModel)) != 0 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing config.gpu field"))
+	}
+
 	//cpRepoPath, _ := os.LookupEnv("CP_PATH")
 	//nodeID := GetNodeId(cpRepoPath)
 	//
