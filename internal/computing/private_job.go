@@ -422,7 +422,7 @@ func checkResourceAvailableForPrivate(cpu, memory, storage int, gpuModel string,
 		needCpu := hardwareDetail.Cpu.Quantity
 		needMemory := float64(hardwareDetail.Memory.Quantity)
 		needStorage := float64(hardwareDetail.Storage.Quantity)
-		logs.GetLogger().Infof("checkResourceAvailableForPrivate: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
+		logs.GetLogger().Infof("checkResourceAvailableForPrivate: needCpu: %d, needMemory: %.2f, needStorage: %.2f, gpuName: %s, gpuNum: %d", needCpu, needMemory, needStorage, gpuModel, gpuNum)
 		logs.GetLogger().Infof("checkResourceAvailableForPrivate: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
 		if needCpu <= remainderCpu && needMemory <= remainderMemory && needStorage <= remainderStorage {
 			if taskType == "CPU" {
