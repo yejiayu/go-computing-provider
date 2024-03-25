@@ -1125,7 +1125,7 @@ func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string
 		return ""
 	}
 
-	deploy := NewDeploy(jobUuid, hostName, walletAddress, spaceHardware.Description, int64(duration), taskUuid)
+	deploy := NewDeploy(jobUuid, hostName, walletAddress, spaceHardware.Description, int64(duration), taskUuid, constants.SPACE_TYPE_PUBLIC)
 	deploy.WithSpaceInfo(spaceUuid, spaceName)
 	deploy.WithGpuProductName(gpuProductName)
 
@@ -1487,7 +1487,7 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 	}
 
 	args := append([]interface{}{key}, "wallet_address", "space_name", "expire_time", "space_uuid", "job_uuid",
-		"task_type", "deploy_name", "hardware", "url", "task_uuid")
+		"task_type", "deploy_name", "hardware", "url", "task_uuid", "space_type")
 	valuesStr, err := redis.Strings(redisConn.Do("HMGET", args...))
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
@@ -1505,6 +1505,7 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 		hardware      string
 		url           string
 		taskUuid      string
+		spaceType     string
 	)
 
 	if len(valuesStr) >= 3 {
@@ -1518,6 +1519,7 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 		hardware = valuesStr[7]
 		url = valuesStr[8]
 		taskUuid = valuesStr[9]
+		spaceType = valuesStr[10]
 		expireTime, err = strconv.ParseInt(strings.TrimSpace(expireTimeStr), 10, 64)
 		if err != nil {
 			logs.GetLogger().Errorf("Failed convert time str: [%s], error: %+v", expireTimeStr, err)
@@ -1536,6 +1538,7 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 		Hardware:      hardware,
 		Url:           url,
 		TaskUuid:      taskUuid,
+		SpaceType:     spaceType,
 	}, nil
 }
 

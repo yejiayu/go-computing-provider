@@ -31,3 +31,6 @@ const UBI_TASK_FAILED_STATUS = "failed"
 
 const CPU_AMD = "AMD"
 const CPU_INTEL = "INTEL"
+
+const SPACE_TYPE_PRIVATE = "private"
+const SPACE_TYPE_PUBLIC = "public"

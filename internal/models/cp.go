@@ -119,6 +119,7 @@ type CacheSpaceDetail struct {
 	Hardware      string
 	Url           string
 	TaskUuid      string
+	SpaceType     string
 }
 
 type UBITaskReq struct {

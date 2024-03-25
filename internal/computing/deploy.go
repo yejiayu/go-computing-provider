@@ -44,11 +44,12 @@ type Deploy struct {
 	taskUuid          string
 	gpuProductName    string
 
+	spaceType string
 	//====
 	sshKey string
 }
 
-func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration int64, taskUuid string) *Deploy {
+func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration int64, taskUuid string, spaceType string) *Deploy {
 
 	var taskType string
 	var hardwareDetail models.Resource
@@ -65,6 +66,7 @@ func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration i
 		k8sNameSpace:     constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(walletAddress),
 		hardwareDesc:     hardwareDesc,
 		taskUuid:         taskUuid,
+		spaceType:        spaceType,
 	}
 }
 
@@ -668,6 +670,7 @@ func (d *Deploy) watchContainerRunningTime() {
 		"hardware":       d.hardwareDesc,
 		"url":            fmt.Sprintf("https://%s", d.hostName),
 		"task_uuid":      d.taskUuid,
+		"space_type":     d.spaceType,
 	}
 
 	for key, val := range fields {

@@ -179,7 +179,7 @@ func DeployPrivateTask(name string, logHost string, duration int, taskUuid strin
 	}
 	_, _ = conn.Do("HSET", fullArgs...)
 
-	deploy := NewDeploy(spaceUuid, "", walletAddress, "", int64(duration), taskUuid)
+	deploy := NewDeploy(spaceUuid, "", walletAddress, "", int64(duration), taskUuid, constants.SPACE_TYPE_PRIVATE)
 	deploy.WithSpaceInfo(spaceUuid, name)
 	deploy.WithGpuProductName(gpuProductName)
 	deploy.WithHardware(cpu, memory, storage, gpModel, gpuNum)
