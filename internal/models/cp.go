@@ -187,7 +187,7 @@ type Config struct {
 
 type PrivateJobResp struct {
 	UUID         string `json:"uuid"`
-	ResultURI    string `json:"result_uri"`
+	ResultURI    string `json:"result_uri,omitempty"`
 	RealURI      string `json:"real_uri,omitempty"`
 	UpdatedAt    int64  `json:"updated_at,omitempty"`
 	ContainerLog string `json:"container_log,omitempty"`
