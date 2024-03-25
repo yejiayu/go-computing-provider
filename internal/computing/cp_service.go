@@ -345,6 +345,9 @@ func ReNewJob(c *gin.Context) {
 			"task_type":      spaceDetail.TaskType,
 			"deploy_name":    spaceDetail.DeployName,
 			"hardware":       spaceDetail.Hardware,
+			"url":            spaceDetail.Url,
+			"task_uuid":      spaceDetail.TaskUuid,
+			"space_type":     spaceDetail.SpaceType,
 		}
 
 		for key, val := range fields {

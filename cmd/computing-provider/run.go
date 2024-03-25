@@ -90,8 +90,8 @@ func cpManager(router *gin.RouterGroup) {
 	router.POST("/cp/receive/ubi", computing.ReceiveUbiProof)
 
 	router.POST("/cp/private", computing.ReceivePrivateJob)
-	router.POST("/cp/private/extend", computing.DoUbiTask)
-	router.DELETE("/cp/private/terminate", computing.ReceiveUbiProof)
+	router.POST("/cp/private/extend", computing.ExtendJob)
+	router.DELETE("/cp/private/terminate/:task_uuid", computing.TerminateJob)
 
 }
 

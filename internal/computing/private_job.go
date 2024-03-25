@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/filswan/go-swan-lib/logs"
 	"github.com/gin-gonic/gin"
+	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
@@ -106,6 +107,133 @@ func ReceivePrivateJob(c *gin.Context) {
 	privateJob.UpdatedAt = time.Now().Unix()
 	logs.GetLogger().Infof("submit private job detail: %+v", jobData)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse(privateJob))
+}
+
+func ExtendJob(c *gin.Context) {
+	var jobData struct {
+		Uuid     string `json:"uuid"`
+		Duration int    `json:"duration"`
+	}
+
+	if err := c.ShouldBindJSON(&jobData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	logs.GetLogger().Infof("extend private Job received: %+v", jobData)
+
+	if strings.TrimSpace(jobData.Uuid) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: uuid"})
+		return
+	}
+
+	if jobData.Duration == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: duration"})
+		return
+	}
+
+	conn := redisPool.Get()
+	prefix := constants.REDIS_SPACE_PREFIX + "*"
+	keys, err := redis.Strings(conn.Do("KEYS", prefix))
+	if err != nil {
+		logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
+		return
+	}
+
+	var spaceDetail models.CacheSpaceDetail
+	for _, key := range keys {
+		jobMetadata, err := RetrieveJobMetadata(key)
+		if err != nil {
+			logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
+			return
+		}
+		if strings.EqualFold(jobMetadata.TaskUuid, jobData.Uuid) {
+			spaceDetail = jobMetadata
+			break
+		}
+	}
+
+	redisKey := constants.REDIS_SPACE_PREFIX + spaceDetail.SpaceUuid
+	leftTime := spaceDetail.ExpireTime - time.Now().Unix()
+	if leftTime < 0 {
+		c.JSON(http.StatusOK, map[string]string{
+			"status":  "failed",
+			"message": "The job was terminated due to its expiration date",
+		})
+		return
+	} else {
+		fullArgs := []interface{}{redisKey}
+		fields := map[string]string{
+			"wallet_address": spaceDetail.WalletAddress,
+			"space_name":     spaceDetail.SpaceName,
+			"expire_time":    strconv.Itoa(int(time.Now().Unix()) + int(leftTime) + jobData.Duration),
+			"space_uuid":     spaceDetail.SpaceUuid,
+			"job_uuid":       spaceDetail.JobUuid,
+			"task_type":      spaceDetail.TaskType,
+			"deploy_name":    spaceDetail.DeployName,
+			"hardware":       spaceDetail.Hardware,
+			"url":            "",
+			"task_uuid":      spaceDetail.TaskUuid,
+			"space_type":     spaceDetail.SpaceType,
+		}
+
+		for key, val := range fields {
+			fullArgs = append(fullArgs, key, val)
+		}
+		redisConn := redisPool.Get()
+		defer redisConn.Close()
+
+		redisConn.Do("HSET", fullArgs...)
+		redisConn.Do("SET", spaceDetail.SpaceUuid, "wait-delete", "EX", int(leftTime)+jobData.Duration)
+	}
+	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
+}
+
+func TerminateJob(c *gin.Context) {
+	taskUuid := c.Param("task_uuid")
+	if taskUuid == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "task_uuid is required"})
+		return
+	}
+
+	conn := redisPool.Get()
+	prefix := constants.REDIS_SPACE_PREFIX + "*"
+	keys, err := redis.Strings(conn.Do("KEYS", prefix))
+	if err != nil {
+		logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
+		return
+	}
+
+	var jobDetail models.CacheSpaceDetail
+	for _, key := range keys {
+		jobMetadata, err := RetrieveJobMetadata(key)
+		if err != nil {
+			logs.GetLogger().Errorf("Failed get redis key data for , key: %s, error: %+v", key, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
+			return
+		}
+		if strings.EqualFold(jobMetadata.TaskUuid, taskUuid) {
+			jobDetail = jobMetadata
+			break
+		}
+	}
+
+	if jobDetail.WalletAddress == "" {
+		c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
+		return
+	}
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				logs.GetLogger().Errorf("task_uuid: %s, delete space request failed, error: %+v", taskUuid, err)
+				return
+			}
+		}()
+		k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobDetail.WalletAddress)
+		deleteJob(k8sNameSpace, jobDetail.SpaceUuid)
+	}()
+
+	c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
 }
 
 func submitPrivateJob(jobData *models.PrivateJobResp) error {
