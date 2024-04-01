@@ -22,11 +22,12 @@ var ubiTaskCmd = &cli.Command{
 	Name:  "ubi-task",
 	Usage: "Manage ubi tasks",
 	Subcommands: []*cli.Command{
-		ubiTaskList,
+		ubiTaskListCmd,
+		daemonCmd,
 	},
 }
 
-var ubiTaskList = &cli.Command{
+var ubiTaskListCmd = &cli.Command{
 	Name:  "list",
 	Usage: "List ubi task",
 	Flags: []cli.Flag{
@@ -117,6 +118,8 @@ var ubiTaskList = &cli.Command{
 
 	},
 }
+
+var daemonCmd = &cli.Command{}
 
 func getReward(nodeId, taskId string) (string, error) {
 	var taskInfo TaskInfo

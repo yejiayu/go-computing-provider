@@ -784,7 +784,11 @@ func DoUbiTask(c *gin.Context) {
 		var err error
 		defer func() {
 			key := constants.REDIS_UBI_C2_PERFIX + strconv.Itoa(ubiTask.ID)
-			ubiTaskRun, _ := RetrieveUbiTaskMetadata(key)
+			ubiTaskRun, err := RetrieveUbiTaskMetadata(key)
+			if err != nil {
+				logs.GetLogger().Errorf("get ubi task detail from db failed, ubiTaskId: %s, error: %+v", key, err)
+				return
+			}
 			if ubiTaskRun.TaskId == "" {
 				ubiTaskRun = new(models.CacheUbiTaskDetail)
 				ubiTaskRun.TaskId = ubiTaskToRedis.TaskId
