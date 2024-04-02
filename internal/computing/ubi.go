@@ -619,6 +619,9 @@ func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, in
 		return false, "", 0, 0, err
 	}
 
+	logs.GetLogger().Infof("containerLogStr: %s", containerLogStr)
+	logs.GetLogger().Infof("containerLogStr: %+v", nodeResource)
+
 	needCpu, _ := strconv.ParseInt(resource.CPU, 10, 64)
 	var needMemory, needStorage float64
 	if len(strings.Split(strings.TrimSpace(resource.Memory), " ")) > 0 {
