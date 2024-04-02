@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"io"
@@ -326,4 +327,33 @@ func (ds *DockerService) CleanResource() {
 		logs.GetLogger().Errorf("Failed delete unused container, error: %+v", err)
 		return
 	}
+}
+
+func (ds *DockerService) ContainerCreateAndStart(config *container.Config, hostConfig *container.HostConfig, containerName string) error {
+	ctx := context.Background()
+	resp, err := ds.c.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
+	if err != nil {
+		return err
+	}
+	return ds.c.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
+}
+
+func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
+	ctx := context.Background()
+	logReader, err := ds.c.ContainerLogs(ctx, containerName, types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     false,
+		Tail:       "1",
+	})
+	if err != nil {
+		return "", err
+	}
+	defer logReader.Close()
+	buf := new(strings.Builder)
+	_, err = io.Copy(buf, logReader)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }

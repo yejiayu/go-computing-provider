@@ -86,8 +86,8 @@ func cpManager(router *gin.RouterGroup) {
 
 	router.GET("/cp", computing.StatisticalSources)
 	router.GET("/cp/info", computing.GetCpInfo)
-	router.POST("/cp/ubi", computing.DoUbiTask)
-	router.POST("/cp/receive/ubi", computing.ReceiveUbiProof)
+	router.POST("/cp/ubi", computing.DoUbiTaskForK8s)
+	router.POST("/cp/receive/ubi", computing.ReceiveUbiProofForK8s)
 
 	router.POST("/cp/private", computing.ReceivePrivateJob)
 	router.POST("/cp/private/extend", computing.ExtendJob)

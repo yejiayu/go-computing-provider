@@ -4,18 +4,24 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
+	"github.com/gin-contrib/pprof"
+	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
+	cors "github.com/itsjamie/gin-cors"
 	"github.com/olekukonko/tablewriter"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
 	"github.com/swanchain/go-computing-provider/internal/computing"
+	"github.com/swanchain/go-computing-provider/internal/initializer"
 	"github.com/swanchain/go-computing-provider/internal/models"
+	"github.com/swanchain/go-computing-provider/util"
 	"github.com/urfave/cli/v2"
 	"io"
 	"net/http"
 	"os"
 	"sort"
 	"strconv"
+	"time"
 )
 
 var ubiTaskCmd = &cli.Command{
@@ -119,7 +125,47 @@ var ubiTaskListCmd = &cli.Command{
 	},
 }
 
-var daemonCmd = &cli.Command{}
+var daemonCmd = &cli.Command{
+	Name:  "daemon",
+	Usage: "Start a cp process",
+	Action: func(cctx *cli.Context) error {
+		logs.GetLogger().Info("Start in computing provider mode.")
+
+		cpRepoPath := cctx.String(FlagCpRepo)
+		os.Setenv("CP_PATH", cpRepoPath)
+		initializer.ProjectInit(cpRepoPath)
+
+		r := gin.Default()
+		r.Use(cors.Middleware(cors.Config{
+			Origins:         "*",
+			Methods:         "GET, PUT, POST, DELETE",
+			RequestHeaders:  "Origin, Authorization, Content-Type",
+			ExposedHeaders:  "",
+			MaxAge:          50 * time.Second,
+			ValidateHeaders: false,
+		}))
+		pprof.Register(r)
+
+		v1 := r.Group("/api/v1")
+		router := v1.Group("/computing")
+		router.GET("/cp/info", computing.GetCpInfo)
+		router.POST("/cp/ubi", computing.DoUbiTaskForDocker)
+		router.POST("/cp/receive/ubi", computing.ReceiveUbiProofForDocker)
+
+		shutdownChan := make(chan struct{})
+		httpStopper, err := util.ServeHttp(r, "cp-api", ":"+strconv.Itoa(conf.GetConfig().API.Port))
+		if err != nil {
+			logs.GetLogger().Fatal("failed to start cp-api endpoint: %s", err)
+		}
+
+		finishCh := util.MonitorShutdown(shutdownChan,
+			util.ShutdownHandler{Component: "cp-api", StopFunc: httpStopper},
+		)
+		<-finishCh
+
+		return nil
+	},
+}
 
 func getReward(nodeId, taskId string) (string, error) {
 	var taskInfo TaskInfo
