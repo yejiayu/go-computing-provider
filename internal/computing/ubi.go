@@ -633,6 +633,8 @@ func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, in
 	remainderMemory, _ := strconv.ParseFloat(nodeResource.Memory.Free, 64)
 	remainderStorage, _ := strconv.ParseFloat(nodeResource.Storage.Free, 64)
 
+	logs.GetLogger().Infof("checkResourceForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
+	logs.GetLogger().Infof("checkResourceForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
 	if needCpu <= remainderCpu && needMemory <= remainderMemory && needStorage <= remainderStorage {
 		return true, nodeResource.CpuName, needCpu, int64(needMemory), nil
 	}
