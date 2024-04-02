@@ -590,7 +590,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 			Tty:          true,
 		}
 		hostConfig := &container.HostConfig{
-			Binds: []string{"/var/tmp/filecoin-proof-parameters:/var/tmp/filecoin-proof-parameters"},
+			Binds: []string{"/data/filecoin-proof-parameters:/var/tmp/filecoin-proof-parameters"},
 			Resources: container.Resources{
 				Memory: needMemory * 1024 * 1024 * 1024,
 			},
