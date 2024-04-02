@@ -633,8 +633,14 @@ func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, in
 	}
 
 	remainderCpu, _ := strconv.ParseInt(nodeResource.Cpu.Free, 10, 64)
-	remainderMemory, _ := strconv.ParseFloat(nodeResource.Memory.Free, 64)
-	remainderStorage, _ := strconv.ParseFloat(nodeResource.Storage.Free, 64)
+
+	var remainderMemory, remainderStorage float64
+	if len(strings.Split(strings.TrimSpace(nodeResource.Memory.Free), " ")) > 0 {
+		remainderMemory, _ = strconv.ParseFloat(strings.Split(strings.TrimSpace(nodeResource.Memory.Free), " ")[0], 64)
+	}
+	if len(strings.Split(strings.TrimSpace(nodeResource.Storage.Free), " ")) > 0 {
+		needStorage, err = strconv.ParseFloat(strings.Split(strings.TrimSpace(nodeResource.Storage.Free), " ")[0], 64)
+	}
 
 	logs.GetLogger().Infof("checkResourceForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
 	logs.GetLogger().Infof("checkResourceForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
