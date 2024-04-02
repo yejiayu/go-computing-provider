@@ -500,7 +500,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 
 	c2GpuConfig := envVars["RUST_GPU_TOOLS_CUSTOM_GPU"]
 	c2GpuConfig = convertGpuName(strings.TrimSpace(c2GpuConfig))
-	suffice, architecture, needCpu, needMemory, err := checkResourceForUbi(ubiTask.Resource)
+	suffice, architecture, _, needMemory, err := checkResourceForUbi(ubiTask.Resource)
 	if err != nil {
 		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
 		SaveUbiTaskMetadata(ubiTaskToRedis)
@@ -592,8 +592,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		hostConfig := &container.HostConfig{
 			Binds: []string{"/var/tmp/filecoin-proof-parameters:/var/tmp/filecoin-proof-parameters"},
 			Resources: container.Resources{
-				CPUQuota: needCpu,
-				Memory:   needMemory * 1024 * 1024 * 1024,
+				Memory: needMemory * 1024 * 1024 * 1024,
 			},
 		}
 
