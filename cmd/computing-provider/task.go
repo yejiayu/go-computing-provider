@@ -43,7 +43,7 @@ var taskList = &cli.Command{
 		if !exit {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-		if err := conf.InitConfig(cpPath); err != nil {
+		if err := conf.InitConfig(cpPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
@@ -136,7 +136,7 @@ var taskDetail = &cli.Command{
 		if !exit {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-		if err := conf.InitConfig(cpPath); err != nil {
+		if err := conf.InitConfig(cpPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 		computing.GetRedisClient()
@@ -196,7 +196,7 @@ var taskDelete = &cli.Command{
 		if !exit {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-		if err := conf.InitConfig(cpPath); err != nil {
+		if err := conf.InitConfig(cpPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 		computing.GetRedisClient()

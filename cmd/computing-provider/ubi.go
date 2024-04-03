@@ -3,12 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
 	cors "github.com/itsjamie/gin-cors"
 	"github.com/olekukonko/tablewriter"
+	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
 	"github.com/swanchain/go-computing-provider/internal/computing"
@@ -48,7 +50,7 @@ var ubiTaskListCmd = &cli.Command{
 		if !exit {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-		if err := conf.InitConfig(cpPath); err != nil {
+		if err := conf.InitConfig(cpPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
@@ -133,7 +135,33 @@ var daemonCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		initializer.ProjectInit(cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
+			logs.GetLogger().Fatal(err)
+		}
+
+		chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
+		if err != nil {
+			return err
+		}
+		client, err := ethclient.Dial(chainRpc)
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		cpStub, err := account.NewAccountStub(client)
+		if err != nil {
+			return err
+		}
+		cpAccount, err := cpStub.GetCpAccountInfo()
+		if err != nil {
+			return fmt.Errorf("get cpAccount from chain failed, error: %v", err)
+		}
+
+		conf.GetConfig().HUB.WalletAddress = cpAccount.OwnerAddress
+		nodeId := computing.GetNodeId(cpRepoPath)
+		initializer.SendHeartbeats(nodeId)
+		computing.ReportHardwareResource(nodeId)
 
 		r := gin.Default()
 		r.Use(cors.Middleware(cors.Config{
@@ -150,7 +178,7 @@ var daemonCmd = &cli.Command{
 		router := v1.Group("/computing")
 		router.GET("/cp/info", computing.GetCpInfo)
 		router.POST("/cp/ubi", computing.DoUbiTaskForDocker)
-		router.POST("/cp/receive/ubi", computing.ReceiveUbiProofForDocker)
+		router.POST("/cp/docker/receive/ubi", computing.ReceiveUbiProofForDocker)
 
 		shutdownChan := make(chan struct{})
 		httpStopper, err := util.ServeHttp(r, "cp-api", ":"+strconv.Itoa(conf.GetConfig().API.Port))

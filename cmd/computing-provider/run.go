@@ -104,7 +104,7 @@ var infoCmd = &cli.Command{
 		if !exit {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-		if err := conf.InitConfig(cpPath); err != nil {
+		if err := conf.InitConfig(cpPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
@@ -207,7 +207,7 @@ var initCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 
@@ -357,7 +357,7 @@ var changeMultiAddressCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 
@@ -440,7 +440,7 @@ var changeOwnerAddressCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 
@@ -523,7 +523,7 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 
@@ -610,7 +610,7 @@ var changeUbiFlagCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 

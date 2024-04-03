@@ -94,11 +94,16 @@ func GetRpcByName(rpcName string) (string, error) {
 	return rpc, nil
 }
 
-func InitConfig(cpRepoPath string) error {
+func InitConfig(cpRepoPath string, isSeparate bool) error {
 	configFile := filepath.Join(cpRepoPath, "config.toml")
-
-	if metaData, err := toml.DecodeFile(configFile, &config); err != nil {
+	metaData, err := toml.DecodeFile(configFile, &config)
+	if err != nil {
 		return fmt.Errorf("failed load config file, path: %s, error: %w", configFile, err)
+	}
+	if isSeparate {
+		if !requiredFieldsAreGivenForSeparate(metaData) {
+			log.Fatal("Required fields not given")
+		}
 	} else {
 		if !requiredFieldsAreGiven(metaData) {
 			log.Fatal("Required fields not given")
@@ -115,13 +120,12 @@ func requiredFieldsAreGiven(metaData toml.MetaData) bool {
 	requiredFields := [][]string{
 		{"API"},
 		{"LOG"},
+		{"UBI"},
 		{"HUB"},
 		{"MCS"},
 		{"Registry"},
-
-		{"UBI", "UbiTask"},
-		{"UBI", "UbiEnginePk"},
-		{"UBI", "UbiUrl"},
+		{"RPC"},
+		{"CONTRACT"},
 
 		{"API", "MultiAddress"},
 		{"API", "Domain"},
@@ -129,6 +133,10 @@ func requiredFieldsAreGiven(metaData toml.MetaData) bool {
 
 		{"LOG", "CrtFile"},
 		{"LOG", "KeyFile"},
+
+		{"UBI", "UbiTask"},
+		{"UBI", "UbiEnginePk"},
+		{"UBI", "UbiUrl"},
 
 		{"HUB", "ServerUrl"},
 		{"HUB", "AccessToken"},
@@ -139,6 +147,38 @@ func requiredFieldsAreGiven(metaData toml.MetaData) bool {
 		{"MCS", "BucketName"},
 		{"MCS", "Network"},
 		{"MCS", "FileCachePath"},
+
+		{"RPC", "SWAN_TESTNET"},
+
+		{"CONTRACT", "SWAN_CONTRACT"},
+		{"CONTRACT", "SWAN_COLLATERAL_CONTRACT"},
+	}
+
+	for _, v := range requiredFields {
+		if !metaData.IsDefined(v...) {
+			log.Fatal("Required fields ", v)
+		}
+	}
+
+	return true
+}
+
+func requiredFieldsAreGivenForSeparate(metaData toml.MetaData) bool {
+	requiredFields := [][]string{
+		{"API"},
+		{"UBI"},
+		{"HUB"},
+
+		{"API", "MultiAddress"},
+		{"API", "RedisUrl"},
+
+		{"UBI", "UbiTask"},
+		{"UBI", "UbiEnginePk"},
+		{"UBI", "UbiUrl"},
+
+		{"HUB", "ServerUrl"},
+		{"HUB", "AccessToken"},
+		{"HUB", "BidMode"},
 
 		{"RPC", "SWAN_TESTNET"},
 

@@ -490,16 +490,6 @@ func DoUbiTaskForDocker(c *gin.Context) {
 	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
 	SaveUbiTaskMetadata(ubiTaskToRedis)
 
-	var envFilePath string
-	envFilePath = filepath.Join(os.Getenv("CP_PATH"), "fil-c2.env")
-	envVars, err := godotenv.Read(envFilePath)
-	if err != nil {
-		logs.GetLogger().Errorf("reading fil-c2-env.env failed, error: %v", err)
-		return
-	}
-
-	c2GpuConfig := envVars["RUST_GPU_TOOLS_CUSTOM_GPU"]
-	c2GpuConfig = convertGpuName(strings.TrimSpace(c2GpuConfig))
 	suffice, architecture, _, needMemory, err := checkResourceForUbi(ubiTask.Resource)
 	if err != nil {
 		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
@@ -560,27 +550,36 @@ func DoUbiTaskForDocker(c *gin.Context) {
 			return
 		}
 
-		receiveUrl := fmt.Sprintf("http://%d/api/v1/computing/cp/receive/ubi", localIp, conf.GetConfig().API.Port)
+		receiveUrl := fmt.Sprintf("http://%s:%d/api/v1/computing/cp/docker/receive/ubi", localIp, conf.GetConfig().API.Port)
 		execCommand := []string{"ubi-bench", "c2"}
 		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
 
-		//filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
-		if gpuFlag == "0" {
-			delete(envVars, "RUST_GPU_TOOLS_CUSTOM_GPU")
-			envVars["BELLMAN_NO_GPU"] = "1"
-		}
-
-		delete(envVars, "FIL_PROOFS_PARAMETER_CACHE")
 		var env = []string{"RECEIVE_PROOF_URL=" + receiveUrl}
-		for k, v := range envVars {
-			env = append(env, fmt.Sprintf("%s=%s", k, v))
-		}
 		env = append(env, "TASKID="+strconv.Itoa(ubiTask.ID))
 		env = append(env, "TASK_TYPE="+strconv.Itoa(ubiTask.Type))
 		env = append(env, "ZK_TYPE="+ubiTask.ZkType)
-		env = append(env, "NAME_SPACE=docker-ubi")
+		env = append(env, "NAME_SPACE=docker-ubi-task")
 		env = append(env, "PARAM_URL="+ubiTask.InputParam)
+		if gpuFlag == "0" {
+			env = append(env, "BELLMAN_NO_GPU="+ubiTask.InputParam)
+		} else {
+			gpuEnv, ok := os.LookupEnv("RUST_GPU_TOOLS_CUSTOM_GPU")
+			if ok {
+				env = append(env, "RUST_GPU_TOOLS_CUSTOM_GPU="+gpuEnv)
+			}
+		}
 
+		filC2Param, ok := os.LookupEnv("FIL_PROOFS_PARAMETER_CACHE")
+		if !ok {
+			filC2Param = "/var/tmp/filecoin-proof-parameters"
+		}
+
+		hostConfig := &container.HostConfig{
+			Binds: []string{fmt.Sprintf("%s:/var/tmp/filecoin-proof-parameters", filC2Param)},
+			Resources: container.Resources{
+				Memory: needMemory * 1024 * 1024 * 1024,
+			},
+		}
 		containerConfig := &container.Config{
 			Image:        ubiTaskImage,
 			Cmd:          execCommand,
@@ -589,19 +588,12 @@ func DoUbiTaskForDocker(c *gin.Context) {
 			AttachStderr: true,
 			Tty:          true,
 		}
-		hostConfig := &container.HostConfig{
-			Binds: []string{"/data/filecoin-proof-parameters:/var/tmp/filecoin-proof-parameters"},
-			Resources: container.Resources{
-				Memory: needMemory * 1024 * 1024 * 1024,
-			},
-		}
 
 		dockerService := NewDockerService()
 		if err = dockerService.ContainerCreateAndStart(containerConfig, hostConfig, JobName+generateString(5)); err != nil {
 			logs.GetLogger().Errorf("create ubi task container failed, error: %v", err)
 		}
 	}()
-
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
@@ -617,9 +609,6 @@ func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, in
 		logs.GetLogger().Error("collect host hardware resource failed, error: %+v", err)
 		return false, "", 0, 0, err
 	}
-
-	logs.GetLogger().Infof("containerLogStr: %s", containerLogStr)
-	logs.GetLogger().Infof("containerLogStr: %+v", nodeResource)
 
 	needCpu, _ := strconv.ParseInt(resource.CPU, 10, 64)
 	var needMemory, needStorage float64
@@ -813,4 +802,33 @@ func reportClusterResourceForDocker(location, nodeId string) {
 		return
 	}
 	sendResourceToUb(clusterSource)
+}
+
+func ReportHardwareResource(nodeId string) {
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				logs.GetLogger().Errorf("Failed report cp resource's summary, error: %+v", err)
+			}
+		}()
+
+		location, err := getLocation()
+		if err != nil {
+			logs.GetLogger().Error(err)
+		}
+
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			reportClusterResourceForDocker(location, nodeId)
+		}
+
+	}()
+
+	go func() {
+		ticker := time.NewTicker(50 * time.Minute)
+		for range ticker.C {
+			NewDockerService().CleanResource()
+		}
+	}()
 }

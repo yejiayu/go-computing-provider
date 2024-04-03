@@ -48,19 +48,20 @@ func sendHeartbeat(nodeId string) {
 	}
 }
 
-func sendHeartbeats(nodeId string) {
+func SendHeartbeats(nodeId string) {
 	ticker := time.NewTicker(15 * time.Second)
 	for range ticker.C {
 		sendHeartbeat(nodeId)
 	}
 }
+
 func ProjectInit(cpRepoPath string) {
-	if err := conf.InitConfig(cpRepoPath); err != nil {
+	if err := conf.InitConfig(cpRepoPath, false); err != nil {
 		logs.GetLogger().Fatal(err)
 	}
 	nodeID := computing.InitComputingProvider(cpRepoPath)
 	// Start sending heartbeats
-	go sendHeartbeats(nodeID)
+	go SendHeartbeats(nodeID)
 
 	go computing.NewScheduleTask().Run()
 
