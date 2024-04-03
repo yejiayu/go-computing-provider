@@ -343,6 +343,7 @@ func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 	logReader, err := ds.c.ContainerLogs(ctx, containerName, types.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
+		Timestamps: false,
 		Follow:     false,
 		Tail:       "1",
 	})
