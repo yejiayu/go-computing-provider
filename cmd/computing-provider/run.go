@@ -104,16 +104,19 @@ var infoCmd = &cli.Command{
 		if !exit {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-		if err := conf.InitConfig(cpPath, false); err != nil {
+		if err := conf.InitConfig(cpPath, true); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
 		localNodeId := computing.GetNodeId(cpPath)
 
 		k8sService := computing.NewK8sService()
-		count, err := k8sService.GetDeploymentActiveCount()
-		if err != nil {
-			return err
+		var count int
+		var err error
+		if k8sService.Version == "" {
+			count = 0
+		} else {
+			count, _ = k8sService.GetDeploymentActiveCount()
 		}
 
 		chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
