@@ -338,7 +338,7 @@ func (ds *DockerService) ContainerCreateAndStart(config *container.Config, hostC
 	return ds.c.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
 }
 
-func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
+func (ds *DockerService) ContainerLogs(containerName string) ([]byte, error) {
 	ctx := context.Background()
 	logReader, err := ds.c.ContainerLogs(ctx, containerName, types.ContainerLogsOptions{
 		ShowStdout: true,
@@ -347,15 +347,8 @@ func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 		Tail:       "1",
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer logReader.Close()
-	logBytes, err := io.ReadAll(logReader)
-	if err != nil {
-		return "", err
-	}
-
-	var dd = `\x02\x00\x00\x00\x00\x00\x02\xe0`
-	result := strings.ReplaceAll(string(logBytes), dd, "")
-	return result, nil
+	return io.ReadAll(logReader)
 }
