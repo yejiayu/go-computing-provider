@@ -761,6 +761,7 @@ func reportClusterResourceForDocker(location, nodeId string) {
 		return
 	}
 
+	logs.GetLogger().Infof("containerLogStr: %s", containerLogStr)
 	var nodeResource models.NodeResource
 	if err := json.Unmarshal([]byte(containerLogStr), &nodeResource); err != nil {
 		logs.GetLogger().Error("hardware info parse to json failed, error: %+v", err)
