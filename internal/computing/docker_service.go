@@ -355,6 +355,7 @@ func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 		return "", err
 	}
 
-	result := strings.ReplaceAll(string(logBytes), "\\x02\\x00\\x00\\x00\\x00\\x00\\x02\\xe0", "")
+	var dd = `\x02\x00\x00\x00\x00\x00\x02\xe0`
+	result := strings.ReplaceAll(string(logBytes), dd, "")
 	return result, nil
 }
