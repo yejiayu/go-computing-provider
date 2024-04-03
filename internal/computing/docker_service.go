@@ -355,6 +355,6 @@ func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 		return "", err
 	}
 
-	result, _ := strings.CutPrefix(string(logBytes), "\\x02\\x00\\x00\\x00\\x00\\x00\\x02\\xe0")
+	result := strings.ReplaceAll(string(logBytes), "\\x02\\x00\\x00\\x00\\x00\\x00\\x02\\xe0", "")
 	return result, nil
 }
