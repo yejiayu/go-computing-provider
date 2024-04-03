@@ -132,7 +132,6 @@ var daemonCmd = &cli.Command{
 	Usage: "Start a cp process",
 	Action: func(cctx *cli.Context) error {
 		logs.GetLogger().Info("Start in computing provider mode.")
-
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
@@ -160,7 +159,7 @@ var daemonCmd = &cli.Command{
 
 		conf.GetConfig().HUB.WalletAddress = cpAccount.OwnerAddress
 		nodeId := computing.GetNodeId(cpRepoPath)
-		initializer.SendHeartbeats(nodeId)
+		go initializer.SendHeartbeats(nodeId)
 		computing.ReportHardwareResource(nodeId)
 
 		r := gin.Default()
