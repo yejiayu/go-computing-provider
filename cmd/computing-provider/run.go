@@ -207,7 +207,7 @@ var initCmd = &cli.Command{
 
 		cpRepoPath := cctx.String(FlagCpRepo)
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath, false); err != nil {
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 

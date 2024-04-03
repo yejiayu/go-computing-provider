@@ -94,13 +94,13 @@ func GetRpcByName(rpcName string) (string, error) {
 	return rpc, nil
 }
 
-func InitConfig(cpRepoPath string, isSeparate bool) error {
+func InitConfig(cpRepoPath string, standalone bool) error {
 	configFile := filepath.Join(cpRepoPath, "config.toml")
 	metaData, err := toml.DecodeFile(configFile, &config)
 	if err != nil {
 		return fmt.Errorf("failed load config file, path: %s, error: %w", configFile, err)
 	}
-	if isSeparate {
+	if standalone {
 		if !requiredFieldsAreGivenForSeparate(metaData) {
 			log.Fatal("Required fields not given")
 		}
