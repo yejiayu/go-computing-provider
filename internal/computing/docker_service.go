@@ -354,5 +354,7 @@ func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(logBytes), nil
+
+	result, _ := strings.CutPrefix(string(logBytes), " \\x02\\x00\\x00\\x00\\x00\\x00\\x02\\xe0")
+	return result, nil
 }
