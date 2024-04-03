@@ -180,7 +180,7 @@ var daemonCmd = &cli.Command{
 		router.POST("/cp/docker/receive/ubi", computing.ReceiveUbiProofForDocker)
 
 		shutdownChan := make(chan struct{})
-		httpStopper, err := util.ServeHttp(r, "cp-api", ":"+strconv.Itoa(conf.GetConfig().API.Port))
+		httpStopper, err := util.ServeHttp(r, "cp-api", ":"+strconv.Itoa(conf.GetConfig().API.Port), false)
 		if err != nil {
 			logs.GetLogger().Fatal("failed to start cp-api endpoint: %s", err)
 		}
