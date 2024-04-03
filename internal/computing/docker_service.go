@@ -341,11 +341,7 @@ func (ds *DockerService) ContainerCreateAndStart(config *container.Config, hostC
 func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 	ctx := context.Background()
 	logReader, err := ds.c.ContainerLogs(ctx, containerName, types.ContainerLogsOptions{
-		ShowStdout: true,
-		ShowStderr: true,
-		Timestamps: false,
-		Follow:     false,
-		Tail:       "1",
+		Tail: "1",
 	})
 	if err != nil {
 		return "", err
