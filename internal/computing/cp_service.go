@@ -1152,7 +1152,7 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 }
 
 func SaveUbiTaskMetadata(ubiTask *models.CacheUbiTaskDetail) {
-	redisConn := redisPool.Get()
+	redisConn := GetRedisClient()
 	defer redisConn.Close()
 
 	key := constants.REDIS_UBI_C2_PERFIX + ubiTask.TaskId
@@ -1175,7 +1175,7 @@ func SaveUbiTaskMetadata(ubiTask *models.CacheUbiTaskDetail) {
 }
 
 func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
-	redisConn := redisPool.Get()
+	redisConn := GetRedisClient()
 	defer redisConn.Close()
 
 	exist, err := redis.Int(redisConn.Do("EXISTS", key))
