@@ -351,10 +351,9 @@ func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 		return "", err
 	}
 	defer logReader.Close()
-	buf := new(strings.Builder)
-	_, err = io.Copy(buf, logReader)
+	logBytes, err := io.ReadAll(logReader)
 	if err != nil {
 		return "", err
 	}
-	return buf.String(), nil
+	return string(logBytes), nil
 }
