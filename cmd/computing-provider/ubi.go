@@ -149,7 +149,7 @@ var daemonCmd = &cli.Command{
 			return fmt.Errorf("create docker-compose client failed, error: %v", err)
 		}
 
-		err = composeService.ServiceDown()
+		err = composeService.ServiceDown(dockerComposeContent)
 		if err != nil {
 			return fmt.Errorf("stop install-pre-dependency-env docker-compose failed, error: %v", err)
 		}
