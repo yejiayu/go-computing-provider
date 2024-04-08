@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -128,11 +129,30 @@ var ubiTaskListCmd = &cli.Command{
 	},
 }
 
+//go:embed docker-compose.yml
+var dockerComposeContent string
+
 var daemonCmd = &cli.Command{
 	Name:  "daemon",
 	Usage: "Start a cp process",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "multi-address",
+			Usage: "The multiAddress for libp2p(public ip)",
+		},
+	},
 	Action: func(cctx *cli.Context) error {
 		logs.GetLogger().Info("Start in computing provider mode.")
+
+		composeService, err := computing.NewComposeService()
+		if err != nil {
+			return fmt.Errorf("create docker-compose client failed, error: %v", err)
+		}
+
+		err = composeService.ServiceUp(dockerComposeContent)
+		if err != nil {
+			return fmt.Errorf("start install-pre-dependency-env docker-compose failed, error: %v", err)
+		}
 
 		cpRepoPath, exit := os.LookupEnv("CP_PATH")
 		if !exit {

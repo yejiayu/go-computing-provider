@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"io"
 	"log"
@@ -238,7 +239,7 @@ func (ds *DockerService) PushImage(imagesName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*6000)
 	defer cancel()
 
-	var authConfig = types.AuthConfig{
+	var authConfig = registry.AuthConfig{
 		ServerAddress: conf.GetConfig().Registry.ServerAddress,
 		Username:      conf.GetConfig().Registry.UserName,
 		Password:      conf.GetConfig().Registry.Password,
@@ -335,12 +336,12 @@ func (ds *DockerService) ContainerCreateAndStart(config *container.Config, hostC
 	if err != nil {
 		return err
 	}
-	return ds.c.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{})
+	return ds.c.ContainerStart(ctx, resp.ID, container.StartOptions{})
 }
 
 func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 	ctx := context.Background()
-	logReader, err := ds.c.ContainerLogs(ctx, containerName, types.ContainerLogsOptions{
+	logReader, err := ds.c.ContainerLogs(ctx, containerName, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     false,
