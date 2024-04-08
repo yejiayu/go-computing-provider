@@ -53,19 +53,20 @@ func (cas *ComposeApiService) ServiceUp(dockerComposeBody string) error {
 	})
 }
 
-func (cas *ComposeApiService) ServiceDown() error {
-	//project, err := loader.LoadWithContext(context.TODO(), comp_type.ConfigDetails{
-	//	ConfigFiles: []comp_type.ConfigFile{
-	//		{Filename: "docker-compose.yaml", Content: []byte(dockerComposeBody)},
-	//	},
-	//}, func(options *loader.Options) {
-	//	options.SetProjectName("install-pre-dependency-env", true)
-	//})
-	//
-	//if err != nil {
-	//	return err
-	//}
+func (cas *ComposeApiService) ServiceDown(dockerComposeBody string) error {
+	project, err := loader.LoadWithContext(context.TODO(), comp_type.ConfigDetails{
+		ConfigFiles: []comp_type.ConfigFile{
+			{Filename: "docker-compose.yaml", Content: []byte(dockerComposeBody)},
+		},
+	}, func(options *loader.Options) {
+		options.SetProjectName("install-pre-dependency-env", true)
+	})
+
+	if err != nil {
+		return err
+	}
 	return cas.Down(context.TODO(), "install-pre-dependency-env", api.DownOptions{
 		RemoveOrphans: true,
+		Project:       project,
 	})
 }
