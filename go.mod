@@ -5,7 +5,6 @@ go 1.19
 require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
-	github.com/compose-spec/compose-go v1.20.2
 	github.com/compose-spec/compose-go/v2 v2.0.2
 	github.com/docker/cli v26.0.0+incompatible
 	github.com/docker/compose/v2 v2.26.1

@@ -317,8 +317,6 @@ github.com/codegangsta/cli v1.20.0/go.mod h1:/qJNoX69yVSKu5o4jLyXAENLRyk1uhi7zkb
 github.com/codegangsta/inject v0.0.0-20150114235600-33e0aa1cb7c0/go.mod h1:4Zcjuz89kmFXt9morQgcfYZAYZ5n8WHjt81YYWIwtTM=
 github.com/codingsince1985/checksum v1.2.6 h1:UjCDls6oaRQeLPG14TvjLvOos2XL1qHdMl8uGMkzpi8=
 github.com/codingsince1985/checksum v1.2.6/go.mod h1:Pe5wfeiqzQC1qEXLWEFmxQ3W/OklJEJGiJO62graCJU=
-github.com/compose-spec/compose-go v1.20.2 h1:u/yfZHn4EaHGdidrZycWpxXgFffjYULlTbRfJ51ykjQ=
-github.com/compose-spec/compose-go v1.20.2/go.mod h1:+MdqXV4RA7wdFsahh/Kb8U0pAJqkg7mr4PM9tFKU8RM=
 github.com/compose-spec/compose-go/v2 v2.0.2 h1:zhXMV7VWI00Su0LdKt8/sxeXxcjLWhmGmpEyw+ZYznI=
 github.com/compose-spec/compose-go/v2 v2.0.2/go.mod h1:bEPizBkIojlQ20pi2vNluBa58tevvj0Y18oUSHPyfdc=
 github.com/containerd/cgroups v0.0.0-20201119153540-4cbc285b3327/go.mod h1:ZJeTFisyysqgcCdecO57Dj79RfL0LNeGiFUqLYQRYLE=
