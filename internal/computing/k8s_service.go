@@ -58,7 +58,7 @@ func NewK8sService() *K8sService {
 			flag.Parse()
 			config, err = clientcmd.BuildConfigFromFlags("", *kubeConfig)
 			if err != nil {
-				logs.GetLogger().Errorf("Failed create k8s config, error: %v", err)
+				logs.GetLogger().Errorf("Failed read k8s config, error: %v", err)
 				return
 			}
 		}

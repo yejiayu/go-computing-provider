@@ -659,10 +659,6 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 		}
 		ubiTask.Tx = submitUBIProofTx
 		SaveUbiTaskMetadata(ubiTask)
-		if strings.TrimSpace(c2Proof.NameSpace) != "" {
-			k8sService := NewK8sService()
-			k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), c2Proof.NameSpace, metaV1.DeleteOptions{})
-		}
 	}()
 
 	if err := c.ShouldBindJSON(&c2Proof); err != nil {

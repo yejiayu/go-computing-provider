@@ -1,6 +1,7 @@
 package initializer
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/swanchain/go-computing-provider/internal/computing"
 	"io/ioutil"
@@ -37,13 +38,21 @@ func sendHeartbeat(nodeId string) {
 		computing.Reconnect(nodeId)
 	} else {
 		data, err := ioutil.ReadAll(resp.Body)
-		if resp.StatusCode != http.StatusOK {
-			logs.GetLogger().Warningln("resp status:", resp.StatusCode, "error:", string(data), "retrying to connect to the Swan Hub server")
-			computing.Reconnect(nodeId)
-		}
 		if err != nil {
-			fmt.Println(err)
+			logs.GetLogger().Errorf("send heartbeat read response failed, error: %v", err)
 			return
+		}
+		if resp.StatusCode != http.StatusOK {
+			if resp.StatusCode == http.StatusNotFound {
+				var respData struct {
+					Message string `json:"message"`
+				}
+				_ = json.Unmarshal(data, &respData)
+				logs.GetLogger().Warningln("resp status:", resp.StatusCode, "error:", respData.Message, "retrying to connect to the Swan Hub server")
+			} else {
+				logs.GetLogger().Warningln("resp status:", resp.StatusCode, "error:", string(data), "retrying to connect to the Swan Hub server")
+			}
+			computing.Reconnect(nodeId)
 		}
 	}
 }

@@ -158,7 +158,8 @@ var daemonCmd = &cli.Command{
 		}
 
 		conf.GetConfig().HUB.WalletAddress = cpAccount.OwnerAddress
-		nodeId := computing.GetNodeId(cpRepoPath)
+
+		nodeId := computing.InitComputingProvider(cpRepoPath)
 		go initializer.SendHeartbeats(nodeId)
 		computing.ReportHardwareResource(nodeId)
 
