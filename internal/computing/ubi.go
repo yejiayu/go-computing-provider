@@ -725,6 +725,33 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
+func GetCpResource(c *gin.Context) {
+	location, err := getLocation()
+	if err != nil {
+		logs.GetLogger().Error(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed get location info"})
+		return
+	}
+
+	dockerService := NewDockerService()
+	containerLogStr, err := dockerService.ContainerLogs("resource-exporter")
+	if err != nil {
+		logs.GetLogger().Error("collect host hardware resource failed, error: %+v", err)
+		return
+	}
+
+	var nodeResource models.NodeResource
+	if err := json.Unmarshal([]byte(containerLogStr), &nodeResource); err != nil {
+		logs.GetLogger().Error("hardware info parse to json failed, error: %+v", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, models.ClusterResource{
+		Region:      location,
+		ClusterInfo: []*models.NodeResource{&nodeResource},
+	})
+}
+
 func getLocalIp() (string, error) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
