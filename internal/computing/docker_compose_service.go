@@ -46,10 +46,11 @@ func (cas *ComposeApiService) ServiceUp(dockerComposeBody string) error {
 		return err
 	}
 	return cas.Up(context.TODO(), project, api.UpOptions{
-		//Start: api.StartOptions{
-		//	Project: project,
-		//	Wait:    true,
-		//},
+		Start: api.StartOptions{
+			Project:  project,
+			Services: []string{"redis", "resource-exporter"},
+			Wait:     true,
+		},
 	})
 }
 
@@ -59,13 +60,13 @@ func (cas *ComposeApiService) ServiceDown(dockerComposeBody string) error {
 			{Filename: "docker-compose.yaml", Content: []byte(dockerComposeBody)},
 		},
 	}, func(options *loader.Options) {
-		options.SetProjectName("install-pre-dependency-env", true)
+		options.SetProjectName("stop-pre-dependency-env", true)
 	})
 
 	if err != nil {
 		return err
 	}
-	return cas.Down(context.TODO(), "install-pre-dependency-env", api.DownOptions{
+	return cas.Down(context.TODO(), "stop-pre-dependency-env", api.DownOptions{
 		RemoveOrphans: true,
 		Project:       project,
 	})
