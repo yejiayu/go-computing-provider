@@ -23,6 +23,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -132,7 +133,15 @@ var daemonCmd = &cli.Command{
 	Usage: "Start a cp process",
 	Action: func(cctx *cli.Context) error {
 		logs.GetLogger().Info("Start in computing provider mode.")
-		cpRepoPath := cctx.String(FlagCpRepo)
+
+		cpRepoPath, exit := os.LookupEnv("CP_PATH")
+		if !exit {
+			cpRepoPath = cctx.String(FlagCpRepo)
+			if len(strings.TrimSpace(cpRepoPath)) == 0 {
+				return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx or add --repo param")
+			}
+		}
+
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
