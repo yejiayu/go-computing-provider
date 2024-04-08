@@ -183,7 +183,10 @@ func reportClusterResource(location, nodeId string) {
 		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
 		return
 	}
-	sendResourceToUb(clusterSource)
+
+	if conf.GetConfig().HUB.BidMode == conf.BidMode_All || conf.GetConfig().HUB.BidMode == conf.BidMode_Private {
+		sendResourceToUb(clusterSource)
+	}
 }
 
 func sendResourceToUb(clusterSource models2.ClusterResource) {
@@ -212,7 +215,13 @@ func sendResourceToUb(clusterSource models2.ClusterResource) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		logs.GetLogger().Errorf("report cluster node resources to UBI failed, status code: %d", resp.StatusCode)
+		readAll, _ := io.ReadAll(resp.Body)
+		var respData struct {
+			Message string `json:"message"`
+		}
+		_ = json.Unmarshal(readAll, &respData)
+
+		logs.GetLogger().Errorf("report cluster node resources to UBI failed, status code: %d, message: %s", resp.StatusCode, respData.Message)
 		return
 	}
 
