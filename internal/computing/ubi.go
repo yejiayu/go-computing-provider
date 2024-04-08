@@ -797,7 +797,6 @@ func reportClusterResourceForDocker(location, nodeId string) {
 		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
 		return
 	}
-	sendResourceToUb(clusterSource)
 }
 
 func ReportHardwareResource(nodeId string) {

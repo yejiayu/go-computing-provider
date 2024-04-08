@@ -183,10 +183,7 @@ func reportClusterResource(location, nodeId string) {
 		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
 		return
 	}
-
-	if conf.GetConfig().HUB.BidMode == conf.BidMode_All || conf.GetConfig().HUB.BidMode == conf.BidMode_Private {
-		sendResourceToUb(clusterSource)
-	}
+	sendResourceToUb(clusterSource)
 }
 
 func sendResourceToUb(clusterSource models2.ClusterResource) {
