@@ -46,10 +46,11 @@ func (cas *ComposeApiService) ServiceUp(dockerComposeBody string) error {
 		return err
 	}
 	return cas.Up(context.TODO(), project, api.UpOptions{
-		Start: api.StartOptions{
-			Services: []string{"redis", "resource-exporter"},
-			Wait:     true,
-		},
+		//Start: api.StartOptions{
+		//	Services: []string{"redis", "resource-exporter"},
+		//	Wait:     true,
+		//	Watch:    true,
+		//},
 	})
 }
 
