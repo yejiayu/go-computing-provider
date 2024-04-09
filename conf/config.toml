@@ -1,0 +1,45 @@
+[API]
+Port = 8085                                     # The port number that the web server listens on
+MultiAddress = "/ip4/<PUBLIC IP>/tcp/<PORT>"    # The multiAddress for libp2p
+Domain = ""                                     # The domain name
+NodeName = "<YOUR CP NodeName>"               # The computing-provider node name
+
+RedisUrl = "redis://127.0.0.1:6379"             # The redis server address
+RedisPassword = ""                              # The redis server access password
+
+[UBI]
+UbiTask = true                                               # Accept the UBI task (Default: true)
+UbiEnginePk = "0xB5aeb540B4895cd024c1625E146684940A849ED9"   # UBI Engine's public key, CP only accept the task from this UBI engine
+UbiUrl ="https://ubi-task.swanchain.io/v1"                   # UBI Engine's API address
+
+[LOG]
+CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"            # Your domain name SSL .crt file path
+KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"            # Your domain name SSL .key file path
+
+[HUB]
+ServerUrl = "https://orchestrator-api.swanchain.io"           # The Orchestrator's API address
+AccessToken = "<YOUR AccessToken>"                            # The Orchestrator's access token, Acquired from "https://orchestrator.swanchain.io"
+WalletAddress = "<YOUR WalletAddress>"                        # The cp‘s wallet address
+BalanceThreshold= 1                                           # The cp’s collateral balance threshold
+OrchestratorPk = "0x29eD49c8E973696D07E7927f748F6E5Eacd5516D" # Orchestrator's public key, CP only accept the task from this Orchestrator
+VerifySign = true                                             # Verify that the task signature is from Orchestrator
+BidMode = 3                                                   # 0: all, 1: auto, 2: private, 3: none
+
+[MCS]
+ApiKey = ""                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key
+BucketName = ""                               # Acquired from "https://www.multichain.storage" -> bucket -> Add Bucket
+Network = "polygon.mainnet"                   # polygon.mainnet for mainnet, polygon.mumbai for testnet
+FileCachePath = "/tmp"                        # Cache directory of job data
+
+[Registry]
+ServerAddress = ""                            # The docker container image registry address, if only a single node, you can ignore
+UserName = ""                                 # The login username, if only a single node, you can ignore
+Password = ""                                 # The login password, if only a single node, you can ignore
+
+[RPC]
+SWAN_TESTNET ="https://saturn-rpc.swanchain.io"     # Swan testnet RPC
+SWAN_MAINNET= ""                                    # Swan mainnet RPC
+
+[CONTRACT]
+SWAN_CONTRACT="0x91B25A65b295F0405552A4bbB77879ab5e38166c"              # Swan token's contract address
+SWAN_COLLATERAL_CONTRACT="0xdc200f89258e72aC3602dD23BD3642C4bd4eE34e"   # Swan's collateral address
