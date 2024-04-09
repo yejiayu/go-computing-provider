@@ -42,7 +42,10 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		logs.GetLogger().Info("Start in computing provider mode.")
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		initializer.ProjectInit(cpRepoPath)
 
@@ -100,16 +103,16 @@ var infoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "Print computing-provider info",
 	Action: func(cctx *cli.Context) error {
-		cpPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-
-		if err := conf.InitConfig(cpPath, true); err != nil {
+		os.Setenv("CP_PATH", cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
-		localNodeId := computing.GetNodeId(cpPath)
+		localNodeId := computing.GetNodeId(cpRepoPath)
 
 		k8sService := computing.NewK8sService()
 		var count int
@@ -209,7 +212,10 @@ var initCmd = &cli.Command{
 			beneficiaryAddress = ownerAddress
 		}
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
@@ -359,7 +365,10 @@ var changeMultiAddressCmd = &cli.Command{
 			return fmt.Errorf("failed to parse : %s", multiAddr)
 		}
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
@@ -442,7 +451,10 @@ var changeOwnerAddressCmd = &cli.Command{
 			return fmt.Errorf("failed to parse : %s", newOwnerAddr)
 		}
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
@@ -525,7 +537,10 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 			return fmt.Errorf("failed to parse target address: %s", beneficiaryAddress)
 		}
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
@@ -612,7 +627,10 @@ var changeUbiFlagCmd = &cli.Command{
 			return fmt.Errorf("ubiFlag must be 0 or 1")
 		}
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)

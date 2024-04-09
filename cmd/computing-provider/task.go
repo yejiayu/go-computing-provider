@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
+	"github.com/mitchellh/go-homedir"
 	"github.com/olekukonko/tablewriter"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
@@ -36,14 +37,14 @@ var taskList = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-
 		fullFlag := cctx.Bool("verbose")
 
-		cpPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-		if err := conf.InitConfig(cpPath, false); err != nil {
+		os.Setenv("CP_PATH", cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
@@ -132,11 +133,12 @@ var taskDetail = &cli.Command{
 			return fmt.Errorf("incorrect number of arguments, got %d, missing args: space_uuid", cctx.NArg())
 		}
 
-		cpPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-		if err := conf.InitConfig(cpPath, false); err != nil {
+		os.Setenv("CP_PATH", cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 		computing.GetRedisClient()
@@ -192,11 +194,12 @@ var taskDelete = &cli.Command{
 			return fmt.Errorf("incorrect number of arguments, got %d, missing args: space_uuid", cctx.NArg())
 		}
 
-		cpPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-		if err := conf.InitConfig(cpPath, false); err != nil {
+		os.Setenv("CP_PATH", cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 		computing.GetRedisClient()

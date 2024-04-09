@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
 	cors "github.com/itsjamie/gin-cors"
+	"github.com/mitchellh/go-homedir"
 	"github.com/olekukonko/tablewriter"
 	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/conf"
@@ -24,7 +25,6 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -48,17 +48,18 @@ var ubiTaskListCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 
-		cpPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
-		if err := conf.InitConfig(cpPath, true); err != nil {
+		os.Setenv("CP_PATH", cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
 		showFailed := cctx.Bool("show-failed")
 
-		nodeID := computing.GetNodeId(cpPath)
+		nodeID := computing.GetNodeId(cpRepoPath)
 
 		conn := computing.GetRedisClient()
 		prefix := constants.REDIS_UBI_C2_PERFIX + "*"
@@ -144,16 +145,13 @@ var daemonCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		logs.GetLogger().Info("Start in computing provider mode.")
 
-		cpRepoPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
-			cpRepoPath = cctx.String(FlagCpRepo)
-			if len(strings.TrimSpace(cpRepoPath)) == 0 {
-				return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx or add --repo param")
-			}
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 
-		err := computing.StopPreviousServices(dockerComposeContent, cpRepoPath)
+		err = computing.StopPreviousServices(dockerComposeContent, cpRepoPath)
 		if err != nil {
 			return fmt.Errorf("stop pre-dependency-env failed, error: %v", err)
 		}
