@@ -853,7 +853,7 @@ func ReportHardwareResource(nodeId string) {
 	}()
 
 	go func() {
-		ticker := time.NewTicker(50 * time.Minute)
+		ticker := time.NewTicker(10 * time.Minute)
 		for range ticker.C {
 			NewDockerService().CleanResource()
 		}
