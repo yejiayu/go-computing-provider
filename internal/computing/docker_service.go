@@ -288,11 +288,29 @@ func printOut(rd io.Reader) error {
 
 func (ds *DockerService) RemoveImage(imageId string) error {
 	ctx := context.Background()
-	_, err := ds.c.ImageRemove(ctx, imageId, types.ImageRemoveOptions{
+	_, err := ds.c.ImageRemove(ctx, imageId, image.RemoveOptions{
 		Force:         true,
 		PruneChildren: true,
 	})
 	return err
+}
+
+func (ds *DockerService) RemoveImageByName(containerName string) error {
+	containerList, err := ds.c.ContainerList(context.Background(), container.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, c := range containerList {
+		for _, name := range c.Names {
+			if name == "/"+containerName {
+				if err := ds.c.ContainerRemove(context.Background(), c.ID, container.RemoveOptions{Force: true}); err != nil {
+					return err
+				}
+				return nil
+			}
+		}
+	}
+	return nil
 }
 
 func (ds *DockerService) CleanResource() {

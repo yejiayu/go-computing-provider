@@ -157,7 +157,17 @@ var daemonCmd = &cli.Command{
 		if err != nil {
 			return fmt.Errorf("stop pre-dependency-env failed, error: %v", err)
 		}
-		computing.NewDockerService().CleanResource()
+
+		redisContainerName := "ubi-redis"
+		resourceExporterContainerName := "resource-exporter"
+		err = computing.NewDockerService().RemoveImageByName(redisContainerName)
+		if err != nil {
+			return fmt.Errorf("remove %s container failed, error: %v", redisContainerName, err)
+		}
+		err = computing.NewDockerService().RemoveImageByName(resourceExporterContainerName)
+		if err != nil {
+			return fmt.Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
+		}
 
 		err = computing.RunDockerCompose(dockerComposeContent, cpRepoPath)
 		if err != nil {
