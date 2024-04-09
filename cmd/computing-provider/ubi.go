@@ -151,6 +151,13 @@ var daemonCmd = &cli.Command{
 		if err != nil {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
+
+		if _, err = os.Stat(cpRepoPath); os.IsNotExist(err) {
+			err := os.MkdirAll(cpRepoPath, 0755)
+			if err != nil {
+				return fmt.Errorf("create dir failed, error: %v", cpRepoPath)
+			}
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
 
 		err = conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"))
