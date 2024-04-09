@@ -138,9 +138,14 @@ var daemonCmd = &cli.Command{
 	Name:  "daemon",
 	Usage: "Start a cp process",
 	Flags: []cli.Flag{
-		&cli.BoolFlag{
+		&cli.StringFlag{
 			Name:     "multi-address",
 			Usage:    "The multiAddress for libp2p(public ip)",
+			Required: true,
+		},
+		&cli.StringFlag{
+			Name:     "node-name",
+			Usage:    "The cp of name",
 			Required: true,
 		},
 	},
@@ -160,7 +165,7 @@ var daemonCmd = &cli.Command{
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 
-		err = conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"))
+		err = conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"), cctx.String("node-name"))
 		if err != nil {
 			return fmt.Errorf("config path: %s, generate config failed, error: %v", path.Join(cpRepoPath, "config.toml"), err)
 		}

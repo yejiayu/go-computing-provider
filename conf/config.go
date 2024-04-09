@@ -201,7 +201,7 @@ func requiredFieldsAreGivenForSeparate(metaData toml.MetaData) bool {
 //go:embed config.toml
 var configFileContent string
 
-func GenerateConfigFile(cpRepoPath string, multiAddress string) error {
+func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) error {
 	var configTmpl ComputeNode
 	var configFile *os.File
 	var err error
@@ -225,10 +225,14 @@ func GenerateConfigFile(cpRepoPath string, multiAddress string) error {
 	defer configFile.Close()
 
 	if len(strings.TrimSpace(multiAddress)) != 0 {
-		configTmpl.API.MultiAddress = multiAddress
-		if err := toml.NewEncoder(configFile).Encode(configTmpl); err != nil {
-			return err
-		}
+		configTmpl.API.MultiAddress = nodeName
 	}
+	if len(strings.TrimSpace(nodeName)) != 0 {
+		configTmpl.API.NodeName = nodeName
+	}
+	if err := toml.NewEncoder(configFile).Encode(configTmpl); err != nil {
+		return err
+	}
+
 	return nil
 }
