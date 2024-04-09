@@ -23,7 +23,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"sort"
 	"strconv"
 	"time"
@@ -167,7 +166,7 @@ var daemonCmd = &cli.Command{
 
 		err = conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"), cctx.String("node-name"))
 		if err != nil {
-			return fmt.Errorf("config path: %s, generate config failed, error: %v", path.Join(cpRepoPath, "config.toml"), err)
+			return fmt.Errorf("generate config failed, error: %v", err)
 		}
 
 		err = computing.StopPreviousServices(dockerComposeContent, cpRepoPath)

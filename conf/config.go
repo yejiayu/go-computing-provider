@@ -225,7 +225,7 @@ func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) error 
 	defer configFile.Close()
 
 	if len(strings.TrimSpace(multiAddress)) != 0 {
-		configTmpl.API.MultiAddress = nodeName
+		configTmpl.API.MultiAddress = multiAddress
 	}
 	if len(strings.TrimSpace(nodeName)) != 0 {
 		configTmpl.API.NodeName = nodeName
