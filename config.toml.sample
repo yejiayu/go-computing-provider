@@ -1,29 +1,29 @@
 [API]
 Port = 8085                                     # The port number that the web server listens on
-MultiAddress = "/ip4/<public_ip>/tcp/<port>"    # The multiAddress for libp2p
+MultiAddress = "/ip4/<PUBLIC IP>/tcp/<PORT>"    # The multiAddress for libp2p
 Domain = ""                                     # The domain name
-NodeName = ""                                   # The computing-provider node name
+NodeName = "<YOUR CP NodeName>"               # The computing-provider node name
 
-RedisUrl = "redis://127.0.0.1:6379"           # The redis server address
-RedisPassword = ""                            # The redis server access password
+RedisUrl = "redis://127.0.0.1:6379"             # The redis server address
+RedisPassword = ""                              # The redis server access password
 
 [UBI]
-UbiTask = true                                              # Accept the UBI task (Default: true)
-UbiEnginePk = "0xB5aeb540B4895cd024c1625E146684940A849ED9"  # UBI Engine's public key, CP only accept the task from this UBI engine
+UbiTask = true                                               # Accept the UBI task (Default: true)
+UbiEnginePk = "0xB5aeb540B4895cd024c1625E146684940A849ED9"   # UBI Engine's public key, CP only accept the task from this UBI engine
 UbiUrl ="https://ubi-task.swanchain.io/v1"                   # UBI Engine's API address
 
 [LOG]
-CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"   # Your domain name SSL .crt file path
-KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"   # Your domain name SSL .key file path
+CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"            # Your domain name SSL .crt file path
+KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"            # Your domain name SSL .key file path
 
 [HUB]
-ServerUrl = "https://orchestrator-api.swanchain.io" # The Orchestrator's API address
-AccessToken = ""                                    # The Orchestrator's access token, Acquired from "https://orchestrator.swanchain.io"
-WalletAddress = ""                                  # The cp‘s wallet address
-BalanceThreshold= 1                                 # The cp’s collateral balance threshold
-OrchestratorPk = "0x29eD49c8E973696D07E7927f748F6E5Eacd5516D"  # Orchestrator's public key, CP only accept the task from this Orchestrator
-VerifySign = true                                  # Verify that the task signature is from Orchestrator
-BidMode = 1                                        # 0: all, 1: auto, 2: private, 3: none
+ServerUrl = "https://orchestrator-api.swanchain.io"           # The Orchestrator's API address
+AccessToken = "<YOUR AccessToken>"                            # The Orchestrator's access token, Acquired from "https://orchestrator.swanchain.io"
+WalletAddress = "<YOUR WalletAddress>"                        # The cp‘s wallet address
+BalanceThreshold= 1                                           # The cp’s collateral balance threshold
+OrchestratorPk = "0x29eD49c8E973696D07E7927f748F6E5Eacd5516D" # Orchestrator's public key, CP only accept the task from this Orchestrator
+VerifySign = true                                             # Verify that the task signature is from Orchestrator
+BidMode = 3                                                   # 0: all, 1: auto, 2: private, 3: none
 
 [MCS]
 ApiKey = ""                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key

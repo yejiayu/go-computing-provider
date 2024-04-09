@@ -1,11 +1,14 @@
 package conf
 
 import (
+	_ "embed"
 	"fmt"
-	"log"
-	"path/filepath"
-
 	"github.com/BurntSushi/toml"
+	"log"
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
 )
 
 var config *ComputeNode
@@ -193,4 +196,39 @@ func requiredFieldsAreGivenForSeparate(metaData toml.MetaData) bool {
 	}
 
 	return true
+}
+
+//go:embed config.toml
+var configFileContent string
+
+func GenerateConfigFile(cpRepoPath string, multiAddress string) error {
+	var configTmpl ComputeNode
+	var configFile *os.File
+	var err error
+	configFilePath := path.Join(cpRepoPath, "config.toml")
+
+	if _, err = os.Stat(configFilePath); os.IsNotExist(err) {
+		if _, err = toml.Decode(configFileContent, &configTmpl); err != nil {
+			return err
+		}
+		configFile, err = os.Create(configFilePath)
+		if err != nil {
+			return err
+		}
+
+	} else {
+		configFile, err = os.Open(configFilePath)
+		if err != nil {
+			return err
+		}
+	}
+	defer configFile.Close()
+
+	if len(strings.TrimSpace(multiAddress)) != 0 {
+		configTmpl.API.MultiAddress = multiAddress
+		if err := toml.NewEncoder(configFile).Encode(configTmpl); err != nil {
+			return err
+		}
+	}
+	return nil
 }

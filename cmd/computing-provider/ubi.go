@@ -23,6 +23,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
 	"sort"
 	"strconv"
 	"time"
@@ -138,8 +139,9 @@ var daemonCmd = &cli.Command{
 	Usage: "Start a cp process",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{
-			Name:  "multi-address",
-			Usage: "The multiAddress for libp2p(public ip)",
+			Name:     "multi-address",
+			Usage:    "The multiAddress for libp2p(public ip)",
+			Required: true,
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -150,6 +152,11 @@ var daemonCmd = &cli.Command{
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
+
+		err = conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"))
+		if err != nil {
+			return fmt.Errorf("config path: %s, generate config failed, error: %v", path.Join(cpRepoPath, "config.toml"), err)
+		}
 
 		err = computing.StopPreviousServices(dockerComposeContent, cpRepoPath)
 		if err != nil {
