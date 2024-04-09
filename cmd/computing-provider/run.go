@@ -17,6 +17,7 @@ import (
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
+	"github.com/mitchellh/go-homedir"
 	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/internal/computing"
@@ -99,11 +100,11 @@ var infoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "Print computing-provider info",
 	Action: func(cctx *cli.Context) error {
-
-		cpPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
+		cpPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
 		}
+
 		if err := conf.InitConfig(cpPath, true); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
@@ -112,7 +113,6 @@ var infoCmd = &cli.Command{
 
 		k8sService := computing.NewK8sService()
 		var count int
-		var err error
 		if k8sService.Version == "" {
 			count = 0
 		} else {

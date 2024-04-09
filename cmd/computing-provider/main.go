@@ -10,6 +10,13 @@ const (
 	FlagCpRepo = "repo"
 )
 
+var FlagRepo = &cli.StringFlag{
+	Name:    FlagCpRepo,
+	Usage:   "repo directory for computing-provider client",
+	Value:   "~/.swan/computing",
+	EnvVars: []string{"CP_PATH"},
+}
+
 func main() {
 	app := &cli.App{
 		Name:                 "computing-provider",
@@ -17,12 +24,7 @@ func main() {
 		EnableBashCompletion: true,
 		Version:              build.UserVersion(),
 		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:    FlagCpRepo,
-				EnvVars: []string{"CP_PATH"},
-				Usage:   "cp repo path",
-				Value:   "~/.swan/computing",
-			},
+			FlagRepo,
 		},
 		Commands: []*cli.Command{
 			initCmd,
