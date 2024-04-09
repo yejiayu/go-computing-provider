@@ -520,6 +520,11 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		}
 	}
 
+	if err := NewDockerService().PullImage(ubiTaskImage); err != nil {
+		logs.GetLogger().Errorf("pull %s image failed, error: %v", ubiTaskImage, err)
+		return
+	}
+
 	go func() {
 		defer func() {
 			key := constants.REDIS_UBI_C2_PERFIX + strconv.Itoa(ubiTask.ID)

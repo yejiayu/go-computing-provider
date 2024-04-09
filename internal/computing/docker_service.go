@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"io"
@@ -328,6 +329,16 @@ func (ds *DockerService) CleanResource() {
 		logs.GetLogger().Errorf("Failed delete unused container, error: %+v", err)
 		return
 	}
+}
+
+func (ds *DockerService) PullImage(imagesName string) error {
+	resp, err := ds.c.ImagePull(context.TODO(), imagesName, image.PullOptions{})
+	if err != nil {
+		return err
+	}
+	defer resp.Close()
+	printOut(resp)
+	return nil
 }
 
 func (ds *DockerService) ContainerCreateAndStart(config *container.Config, hostConfig *container.HostConfig, containerName string) error {

@@ -144,23 +144,6 @@ var daemonCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		logs.GetLogger().Info("Start in computing provider mode.")
 
-		composeService, err := computing.NewComposeService()
-		if err != nil {
-			return fmt.Errorf("create docker-compose client failed, error: %v", err)
-		}
-
-		err = composeService.ServiceDown(dockerComposeContent)
-		if err != nil {
-			return fmt.Errorf("stop install-pre-dependency-env docker-compose failed, error: %v", err)
-		}
-
-		computing.NewDockerService().CleanResource()
-
-		err = composeService.ServiceUp(dockerComposeContent)
-		if err != nil {
-			return fmt.Errorf("start install-pre-dependency-env docker-compose failed, error: %v", err)
-		}
-
 		cpRepoPath, exit := os.LookupEnv("CP_PATH")
 		if !exit {
 			cpRepoPath = cctx.String(FlagCpRepo)
@@ -168,8 +151,19 @@ var daemonCmd = &cli.Command{
 				return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx or add --repo param")
 			}
 		}
-
 		os.Setenv("CP_PATH", cpRepoPath)
+
+		err := computing.StopPreviousServices(dockerComposeContent, cpRepoPath)
+		if err != nil {
+			return fmt.Errorf("stop pre-dependency-env failed, error: %v", err)
+		}
+		computing.NewDockerService().CleanResource()
+
+		err = computing.RunDockerCompose(dockerComposeContent, cpRepoPath)
+		if err != nil {
+			return fmt.Errorf("start pre-dependency-env failed, error: %v", err)
+		}
+
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
