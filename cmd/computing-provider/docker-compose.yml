@@ -2,6 +2,8 @@ services:
   redis:
     container_name: ubi-redis
     image: redis/redis-stack-server:7.2.0-v10
+    environment:
+      - REDIS_ARGS="--protected-mode no"
     ports:
       - "6379:6379"
     volumes:
