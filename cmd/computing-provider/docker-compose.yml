@@ -1,15 +1,15 @@
 services:
   redis:
     container_name: ubi-redis
-    image: redis/redis-stack-server:7.2.0-v10
-    environment:
-      - REDIS_ARGS=--protected-mode no
+    image: redis:7.0.6
+    platform: linux/amd64
     ports:
       - "6379:6379"
     volumes:
-      - $CP_PATH/store_data/data:/data
-      - $CP_PATH/store_data/redis-stack.conf:/redis-stack.conf
+      - $CP_PATH/store_data:/data
+    command: redis-server --appendonly yes
 
   resource-exporter:
     container_name: resource-exporter
     image: filswan/hardware-exporter:v1.0
+
