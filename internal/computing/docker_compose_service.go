@@ -115,7 +115,7 @@ func extractComposeFile(dockerComposeContent, cpPath string) (string, error) {
 		return "", err
 	}
 
-	dataDir := path.Join(cpPath, "store_data")
+	dataDir := path.Join(cpPath, "store_data/data")
 	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
 		err := os.MkdirAll(dataDir, 0755)
 		if err != nil {

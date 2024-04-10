@@ -201,10 +201,23 @@ func requiredFieldsAreGivenForSeparate(metaData toml.MetaData) bool {
 //go:embed config.toml
 var configFileContent string
 
+//go:embed redis-stack.conf
+var redisConfigFileContent string
+
 func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) error {
 	var configTmpl ComputeNode
 	var configFile *os.File
 	var err error
+
+	redisConfigFilePath := path.Join(cpRepoPath, "store_data", "redis-stack.conf")
+	if _, err = os.Stat(redisConfigFilePath); os.IsNotExist(err) {
+		redisConfigFile, err := os.Create(redisConfigFilePath)
+		if err != nil {
+			return err
+		}
+		defer redisConfigFile.Close()
+		redisConfigFile.WriteString(redisConfigFileContent)
+	}
 
 	configFilePath := path.Join(cpRepoPath, "config.toml")
 	if _, err = os.Stat(configFilePath); os.IsNotExist(err) {

@@ -7,8 +7,8 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - $CP_PATH/store_data:/data
-    command: redis-server --appendonly yes
+      - $CP_PATH/store_data/data:/data
+      - $CP_PATH/store_data/redis-stack.conf:/redis-stack.conf
 
   resource-exporter:
     container_name: resource-exporter
