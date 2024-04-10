@@ -201,10 +201,46 @@ func requiredFieldsAreGivenForSeparate(metaData toml.MetaData) bool {
 //go:embed config.toml
 var configFileContent string
 
+//go:embed redis.conf
+var redisConfigFileContent string
+
 func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) error {
 	var configTmpl ComputeNode
 	var configFile *os.File
 	var err error
+
+	dataDir := path.Join(cpRepoPath, "store_data/data")
+	if _, err = os.Stat(dataDir); os.IsNotExist(err) {
+		err := os.MkdirAll(dataDir, 0755)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	confDir := path.Join(cpRepoPath, "store_data/conf")
+	if _, err = os.Stat(confDir); os.IsNotExist(err) {
+		err := os.MkdirAll(confDir, 0755)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	redisConfigFilePath := path.Join(confDir, "redis.conf")
+	if _, err = os.Stat(redisConfigFilePath); os.IsNotExist(err) {
+
+		redisConfigFile, err := os.Create(redisConfigFilePath)
+		if err != nil {
+			return fmt.Errorf("create redis config file failed, error: %v", err)
+		}
+		defer redisConfigFile.Close()
+		if _, err = redisConfigFile.WriteString(redisConfigFileContent); err != nil {
+			return fmt.Errorf("write redis config file failed, error: %v", err)
+		}
+	}
 
 	configFilePath := path.Join(cpRepoPath, "config.toml")
 	if _, err = os.Stat(configFilePath); os.IsNotExist(err) {

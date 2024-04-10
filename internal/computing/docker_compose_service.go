@@ -10,7 +10,6 @@ import (
 	"github.com/docker/compose/v2/pkg/compose"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -112,16 +111,6 @@ func RunDockerCompose(dockerComposeContent, cpPath string) error {
 func extractComposeFile(dockerComposeContent, cpPath string) (string, error) {
 	tmpDir, err := os.MkdirTemp("", "ubi-compose")
 	if err != nil {
-		return "", err
-	}
-
-	dataDir := path.Join(cpPath, "store_data/data")
-	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
-		err := os.MkdirAll(dataDir, 0755)
-		if err != nil {
-			return "", err
-		}
-	} else if err != nil {
 		return "", err
 	}
 
