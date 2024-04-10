@@ -5,7 +5,7 @@ Domain = ""                                     # The domain name
 NodeName = "<YOUR CP NodeName>"               # The computing-provider node name
 
 RedisUrl = "redis://127.0.0.1:16379"             # The redis server address
-RedisPassword = "your-redis-pass"                # The redis server access password
+RedisPassword = "rootadmin!213"                  # The redis server access password, default password
 
 [UBI]
 UbiTask = true                                               # Accept the UBI task (Default: true)
