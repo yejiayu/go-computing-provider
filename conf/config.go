@@ -213,10 +213,12 @@ func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) error 
 	if _, err = os.Stat(redisConfigFilePath); os.IsNotExist(err) {
 		redisConfigFile, err := os.Create(redisConfigFilePath)
 		if err != nil {
-			return err
+			return fmt.Errorf("create redis config file failed, error: %v", err)
 		}
 		defer redisConfigFile.Close()
-		redisConfigFile.WriteString(redisConfigFileContent)
+		if _, err = redisConfigFile.WriteString(redisConfigFileContent); err != nil {
+			return fmt.Errorf("write redis config file failed, error: %v", err)
+		}
 	}
 
 	configFilePath := path.Join(cpRepoPath, "config.toml")
