@@ -4,7 +4,7 @@ MultiAddress = "/ip4/<PUBLIC IP>/tcp/<PORT>"    # The multiAddress for libp2p
 Domain = ""                                     # The domain name
 NodeName = "<YOUR CP NodeName>"               # The computing-provider node name
 
-RedisUrl = "redis://127.0.0.1:6379"             # The redis server address
+RedisUrl = "redis://127.0.0.1:16379"             # The redis server address
 RedisPassword = ""                              # The redis server access password
 
 [UBI]
