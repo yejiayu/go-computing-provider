@@ -302,7 +302,7 @@ func (ds *DockerService) RemoveImageByName(containerName string) error {
 	}
 	for _, c := range containerList {
 		for _, name := range c.Names {
-			if name == "/"+containerName {
+			if name == "/"+containerName || strings.Contains(name, containerName) {
 				if err := ds.c.ContainerRemove(context.Background(), c.ID, container.RemoveOptions{Force: true}); err != nil {
 					return err
 				}

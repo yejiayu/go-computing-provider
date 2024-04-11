@@ -179,10 +179,6 @@ func requiredFieldsAreGivenForSeparate(metaData toml.MetaData) bool {
 		{"UBI", "UbiEnginePk"},
 		{"UBI", "UbiUrl"},
 
-		{"HUB", "ServerUrl"},
-		{"HUB", "AccessToken"},
-		{"HUB", "BidMode"},
-
 		{"RPC", "SWAN_TESTNET"},
 
 		{"CONTRACT", "SWAN_CONTRACT"},

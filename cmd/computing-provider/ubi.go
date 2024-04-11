@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
@@ -12,11 +11,9 @@ import (
 	cors "github.com/itsjamie/gin-cors"
 	"github.com/mitchellh/go-homedir"
 	"github.com/olekukonko/tablewriter"
-	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
 	"github.com/swanchain/go-computing-provider/internal/computing"
-	"github.com/swanchain/go-computing-provider/internal/initializer"
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"github.com/swanchain/go-computing-provider/util"
 	"github.com/urfave/cli/v2"
@@ -149,7 +146,7 @@ var daemonCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-		logs.GetLogger().Info("Start in computing provider mode.")
+		logs.GetLogger().Info("Start a computing-provider client that only accepts ubi-task mode.")
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
@@ -194,29 +191,7 @@ var daemonCmd = &cli.Command{
 			logs.GetLogger().Fatal(err)
 		}
 
-		chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
-		if err != nil {
-			return err
-		}
-		client, err := ethclient.Dial(chainRpc)
-		if err != nil {
-			return err
-		}
-		defer client.Close()
-
-		cpStub, err := account.NewAccountStub(client)
-		if err != nil {
-			return err
-		}
-		cpAccount, err := cpStub.GetCpAccountInfo()
-		if err != nil {
-			return fmt.Errorf("get cpAccount from chain failed, error: %v", err)
-		}
-
-		conf.GetConfig().HUB.WalletAddress = cpAccount.OwnerAddress
-
-		nodeId := computing.InitComputingProvider(cpRepoPath)
-		go initializer.SendHeartbeats(nodeId)
+		nodeId := computing.GetNodeId(cpRepoPath)
 		computing.ReportHardwareResource(nodeId)
 
 		r := gin.Default()
