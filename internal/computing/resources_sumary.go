@@ -177,10 +177,10 @@ func checkClusterProviderStatus() {
 func defaultResourcePolicy() models.ResourcePolicy {
 	return models.ResourcePolicy{
 		Cpu: models.CpuQuota{
-			Quota: 5,
+			Quota: 1,
 		},
 		Memory: models.Quota{
-			Quota: 10,
+			Quota: 5,
 			Unit:  "GiB",
 		},
 		Storage: models.Quota{
