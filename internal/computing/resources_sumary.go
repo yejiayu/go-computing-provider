@@ -142,49 +142,36 @@ func gpuInPod(pod *corev1.Pod) (gpuName string, gpuCount int64) {
 	return gpuName, gpuCount
 }
 
-func checkClusterProviderStatus() error {
+func checkClusterProviderStatus() {
 	var policy = defaultResourcePolicy()
 	service := NewK8sService()
 	activePods, err := allActivePods(service.k8sClient)
 	if err != nil {
-		return err
+		logs.GetLogger().Errorf("get all active pod failed, error: %v", err)
+		return
 	}
 
 	nodes, err := service.k8sClient.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
 	if err != nil {
-		return err
+		logs.GetLogger().Errorf("get all node failed, error: %v", err)
+		return
 	}
 
-	collectGpu := make(map[string]int64)
-	nodeGpuInfo, err := service.GetResourceExporterPodLog(context.TODO())
-	if err != nil {
-		logs.GetLogger().Error(err)
-		return err
-	}
-	for _, gpu := range nodeGpuInfo {
-		for _, gpuDetail := range gpu.Gpu.Details {
-			collectGpu[gpuDetail.ProductName] = collectGpu[gpuDetail.ProductName] + 1
+	for _, node := range nodes.Items {
+		_, remainderResource, nodeResource := GetNodeResource(activePods, &node)
+		if remainderResource[ResourceCpu] < policy.Cpu.Quota {
+			logs.GetLogger().Warningf("Insufficient cpu resources, current cpu resource: %s less than %d", nodeResource.Cpu.Free, policy.Cpu.Quota)
+			return
+		}
+		if remainderResource[ResourceMem] < policy.Memory.Quota {
+			logs.GetLogger().Warningf("Insufficient memory resources, current memory resource: %s less than %d %s", nodeResource.Memory.Free, policy.Memory.Quota, policy.Memory.Unit)
+			return
+		}
+		if remainderResource[ResourceStorage] < policy.Storage.Quota {
+			logs.GetLogger().Warningf("Insufficient storage resources, current storage resource: %s less than %d %s", nodeResource.Storage.Free, policy.Storage.Quota, policy.Storage.Unit)
+			return
 		}
 	}
-
-	remainderResource := make(map[string]int64)
-	for _, node := range nodes.Items {
-		_, remainderResource, _ = GetNodeResource(activePods, &node)
-	}
-
-	if remainderResource[ResourceCpu] < policy.Cpu.Quota {
-		logs.GetLogger().Warningf("Insufficient cpu resources, less than %d", policy.Cpu.Quota)
-		return nil
-	}
-	if remainderResource[ResourceMem] < policy.Memory.Quota {
-		logs.GetLogger().Warningf("Insufficient memory resources, less than %d", policy.Memory.Quota)
-		return nil
-	}
-	if remainderResource[ResourceStorage] < policy.Storage.Quota {
-		logs.GetLogger().Warningf("Insufficient storage resources, less than %d", policy.Storage.Quota)
-		return nil
-	}
-	return nil
 }
 
 func defaultResourcePolicy() models.ResourcePolicy {
