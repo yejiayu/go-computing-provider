@@ -165,6 +165,7 @@ func RunSyncTask(nodeId string) {
 		defer ticker.Stop()
 		for range ticker.C {
 			reportClusterResource(location, nodeId)
+			checkClusterProviderStatus()
 		}
 
 	}()
