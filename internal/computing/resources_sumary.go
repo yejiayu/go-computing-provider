@@ -2,12 +2,15 @@ package computing
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/swanchain/go-computing-provider/internal/models"
 	corev1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -143,7 +146,18 @@ func gpuInPod(pod *corev1.Pod) (gpuName string, gpuCount int64) {
 }
 
 func checkClusterProviderStatus() {
-	var policy = defaultResourcePolicy()
+	var policy models.ResourcePolicy
+	cpPath, _ := os.LookupEnv("CP_PATH")
+	resourcePolicy := filepath.Join(cpPath, "resource_policy.json")
+	bytes, err := os.ReadFile(resourcePolicy)
+	if err != nil {
+		policy = defaultResourcePolicy()
+	} else {
+		if err = json.Unmarshal(bytes, &policy); err != nil {
+			logs.GetLogger().Errorf("parse json failed, error: %v", err)
+			return
+		}
+	}
 	service := NewK8sService()
 	activePods, err := allActivePods(service.k8sClient)
 	if err != nil {

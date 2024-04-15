@@ -1,9 +1,9 @@
 {
   "cpu": {
-    "quota": 5
+    "quota": 1
   },
   "memory": {
-    "quota": 10,
+    "quota": 5,
     "unit": "GiB"
   },
   "storage": {
