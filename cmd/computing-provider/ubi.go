@@ -173,8 +173,7 @@ var daemonCmd = &cli.Command{
 			logs.GetLogger().Fatal(err)
 		}
 
-		nodeId := computing.GetNodeId(cpRepoPath)
-		computing.ReportHardwareResource(nodeId)
+		computing.CleanDockerResource()
 
 		r := gin.Default()
 		r.Use(cors.Middleware(cors.Config{

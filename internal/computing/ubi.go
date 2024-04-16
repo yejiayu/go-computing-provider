@@ -831,27 +831,7 @@ func reportClusterResourceForDocker(location, nodeId string) {
 	}
 }
 
-func ReportHardwareResource(nodeId string) {
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				logs.GetLogger().Errorf("Failed report cp resource's summary, error: %+v", err)
-			}
-		}()
-
-		location, err := getLocation()
-		if err != nil {
-			logs.GetLogger().Error(err)
-		}
-
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			reportClusterResourceForDocker(location, nodeId)
-		}
-
-	}()
-
+func CleanDockerResource() {
 	go func() {
 		ticker := time.NewTicker(10 * time.Minute)
 		for range ticker.C {
