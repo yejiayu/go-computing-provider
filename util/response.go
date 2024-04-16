@@ -53,6 +53,7 @@ const (
 	JsonError   = 400
 	ServerError = 500
 
+	BadParamError           = 5001
 	SpaceSignatureError     = 6001
 	ProofParamError         = 7001
 	ProofReadLogError       = 7002
@@ -65,6 +66,7 @@ const (
 )
 
 var codeMsg = map[int]string{
+	BadParamError:       "The request parameter is not valid",
 	JsonError:           "An error occurred while converting to json",
 	ServerError:         "Service failed",
 	SpaceSignatureError: "Verify signature failed",

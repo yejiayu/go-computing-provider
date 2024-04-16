@@ -24,16 +24,17 @@ A computing provider is an individual or organization that participates in the d
  - **[Config and Receive UBI Tasks(optional)](#Config-and-Receive-UBI-Tasks)**
  - [Start the Computing Provider](#Start-the-Computing-Provider)
  - [CLI of Computing Provider](#CLI-of-Computing-Provider)
+ - [Run a Computing Provider that only accepts ubi-task](ubi/README.md)
 
 ## Prerequisites
 Before you install the Computing Provider, you need to know there are some resources required:
  - Possess a public IP
  - Have a domain name (*.example.com)
  - Have an SSL certificate
- - `Go` version must 1.19+, you can refer here:
+ - `Go` version must 1.21+, you can refer here:
 
 ```bash
-wget -c https://golang.org/dl/go1.19.7.linux-amd64.tar.gz -O - | sudo tar -xz -C /usr/local
+wget -c https://golang.org/dl/go1.21.7.linux-amd64.tar.gz -O - | sudo tar -xz -C /usr/local
 
 echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc && source ~/.bashrc
 ```
@@ -51,8 +52,11 @@ To install the `Docker Container Runtime` and the `cri-dockerd`, follow the step
 * Install `cri-dockerd`:
     - `cri-dockerd` is a CRI (Container Runtime Interface) implementation for Docker. You can install it refer to [here](https://github.com/Mirantis/cri-dockerd).
 
-#### Option 2: Install the `Containerd`
-`Containerd` is an industry-standard container runtime that can be used as an alternative to Docker. To install `containerd` on your system, follow the instructions on [getting started with containerd](https://github.com/containerd/containerd/blob/main/docs/getting-started.md).
+#### Option 2: Install the `Docker` and the`Containerd`
+* Install the `Docker`:
+    - Please refer to the official documentation from [here](https://docs.docker.com/engine/install/).
+* To install `Containerd` on your system:
+  - `Containerd` is an industry-standard container runtime that can be used as an alternative to Docker. To install `containerd` on your system, follow the instructions on [getting started with containerd](https://github.com/containerd/containerd/blob/main/docs/getting-started.md).
 
 ### Optional-Setup a docker registry server
 **If you are using the docker and you have only one node, the step can be skipped**.
@@ -370,7 +374,7 @@ SWAN_COLLATERAL_CONTRACT="0xdc200f89258e72aC3602dD23BD3642C4bd4eE34e"   # Swan's
 ## Install AI Inference Dependency
 It is necessary for Computing Provider to deploy the  AI inference endpoint. But if you do not want to support the feature, you can skip it.
 ```bash
-export CP_PATH=xxx
+export CP_PATH=<YOUR CP_PATH>
 ./install.sh
 ```
 
@@ -498,7 +502,7 @@ TASK ID TASK TYPE       ZK TYPE         TRANSACTION HASH                        
 ## Start the Computing Provider
 You can run `computing-provider` using the following command
 ```bash
-export CP_PATH=xxx
+export CP_PATH=<YOUR CP_PATH>
 nohup computing-provider run >> cp.log 2>&1 & 
 ```
 

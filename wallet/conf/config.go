@@ -47,7 +47,7 @@ func GetRpcByName(rpcName string) (string, error) {
 func loadConfig() (*ChainConfig, error) {
 	cpPath, exit := os.LookupEnv("CP_PATH")
 	if !exit {
-		return nil, fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		return nil, fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 	}
 	configFilePath := filepath.Join(cpPath, "config.toml")
 

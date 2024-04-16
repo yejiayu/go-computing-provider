@@ -17,6 +17,7 @@ import (
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
+	"github.com/mitchellh/go-homedir"
 	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/internal/computing"
@@ -41,7 +42,16 @@ var runCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		logs.GetLogger().Info("Start in computing provider mode.")
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
+		if _, err = os.Stat(cpRepoPath); os.IsNotExist(err) {
+			err := os.MkdirAll(cpRepoPath, 0755)
+			if err != nil {
+				return fmt.Errorf("create dir failed, error: %v", cpRepoPath)
+			}
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		initializer.ProjectInit(cpRepoPath)
 
@@ -60,7 +70,7 @@ var runCmd = &cli.Command{
 		cpManager(v1.Group("/computing"))
 
 		shutdownChan := make(chan struct{})
-		httpStopper, err := util.ServeHttp(r, "cp-api", ":"+strconv.Itoa(conf.GetConfig().API.Port))
+		httpStopper, err := util.ServeHttp(r, "cp-api", ":"+strconv.Itoa(conf.GetConfig().API.Port), true)
 		if err != nil {
 			logs.GetLogger().Fatal("failed to start cp-api endpoint: %s", err)
 		}
@@ -86,8 +96,8 @@ func cpManager(router *gin.RouterGroup) {
 
 	router.GET("/cp", computing.StatisticalSources)
 	router.GET("/cp/info", computing.GetCpInfo)
-	router.POST("/cp/ubi", computing.DoUbiTask)
-	router.POST("/cp/receive/ubi", computing.ReceiveUbiProof)
+	router.POST("/cp/ubi", computing.DoUbiTaskForK8s)
+	router.POST("/cp/receive/ubi", computing.ReceiveUbiProofForK8s)
 
 }
 
@@ -95,21 +105,23 @@ var infoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "Print computing-provider info",
 	Action: func(cctx *cli.Context) error {
-
-		cpPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
-		if err := conf.InitConfig(cpPath); err != nil {
+		os.Setenv("CP_PATH", cpRepoPath)
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
-		localNodeId := computing.GetNodeId(cpPath)
+		localNodeId := computing.GetNodeId(cpRepoPath)
 
 		k8sService := computing.NewK8sService()
-		count, err := k8sService.GetDeploymentActiveCount()
-		if err != nil {
-			return err
+		var count int
+		if k8sService.Version == "" {
+			count = 0
+		} else {
+			count, _ = k8sService.GetDeploymentActiveCount()
 		}
 
 		chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
@@ -201,9 +213,12 @@ var initCmd = &cli.Command{
 			beneficiaryAddress = ownerAddress
 		}
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 
@@ -351,9 +366,12 @@ var changeMultiAddressCmd = &cli.Command{
 			return fmt.Errorf("failed to parse : %s", multiAddr)
 		}
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 
@@ -434,9 +452,12 @@ var changeOwnerAddressCmd = &cli.Command{
 			return fmt.Errorf("failed to parse : %s", newOwnerAddr)
 		}
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 
@@ -517,9 +538,12 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 			return fmt.Errorf("failed to parse target address: %s", beneficiaryAddress)
 		}
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 
@@ -604,9 +628,12 @@ var changeUbiFlagCmd = &cli.Command{
 			return fmt.Errorf("ubiFlag must be 0 or 1")
 		}
 
-		cpRepoPath := cctx.String(FlagCpRepo)
+		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
+		if err != nil {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
 		os.Setenv("CP_PATH", cpRepoPath)
-		if err := conf.InitConfig(cpRepoPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
 

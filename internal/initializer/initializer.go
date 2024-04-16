@@ -1,6 +1,7 @@
 package initializer
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/swanchain/go-computing-provider/internal/computing"
 	"io/ioutil"
@@ -36,31 +37,40 @@ func sendHeartbeat(nodeId string) {
 		logs.GetLogger().Errorf("Error sending heartbeat, retrying to connect to the Swan Hub server: %v", err)
 		computing.Reconnect(nodeId)
 	} else {
-		_, err := ioutil.ReadAll(resp.Body)
-		if resp.StatusCode != http.StatusOK {
-			logs.GetLogger().Warningln("resp status: %d, retrying to connect to the Swan Hub server", resp.StatusCode)
-			computing.Reconnect(nodeId)
-		}
+		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			fmt.Println(err)
+			logs.GetLogger().Errorf("send heartbeat read response failed, error: %v", err)
 			return
+		}
+		if resp.StatusCode != http.StatusOK {
+			if resp.StatusCode == http.StatusNotFound {
+				var respData struct {
+					Message string `json:"message"`
+				}
+				_ = json.Unmarshal(data, &respData)
+				logs.GetLogger().Warningln("resp status:", resp.StatusCode, "error:", respData.Message, "retrying to connect to the Swan Hub server")
+			} else {
+				logs.GetLogger().Warningln("resp status:", resp.StatusCode, "error:", string(data), "retrying to connect to the Swan Hub server")
+			}
+			computing.Reconnect(nodeId)
 		}
 	}
 }
 
-func sendHeartbeats(nodeId string) {
+func SendHeartbeats(nodeId string) {
 	ticker := time.NewTicker(15 * time.Second)
 	for range ticker.C {
 		sendHeartbeat(nodeId)
 	}
 }
+
 func ProjectInit(cpRepoPath string) {
-	if err := conf.InitConfig(cpRepoPath); err != nil {
+	if err := conf.InitConfig(cpRepoPath, false); err != nil {
 		logs.GetLogger().Fatal(err)
 	}
 	nodeID := computing.InitComputingProvider(cpRepoPath)
 	// Start sending heartbeats
-	go sendHeartbeats(nodeID)
+	go SendHeartbeats(nodeID)
 
 	go computing.NewScheduleTask().Run()
 

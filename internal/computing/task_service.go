@@ -32,56 +32,24 @@ func NewScheduleTask() *ScheduleTask {
 }
 
 func (s *ScheduleTask) Run() {
-	go func() {
-		ticker := time.NewTicker(3 * time.Minute)
-		for {
-			select {
-			case <-ticker.C:
-				s.TaskMap.Range(func(key, value any) bool {
-					job := value.(*models2.Job)
-					job.Count++
-					s.TaskMap.Store(job.Uuid, job)
-
-					if job.Count > 50 {
-						s.TaskMap.Delete(job.Uuid)
-						return true
-					}
-
-					if job.Status != models2.JobDeployToK8s {
-						return true
-					}
-
-					response, err := http.Get(job.Url)
-					if err != nil {
-						return true
-					}
-					defer response.Body.Close()
-
-					if response.StatusCode == 200 {
-						s.TaskMap.Delete(job.Uuid)
-					}
-					return true
-				})
-			}
-		}
-	}()
-
 	for {
 		select {
 		case job := <-deployingChan:
 			s.TaskMap.Store(job.Uuid, &job)
-		case <-time.After(15 * time.Second):
+		case <-time.After(3 * time.Second):
 			s.TaskMap.Range(func(key, value any) bool {
 				jobUuid := key.(string)
 				job := value.(*models2.Job)
-				reportJobStatus(jobUuid, job.Status)
+				if reportJobStatus(jobUuid, job.Status) && job.Status == models2.JobDeployToK8s {
+					s.TaskMap.Delete(jobUuid)
+				}
 				return true
 			})
 		}
 	}
 }
 
-func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
+func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) bool {
 	reqParam := map[string]interface{}{
 		"job_uuid":       jobUuid,
 		"status":         jobStatus,
@@ -91,7 +59,7 @@ func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
 	payload, err := json.Marshal(reqParam)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
-		return
+		return false
 	}
 
 	client := &http.Client{}
@@ -99,7 +67,7 @@ func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		logs.GetLogger().Errorf("Error creating request: %v", err)
-		return
+		return false
 	}
 	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
 	req.Header.Add("Content-Type", "application/json")
@@ -107,16 +75,16 @@ func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
 	resp, err := client.Do(req)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
-		return
+		return false
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return
+		return false
 	}
 
 	logs.GetLogger().Debugf("report job status successfully. uuid: %s, status: %s", jobUuid, jobStatus)
-	return
+	return true
 }
 
 func RunSyncTask(nodeId string) {
@@ -216,6 +184,7 @@ func reportClusterResource(location, nodeId string) {
 		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
 		return
 	}
+
 }
 
 func watchExpiredTask() {

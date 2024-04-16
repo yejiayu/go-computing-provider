@@ -9,7 +9,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/registry"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"io"
 	"log"
@@ -237,7 +240,7 @@ func (ds *DockerService) PushImage(imagesName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*6000)
 	defer cancel()
 
-	var authConfig = types.AuthConfig{
+	var authConfig = registry.AuthConfig{
 		ServerAddress: conf.GetConfig().Registry.ServerAddress,
 		Username:      conf.GetConfig().Registry.UserName,
 		Password:      conf.GetConfig().Registry.Password,
@@ -285,11 +288,29 @@ func printOut(rd io.Reader) error {
 
 func (ds *DockerService) RemoveImage(imageId string) error {
 	ctx := context.Background()
-	_, err := ds.c.ImageRemove(ctx, imageId, types.ImageRemoveOptions{
+	_, err := ds.c.ImageRemove(ctx, imageId, image.RemoveOptions{
 		Force:         true,
 		PruneChildren: true,
 	})
 	return err
+}
+
+func (ds *DockerService) RemoveImageByName(containerName string) error {
+	containerList, err := ds.c.ContainerList(context.Background(), container.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, c := range containerList {
+		for _, name := range c.Names {
+			if name == "/"+containerName || strings.Contains(name, containerName) {
+				if err := ds.c.ContainerRemove(context.Background(), c.ID, container.RemoveOptions{Force: true}); err != nil {
+					return err
+				}
+				return nil
+			}
+		}
+	}
+	return nil
 }
 
 func (ds *DockerService) CleanResource() {
@@ -326,4 +347,42 @@ func (ds *DockerService) CleanResource() {
 		logs.GetLogger().Errorf("Failed delete unused container, error: %+v", err)
 		return
 	}
+}
+
+func (ds *DockerService) PullImage(imagesName string) error {
+	resp, err := ds.c.ImagePull(context.TODO(), imagesName, image.PullOptions{})
+	if err != nil {
+		return err
+	}
+	defer resp.Close()
+	printOut(resp)
+	return nil
+}
+
+func (ds *DockerService) ContainerCreateAndStart(config *container.Config, hostConfig *container.HostConfig, containerName string) error {
+	ctx := context.Background()
+	resp, err := ds.c.ContainerCreate(ctx, config, hostConfig, nil, nil, containerName)
+	if err != nil {
+		return err
+	}
+	return ds.c.ContainerStart(ctx, resp.ID, container.StartOptions{})
+}
+
+func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
+	ctx := context.Background()
+	logReader, err := ds.c.ContainerLogs(ctx, containerName, container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     false,
+		Tail:       "1",
+	})
+	if err != nil {
+		return "", err
+	}
+	defer logReader.Close()
+	all, err := io.ReadAll(logReader)
+	result := string(all)
+	index := strings.Index(result, "{")
+
+	return result[index:], nil
 }
