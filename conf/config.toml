@@ -1,7 +1,7 @@
 [API]
 Port = 8085                                     # The port number that the web server listens on
 MultiAddress = "/ip4/<PUBLIC IP>/tcp/<PORT>"    # The multiAddress for libp2p
-Domain = ""                                     # The domain name
+Domain = "<YOUR CP Domain>"                                     # The domain name
 NodeName = "<YOUR CP NodeName>"               # The computing-provider node name
 
 RedisUrl = "redis://127.0.0.1:16379"             # The redis server address
@@ -26,8 +26,8 @@ VerifySign = true                                             # Verify that the 
 BidMode = 3                                                   # 0: all, 1: auto, 2: private, 3: none
 
 [MCS]
-ApiKey = ""                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key
-BucketName = ""                               # Acquired from "https://www.multichain.storage" -> bucket -> Add Bucket
+ApiKey = "<YOUR ApiKey>"                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key
+BucketName = "<YOUR BucketName>"                               # Acquired from "https://www.multichain.storage" -> bucket -> Add Bucket
 Network = "polygon.mainnet"                   # polygon.mainnet for mainnet, polygon.mumbai for testnet
 FileCachePath = "/tmp"                        # Cache directory of job data
 

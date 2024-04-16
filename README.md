@@ -24,6 +24,7 @@ A computing provider is an individual or organization that participates in the d
  - **[Config and Receive UBI Tasks(optional)](#Config-and-Receive-UBI-Tasks)**
  - [Start the Computing Provider](#Start-the-Computing-Provider)
  - [CLI of Computing Provider](#CLI-of-Computing-Provider)
+ - [Run a Computing Provider that only accepts ubi-task](#CLI-of-Computing-Provider)
 
 ## Prerequisites
 Before you install the Computing Provider, you need to know there are some resources required:
