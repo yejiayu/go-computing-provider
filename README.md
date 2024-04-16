@@ -3,29 +3,40 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/swan_chain)](https://twitter.com/swan_chain)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg)](https://github.com/RichardLitt/standard-readme)
 
-A computing provider is an individual or organization that participates in the decentralized computing network by offering computational resources such as processing power (CPU and GPU), memory, storage, and bandwidth. Their primary role is to execute tasks assigned by [Orchestrator](https://orchestrator.swanchain.io) on the [Swan chain](https://swanchain.io).
+A computing provider is an individual or organization that participates in the decentralized computing network by offering computational resources such as processing power (CPU and GPU), memory, storage, and bandwidth.
+
+As a resource provider, you can run a **ECP**(Edge Computing Provider) and **FCP**(Fog Computing Provider) to contribute yourcomputing resource.
+
+
+ - **ECP (Edge Computing Provider)** specializes in processing data at the source of data generation, using minimal latency setups ideal for real-time applications. This provider handles specific, localized tasks directly on devices at the network’s edge, such as IoT devices. At the current stage, ECP supports the generation of **ZK-Snark proof of Filecoin network**, and more ZK proof types will be gradually supported, such as Aleo, Scroll, starkNet, etc. [Install Guideline](ubi/README.md)
+
+
+ - **FCP (Fog Computing Provider)** Offers a layered network that extends cloud capabilities to the edge of the network, providing services such as AI model training and deployment. This provider utilizes infrastructure like Kubernetes (K8S) to support scalable, distributed computing tasks.  **FCP** will execute tasks assigned by Market Provider, like [Orchestrator](https://orchestrator.swanchain.io) on the [Swan chain](https://swanchain.io).
 
 
 # Table of Content
 
- - [Prerequisites](#Prerequisites)
- - [Install the Kubernetes](#Install-the-Kubernetes)
- 	- [Install Container Runtime Environment](#install-Container-Runtime-Environment)
- 	- [Optional-Setup a docker registry server](#Optional-setup-a-Docker-Registry-Server)
-	- [Create a Kubernetes Cluster](#Create-a-Kubernetes-Cluster)
- 	- [Install the Network Plugin](#Install-the-Network-Plugin)
-	- [Install the NVIDIA Plugin](#Install-the-NVIDIA-Plugin)
-	- [Install the Ingress-nginx Controller](#Install-the-Ingress-nginx-Controller)
- - [Install and config the Nginx](#Install-the-Ingress-nginx-Controller)
- - [Install the Hardware resource-exporter](#Install-the-Hardware-resource-exporter)
- - [Install the Redis service](#Install-the-Redis-service)
- - [Build and config the Computing Provider](#Build-and-config-the-Computing-Provider)
- - [Install AI Inference Dependency(Optional)](#Install-AI-Inference-Dependency)
- - **[Config and Receive UBI Tasks(optional)](#Config-and-Receive-UBI-Tasks)**
- - [Start the Computing Provider](#Start-the-Computing-Provider)
- - [CLI of Computing Provider](#CLI-of-Computing-Provider)
- - [Run a Computing Provider that only accepts ubi-task](ubi/README.md)
+-  As a ECP
+	- [Run Edge Computing Provider](ubi/README.md)
 
+- As a FCP
+ 	- [Prerequisites](#Prerequisites)
+ 	- [Install the Kubernetes](#Install-the-Kubernetes)
+ 		- [Install Container Runtime Environment](#install-Container-Runtime-Environment)
+ 		- [Optional-Setup a docker registry server](#Optional-setup-a-Docker-Registry-Server)
+		- [Create a Kubernetes Cluster](#Create-a-Kubernetes-Cluster)
+ 		- [Install the Network Plugin](#Install-the-Network-Plugin)
+		- [Install the NVIDIA Plugin](#Install-the-NVIDIA-Plugin)
+		- [Install the Ingress-nginx Controller](#Install-the-Ingress-nginx-Controller)
+ 	- [Install and config the Nginx](#Install-the-Ingress-nginx-Controller)
+ 	- [Install the Hardware resource-exporter](#Install-Hardware-resource-exporter)
+ 	- [Install the Redis service](#Install-Redis-service)
+ 	- [Build and config the Computing Provider](#Build-and-config-the-Computing-Provider)
+ 	- [Install AI Inference Dependency(Optional)](#Install-AI-Inference-Dependency)
+ 	- [Config and Receive UBI Tasks(optional)](#Config-and-Receive-UBI-Tasks)
+	 - [Start the Computing Provider](#Start-the-Computing-Provider)
+	 - [CLI of Computing Provider](#CLI-of-Computing-Provider)
+ 
 ## Prerequisites
 Before you install the Computing Provider, you need to know there are some resources required:
  - Possess a public IP
