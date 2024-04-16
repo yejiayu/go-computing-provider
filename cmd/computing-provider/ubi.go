@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
 	cors "github.com/itsjamie/gin-cors"
-	"github.com/mitchellh/go-homedir"
 	"github.com/olekukonko/tablewriter"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
@@ -44,12 +43,7 @@ var ubiTaskListCmd = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-
-		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
-		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
-		}
-		os.Setenv("CP_PATH", cpRepoPath)
+		cpRepoPath, _ := os.LookupEnv("CP_PATH")
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
@@ -148,20 +142,8 @@ var daemonCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		logs.GetLogger().Info("Start a computing-provider client that only accepts ubi-task mode.")
 
-		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
-		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
-		}
-
-		if _, err = os.Stat(cpRepoPath); os.IsNotExist(err) {
-			err := os.MkdirAll(cpRepoPath, 0755)
-			if err != nil {
-				return fmt.Errorf("create dir failed, error: %v", cpRepoPath)
-			}
-		}
-		os.Setenv("CP_PATH", cpRepoPath)
-
-		err = conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"), cctx.String("node-name"))
+		cpRepoPath, _ := os.LookupEnv("CP_PATH")
+		err := conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"), cctx.String("node-name"))
 		if err != nil {
 			return fmt.Errorf("generate config failed, error: %v", err)
 		}
@@ -191,8 +173,7 @@ var daemonCmd = &cli.Command{
 			logs.GetLogger().Fatal(err)
 		}
 
-		nodeId := computing.GetNodeId(cpRepoPath)
-		computing.ReportHardwareResource(nodeId)
+		computing.CleanDockerResource()
 
 		r := gin.Default()
 		r.Use(cors.Middleware(cors.Config{
