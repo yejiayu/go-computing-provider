@@ -18,11 +18,11 @@ curl -fsSL https://github.com/swanchain/go-computing-provider/blob/fea-separate-
   curl computing-provider github link
   ```
 
-- Create a new wallet address and recharge this address with `swan-eth`:
+- Create a new wallet address and recharge this address with `swan-eth`, refer to [here](https://docs.swanchain.io/swan-testnet/swan-saturn-testnet/before-you-get-started/bridge-tokens):
 ```bash
 ./computing-provider wallet new
 ...
-0x17...
+0x9024a875f44172591373b92...31d67AcCEa
 ```
 *Note: By default, set cp's repo to `~/.swan/computing`, or you can configure it by export `CP_PATH="<YOUR_CP_PATH>"`.*
 
