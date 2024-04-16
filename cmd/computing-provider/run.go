@@ -177,7 +177,6 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Collateral(SWAN-ETH):", collateralBalance})
 
 		taskData = append(taskData, []string{"UBI FLAG:", ubiFlag})
-		taskData = append(taskData, []string{"Bid Mode:", strconv.Itoa(conf.GetConfig().HUB.BidMode)})
 		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
 
 		header := []string{"Owner:", ownerAddress}

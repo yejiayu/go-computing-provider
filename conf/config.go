@@ -15,11 +15,6 @@ var config *ComputeNode
 
 const (
 	DefaultRpc = "swan"
-
-	BidMode_All     int = 0
-	BidMode_Auto    int = 1
-	BidMode_Private int = 2
-	BidMode_None    int = 3
 )
 
 // ComputeNode is a compute node config
@@ -60,7 +55,6 @@ type HUB struct {
 	BalanceThreshold float64
 	OrchestratorPk   string
 	VerifySign       bool
-	BidMode          int
 }
 
 type MCS struct {

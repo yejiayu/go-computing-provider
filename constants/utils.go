@@ -12,7 +12,6 @@ const BiddingCompleted string = "completed"
 const BiddingCancelled string = "cancelled"
 
 const TASK_DEPLOY string = "worker.deploy"
-const PRIVATE_DEPLOY string = "private.deploy"
 
 const K8S_NAMESPACE_NAME_PREFIX = "ns-"
 const K8S_CONTAINER_NAME_PREFIX = "pod-"
@@ -32,5 +31,4 @@ const UBI_TASK_FAILED_STATUS = "failed"
 const CPU_AMD = "AMD"
 const CPU_INTEL = "INTEL"
 
-const SPACE_TYPE_PRIVATE = "private"
 const SPACE_TYPE_PUBLIC = "public"

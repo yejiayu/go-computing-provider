@@ -36,7 +36,6 @@ func BuildSpaceTaskImage(spaceUuid string, files []models.SpaceFile) (bool, stri
 		var containsYaml bool
 		var yamlPath string
 		var modelsSetting string
-		var sshPublicKey string
 
 		err = filepath.WalkDir(imagePath, func(path string, d fs.DirEntry, err error) error {
 			if strings.HasSuffix(d.Name(), "deploy.yaml") || strings.HasSuffix(d.Name(), "deploy.yml") {
@@ -46,15 +45,12 @@ func BuildSpaceTaskImage(spaceUuid string, files []models.SpaceFile) (bool, stri
 			if strings.EqualFold(d.Name(), "model-setting.json") {
 				modelsSetting = path
 			}
-			if strings.EqualFold(d.Name(), "ssh_public_key") {
-				sshPublicKey = path
-			}
 			return nil
 		})
 		if err != nil {
-			return containsYaml, yamlPath, imagePath, modelsSetting, sshPublicKey, err
+			return containsYaml, yamlPath, imagePath, modelsSetting, "", err
 		}
-		return containsYaml, yamlPath, imagePath, modelsSetting, sshPublicKey, nil
+		return containsYaml, yamlPath, imagePath, modelsSetting, "", nil
 	} else {
 		logs.GetLogger().Warnf("Space %s is not found.", spaceUuid)
 	}
