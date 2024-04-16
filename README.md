@@ -253,7 +253,7 @@ server {
 
 
 
-### Install Hardware resource-exporter
+### Install the Hardware resource-exporter
  The `resource-exporter` plugin is developed to collect the node resource constantly, computing provider will report the resource to the Lagrange Auction Engine to match the space requirement. To get the computing task, every node in the cluster must install the plugin. You just need to run the following command:
 
 ```bash
