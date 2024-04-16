@@ -1,5 +1,5 @@
 [API]
-Port = 8085                                     # The port number that the web server listens on
+Port = 9085                                     # The port number that the web server listens on
 MultiAddress = "/ip4/<PUBLIC IP>/tcp/<PORT>"    # The multiAddress for libp2p
 Domain = "<YOUR CP Domain>"                                     # The domain name
 NodeName = "<YOUR CP NodeName>"               # The computing-provider node name
@@ -23,7 +23,6 @@ WalletAddress = "<YOUR WalletAddress>"                        # The cp‘s walle
 BalanceThreshold= 1                                           # The cp’s collateral balance threshold
 OrchestratorPk = "0x29eD49c8E973696D07E7927f748F6E5Eacd5516D" # Orchestrator's public key, CP only accept the task from this Orchestrator
 VerifySign = true                                             # Verify that the task signature is from Orchestrator
-BidMode = 3                                                   # 0: all, 1: auto, 2: private, 3: none
 
 [MCS]
 ApiKey = "<YOUR ApiKey>"                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key
