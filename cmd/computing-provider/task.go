@@ -1,10 +1,10 @@
+
 package main
 
 import (
 	"context"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
-	"github.com/mitchellh/go-homedir"
 	"github.com/olekukonko/tablewriter"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
@@ -38,12 +38,10 @@ var taskList = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 		fullFlag := cctx.Bool("verbose")
-
-		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
-		if err != nil {
+		cpRepoPath, ok := os.LookupEnv("CP_PATH")
+		if !ok {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
-		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
@@ -133,11 +131,10 @@ var taskDetail = &cli.Command{
 			return fmt.Errorf("incorrect number of arguments, got %d, missing args: space_uuid", cctx.NArg())
 		}
 
-		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
-		if err != nil {
+		cpRepoPath, ok := os.LookupEnv("CP_PATH")
+		if !ok {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
-		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
@@ -194,11 +191,10 @@ var taskDelete = &cli.Command{
 			return fmt.Errorf("incorrect number of arguments, got %d, missing args: space_uuid", cctx.NArg())
 		}
 
-		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
-		if err != nil {
+		cpRepoPath, ok := os.LookupEnv("CP_PATH")
+		if !ok {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
-		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
