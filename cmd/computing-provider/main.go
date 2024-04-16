@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"github.com/mitchellh/go-homedir"
 	"github.com/swanchain/go-computing-provider/build"
+	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/urfave/cli/v2"
 	"os"
 )
@@ -35,6 +38,25 @@ func main() {
 			walletCmd,
 			collateralCmd,
 			ubiTaskCmd,
+		},
+		Before: func(c *cli.Context) error {
+			cpRepoPath, err := homedir.Expand(c.String(FlagRepo.Name))
+			if err != nil {
+				return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+			}
+			if _, err = os.Stat(cpRepoPath); os.IsNotExist(err) {
+				err := os.MkdirAll(cpRepoPath, 0755)
+				if err != nil {
+					return fmt.Errorf("create dir failed, error: %v", cpRepoPath)
+				}
+
+			}
+			if err = conf.GenerateConfigFile(cpRepoPath, "", ""); err != nil {
+				return fmt.Errorf("generate config failed, error: %v", err)
+			}
+
+			os.Setenv("CP_PATH", cpRepoPath)
+			return nil
 		},
 	}
 	app.Setup()
