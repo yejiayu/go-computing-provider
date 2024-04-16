@@ -183,44 +183,6 @@ func reportClusterResource(location, nodeId string) {
 		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
 		return
 	}
-	sendResourceToUb(clusterSource)
-}
-
-func sendResourceToUb(clusterSource models2.ClusterResource) {
-	clusterSource.NodeName = conf.GetConfig().API.NodeName
-	clusterSource.MultiAddress = conf.GetConfig().API.MultiAddress
-	clusterSource.TaskFlag = conf.GetConfig().HUB.BidMode
-	payload, err := json.Marshal(clusterSource)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
-		return
-	}
-	client := &http.Client{}
-	url := conf.GetConfig().UBI.UbiUrl + "/cps"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	if err != nil {
-		logs.GetLogger().Errorf("Error creating request: %v", err)
-		return
-	}
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		readAll, _ := io.ReadAll(resp.Body)
-		var respData struct {
-			Message string `json:"message"`
-		}
-		_ = json.Unmarshal(readAll, &respData)
-
-		logs.GetLogger().Errorf("report cluster node resources to UBI failed, status code: %d, message: %s", resp.StatusCode, respData.Message)
-		return
-	}
 
 }
 

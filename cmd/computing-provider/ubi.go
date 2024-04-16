@@ -47,7 +47,7 @@ var ubiTaskListCmd = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
@@ -141,7 +141,7 @@ var daemonCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:     "node-name",
-			Usage:    "The cp of name",
+			Usage:    "The name of cp",
 			Required: true,
 		},
 	},
@@ -150,7 +150,7 @@ var daemonCmd = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 
 		if _, err = os.Stat(cpRepoPath); os.IsNotExist(err) {

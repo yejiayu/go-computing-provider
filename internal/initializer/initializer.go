@@ -78,7 +78,6 @@ func ProjectInit(cpRepoPath string) {
 	computing.RunSyncTask(nodeID)
 	celeryService := computing.NewCeleryService()
 	celeryService.RegisterTask(constants.TASK_DEPLOY, computing.DeploySpaceTask)
-	celeryService.RegisterTask(constants.PRIVATE_DEPLOY, computing.DeployPrivateTask)
 	celeryService.Start()
 
 }

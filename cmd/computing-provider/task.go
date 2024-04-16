@@ -41,7 +41,7 @@ var taskList = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
@@ -135,7 +135,7 @@ var taskDetail = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
@@ -196,7 +196,7 @@ var taskDelete = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {

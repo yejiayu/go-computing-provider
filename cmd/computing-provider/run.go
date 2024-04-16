@@ -44,7 +44,7 @@ var runCmd = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		if _, err = os.Stat(cpRepoPath); os.IsNotExist(err) {
 			err := os.MkdirAll(cpRepoPath, 0755)
@@ -99,10 +99,6 @@ func cpManager(router *gin.RouterGroup) {
 	router.POST("/cp/ubi", computing.DoUbiTaskForK8s)
 	router.POST("/cp/receive/ubi", computing.ReceiveUbiProofForK8s)
 
-	router.POST("/cp/private", computing.ReceivePrivateJob)
-	router.POST("/cp/private/extend", computing.ExtendJob)
-	router.DELETE("/cp/private/terminate/:task_uuid", computing.TerminateJob)
-
 }
 
 var infoCmd = &cli.Command{
@@ -111,7 +107,7 @@ var infoCmd = &cli.Command{
 	Action: func(cctx *cli.Context) error {
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
@@ -220,7 +216,7 @@ var initCmd = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
@@ -373,7 +369,7 @@ var changeMultiAddressCmd = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
@@ -459,7 +455,7 @@ var changeOwnerAddressCmd = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
@@ -545,7 +541,7 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {
@@ -635,7 +631,7 @@ var changeUbiFlagCmd = &cli.Command{
 
 		cpRepoPath, err := homedir.Expand(cctx.String(FlagRepo.Name))
 		if err != nil {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
 		os.Setenv("CP_PATH", cpRepoPath)
 		if err := conf.InitConfig(cpRepoPath, false); err != nil {

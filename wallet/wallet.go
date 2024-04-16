@@ -43,7 +43,7 @@ var reAddress = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 func SetupWallet(dir string) (*LocalWallet, error) {
 	cpPath, exit := os.LookupEnv("CP_PATH")
 	if !exit {
-		return nil, fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		return nil, fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 	}
 	if err := conf.InitConfig(cpPath, true); err != nil {
 		return nil, fmt.Errorf("load config file failed, error: %+v", err)

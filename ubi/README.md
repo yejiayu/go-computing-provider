@@ -15,7 +15,8 @@ curl -fsSL https://github.com/swanchain/go-computing-provider/blob/fea-separate-
 
 - Download the binary file of `computing-provider`
 ```bash
-curl computing-provider github link
+curl -LO https://github.com/swanchain/go-computing-provider/releases/download/v0.4.5/computing-provider
+sudo chmod +x computing-provider
 ```
 
 - Create a new wallet address and recharge this address with `swan-eth`, refer to [here](https://docs.swanchain.io/swan-testnet/swan-saturn-testnet/before-you-get-started/bridge-tokens):
