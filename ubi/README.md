@@ -1,6 +1,6 @@
 - Install the prerequisite environment
 ```bash
-curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/blob/fea-separate-ubi/ubi/setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/fea-separate-ubi/ubi/setup.sh | bash
 ```
 
 - Download parameters for zk-fil:
@@ -8,9 +8,9 @@ curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/blo
 export PARENT_PATH="<YOUR_ZK-FIL_PARAMS_PATH>"
 
 # 32GiB parameters
-curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/blob/fea-separate-ubi/ubi/fetch-param-32.sh | bash
+curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/fea-separate-ubi/ubi/fetch-param-32.sh | bash
 # 512MiB parameters
-curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/blob/fea-separate-ubi/ubi/fetch-param-512.sh | bash
+curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/fea-separate-ubi/ubi/fetch-param-512.sh | bash
 ```
 
 - Download the binary file of `computing-provider`
