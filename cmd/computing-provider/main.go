@@ -49,10 +49,12 @@ func main() {
 				if err != nil {
 					return fmt.Errorf("create dir failed, error: %v", cpRepoPath)
 				}
-				if err = conf.GenerateConfigFile(cpRepoPath, "", ""); err != nil {
-					return fmt.Errorf("generate config failed, error: %v", err)
-				}
+
 			}
+			if err = conf.GenerateConfigFile(cpRepoPath, "", ""); err != nil {
+				return fmt.Errorf("generate config failed, error: %v", err)
+			}
+
 			os.Setenv("CP_PATH", cpRepoPath)
 			return nil
 		},
