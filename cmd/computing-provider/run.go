@@ -227,6 +227,11 @@ var createAccountCmd = &cli.Command{
 			Name:  "beneficiaryAddress",
 			Usage: "Specify a beneficiaryAddress to receive rewards. If not specified, use the same address as ownerAddress",
 		},
+		&cli.BoolFlag{
+			Name:  "ubi-flag",
+			Usage: "Whether to accept the UBI task (Default: false)",
+			Value: false,
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		ownerAddress := cctx.String("ownerAddress")
@@ -239,6 +244,8 @@ var createAccountCmd = &cli.Command{
 			beneficiaryAddress = ownerAddress
 		}
 
+		ubiFlag := cctx.Bool("ubi-flag")
+
 		cpRepoPath, ok := os.LookupEnv("CP_PATH")
 		if !ok {
 			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
@@ -246,7 +253,7 @@ var createAccountCmd = &cli.Command{
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
-		return createAccount(cpRepoPath, ownerAddress, beneficiaryAddress)
+		return createAccount(cpRepoPath, ownerAddress, beneficiaryAddress, ubiFlag)
 	},
 }
 

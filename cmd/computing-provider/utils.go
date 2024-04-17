@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-func createAccount(cpRepoPath, ownerAddress, beneficiaryAddress string) error {
+func createAccount(cpRepoPath, ownerAddress, beneficiaryAddress string, ubiFlag bool) error {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
 		return fmt.Errorf("get rpc url failed, error: %v", err)
@@ -86,7 +86,7 @@ func createAccount(cpRepoPath, ownerAddress, beneficiaryAddress string) error {
 	}
 
 	var ubiTaskFlag uint8
-	if conf.GetConfig().UBI.UbiTask {
+	if ubiFlag || conf.GetConfig().UBI.UbiTask {
 		ubiTaskFlag = 1
 	}
 
