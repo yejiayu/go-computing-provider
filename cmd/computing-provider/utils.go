@@ -125,7 +125,7 @@ func createAccount(cpRepoPath, ownerAddress, beneficiaryAddress string) error {
 				if err != nil {
 					return err
 				}
-				fmt.Println("computing-provider successfully initialized, you can now start it with 'computing-provider daemon'")
+				fmt.Println("computing-provider successfully initialized, you can now start it with 'computing-provider ubi daemon'")
 				return nil
 			} else if receipt != nil && receipt.Status == 0 {
 				return err
