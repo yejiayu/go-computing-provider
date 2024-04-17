@@ -367,7 +367,7 @@ var changeOwnerAddressCmd = &cli.Command{
 			logs.GetLogger().Errorf("change owner address tx failed, error: %v,", err)
 			return err
 		}
-		fmt.Printf("ChangeOwnerAddress: %s", submitUBIProofTx)
+		fmt.Printf("ChangeOwnerAddress: %s \n", submitUBIProofTx)
 
 		return nil
 	},
@@ -453,7 +453,7 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 			logs.GetLogger().Errorf("change owner address tx failed, error: %v,", err)
 			return err
 		}
-		fmt.Printf("changeBeneficiaryAddress Transaction hash: %s", changeBeneficiaryAddressTx)
+		fmt.Printf("changeBeneficiaryAddress Transaction hash: %s \n", changeBeneficiaryAddressTx)
 		return nil
 	},
 }
@@ -543,7 +543,7 @@ var changeUbiFlagCmd = &cli.Command{
 			logs.GetLogger().Errorf("change ubi flag tx failed, error: %v,", err)
 			return err
 		}
-		fmt.Printf("ChangeUbiFlag Transaction hash: %s", changeBeneficiaryAddressTx)
+		fmt.Printf("ChangeUbiFlag Transaction hash: %s \n", changeBeneficiaryAddressTx)
 		return nil
 	},
 }

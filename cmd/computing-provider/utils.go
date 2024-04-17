@@ -173,6 +173,6 @@ func changeMultiAddress(ownerAddress, multiAddr string) error {
 	if err != nil {
 		return fmt.Errorf("change multi-addr tx failed, error: %v", err)
 	}
-	fmt.Printf("ChangeMultiAddress: %s", submitUBIProofTx)
+	fmt.Printf("ChangeMultiAddress: %s \n", submitUBIProofTx)
 	return nil
 }

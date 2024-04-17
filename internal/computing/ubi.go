@@ -794,8 +794,20 @@ func reportClusterResourceForDocker() {
 		return
 	}
 
-	logs.GetLogger().Infof("collect hardware resource, freeCpu:%s, freeMemory: %s, freeStorage: %s",
-		nodeResource.Cpu.Free, nodeResource.Memory.Free, nodeResource.Storage.Free)
+	var freeGpuMap = make(map[string]int)
+	if nodeResource.Gpu.AttachedGpus > 0 {
+		for _, g := range nodeResource.Gpu.Details {
+			if g.Status == models.Available {
+				if num, ok := freeGpuMap[g.ProductName]; ok {
+					freeGpuMap[g.ProductName] = num + 1
+				} else {
+					freeGpuMap[g.ProductName] = 1
+				}
+			}
+		}
+	}
+	logs.GetLogger().Infof("collect hardware resource, freeCpu:%s, freeMemory: %s, freeStorage: %s, freeGpu: %v",
+		nodeResource.Cpu.Free, nodeResource.Memory.Free, nodeResource.Storage.Free, freeGpuMap)
 }
 
 func CleanDockerResource() {
