@@ -27,6 +27,10 @@ curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/blo
 wget https://github.com/swanchain/go-computing-provider/releases/download/v0.4.6/computing-provider
 ```
 
+- Initialize ECP repo
+```bash
+ ./computing-provider init --multi-address=/ip4/<YOUR_PUBLIC_IP>/tcp/<YOUR_PORT> --node-name=<YOUR_NODE_NAME>
+```
 - Generate a new wallet address and deposit the `swan-eth`, refer [here](https://docs.swanchain.io/swan-testnet/atom-accelerator-race/before-you-get-started/bridge-tokens):
 ```bash
 ./computing-provider wallet new
@@ -39,22 +43,20 @@ Output:
 
 - Initialize ECP Account
 ```bash
-./computing-provider init --ownerAddress <YOUR_WALLET_ADDRESS>
+./computing-provider account create --ownerAddress <YOUR_WALLET_ADDRESS> --ubi-flag=true
 ```
 
 ## Start ECP service
 ```bash
 #!/bin/bash
-export FIL_PROOFS_PARAMETER_CACHE="<YOUR_ZK-FIL_PARAMS_PATH>"
+export FIL_PROOFS_PARAMETER_CACHE="$PARENT_PATH"
 export RUST_GPU_TOOLS_CUSTOM_GPU="GeForce RTX 4090:16384"   
         
-nohup ./computing-provider ubi-task daemon \
-	--multi-address=/ip4/<YOUR_PUBLIC_IP>/tcp/<YOUR_PORT> \
-	--node-name=<YOUR_NODE_NAME> >> cp.log 2>&1 &
+nohup ./computing-provider ubi-task daemon >> cp.log 2>&1 &
 ```
 **Note:**
- -  `<YOUR_ZK-FIL_PARAMS_PATH>` is your parameters directory, 
- - `RUST_GPU_TOOLS_CUSTOM_GPU` is your GPU model and cores
- - `<YOUR_PUBLIC_IP>`, `<YOUR_PORT>` are your public IP and port , 
- - `<YOUR_NODE_NAME>` is your CP name which will show in the dashboard.
+-  `<FIL_PROOFS_PARAMETER_CACHE>` is your parameters directory,
+- `RUST_GPU_TOOLS_CUSTOM_GPU` is your GPU model and cores
+- `<YOUR_PUBLIC_IP>`, `<YOUR_PORT>` are your public IP and port ,
+- `<YOUR_NODE_NAME>` is your CP name which will show in the dashboard, If not specified, the default is `hostname`.
 
