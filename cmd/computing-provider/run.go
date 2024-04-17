@@ -224,8 +224,8 @@ var createAccountCmd = &cli.Command{
 			Usage: "The multiAddress for libp2p(public ip)",
 		},
 		&cli.StringFlag{
-			Name:  "node-name",
-			Usage: "The name of cp",
+			Name:  "beneficiaryAddress",
+			Usage: "Specify a beneficiaryAddress to receive rewards. If not specified, use the same address as ownerAddress",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
