@@ -81,6 +81,10 @@ func registerAccount(cpRepoPath, ownerAddress, beneficiaryAddress, multiAddresse
 	nodeID := computing.GetNodeId(cpRepoPath)
 	if len(strings.TrimSpace(multiAddresses)) == 0 {
 		multiAddresses = conf.GetConfig().API.MultiAddress
+	} else {
+		if err = conf.UpdateConfigFile(cpRepoPath, multiAddresses); err != nil {
+			return err
+		}
 	}
 
 	var ubiTaskFlag uint8

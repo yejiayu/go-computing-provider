@@ -270,3 +270,28 @@ func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) (bool,
 
 	return isUpdate, nil
 }
+
+func UpdateConfigFile(cpRepoPath string, multiAddress string) error {
+	var configTmpl ComputeNode
+	var configFile *os.File
+	var err error
+
+	configFilePath := path.Join(cpRepoPath, "config.toml")
+	if _, err = toml.DecodeFile(configFilePath, &configTmpl); err != nil {
+		return err
+	}
+	os.Remove(configFilePath)
+
+	configFile, err = os.Create(configFilePath)
+	if err != nil {
+		return err
+	}
+
+	if len(strings.TrimSpace(multiAddress)) != 0 {
+		configTmpl.API.MultiAddress = multiAddress
+	}
+	if err = toml.NewEncoder(configFile).Encode(configTmpl); err != nil {
+		return err
+	}
+	return nil
+}
