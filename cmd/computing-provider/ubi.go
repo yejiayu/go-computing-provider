@@ -144,8 +144,7 @@ var daemonCmd = &cli.Command{
 		logs.GetLogger().Info("Start a computing-provider client that only accepts ubi-task mode.")
 
 		cpRepoPath, _ := os.LookupEnv("CP_PATH")
-		multiAddr := cctx.String("multi-address")
-		isUpdate, err := conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"), cctx.String("node-name"))
+		err := conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"), cctx.String("node-name"))
 		if err != nil {
 			return fmt.Errorf("generate config failed, error: %v", err)
 		}

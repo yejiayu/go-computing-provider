@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 )
 
 const (
@@ -145,90 +144,45 @@ func gpuInPod(pod *corev1.Pod) (gpuName string, gpuCount int64) {
 	return gpuName, gpuCount
 }
 
-func checkClusterProviderStatus() (string, error) {
-
+func checkClusterProviderStatus() {
 	var policy models.ResourcePolicy
-	currentDir, _ := os.Getwd()
-	resourcePolicy := filepath.Join(currentDir, "resource_policy.json")
+	cpPath, _ := os.LookupEnv("CP_PATH")
+	resourcePolicy := filepath.Join(cpPath, "resource_policy.json")
 	bytes, err := os.ReadFile(resourcePolicy)
 	if err != nil {
 		policy = defaultResourcePolicy()
 	} else {
 		if err = json.Unmarshal(bytes, &policy); err != nil {
-			return "", err
+			logs.GetLogger().Errorf("parse json failed, error: %v", err)
+			return
 		}
 	}
-
 	service := NewK8sService()
 	activePods, err := allActivePods(service.k8sClient)
 	if err != nil {
-		return "", err
+		logs.GetLogger().Errorf("get all active pod failed, error: %v", err)
+		return
 	}
 
 	nodes, err := service.k8sClient.CoreV1().Nodes().List(context.TODO(), metaV1.ListOptions{})
 	if err != nil {
-		return "", err
+		logs.GetLogger().Errorf("get all node failed, error: %v", err)
+		return
 	}
 
-	collectGpu := make(map[string]int64)
-	nodeGpuInfo, err := service.GetResourceExporterPodLog(context.TODO())
-	if err != nil {
-		logs.GetLogger().Error(err)
-		return "", err
-	}
-	for _, gpu := range nodeGpuInfo {
-		for _, gpuDetail := range gpu.Gpu.Details {
-			collectGpu[gpuDetail.ProductName] = collectGpu[gpuDetail.ProductName] + 1
-		}
-	}
-
-	nodeGpu := make(map[string]int64)
-	nodeResource := make(map[string]int64)
 	for _, node := range nodes.Items {
-		gpuMap, remainderResource, _ := GetNodeResource(activePods, &node)
-		for k, v := range gpuMap {
-			nodeGpu[k] = nodeGpu[k] + v
+		_, remainderResource, nodeResource := GetNodeResource(activePods, &node)
+		if remainderResource[ResourceCpu] < policy.Cpu.Quota {
+			logs.GetLogger().Warningf("Insufficient cpu resources, current cpu resource: %s less than %d", nodeResource.Cpu.Free, policy.Cpu.Quota)
+			return
 		}
-		for k, v := range remainderResource {
-			nodeResource[k] = nodeGpu[k] + v
+		if remainderResource[ResourceMem] < policy.Memory.Quota {
+			logs.GetLogger().Warningf("Insufficient memory resources, current memory resource: %s less than %d %s", nodeResource.Memory.Free, policy.Memory.Quota, policy.Memory.Unit)
+			return
 		}
-	}
-
-	remainGpu := make(map[string]int64)
-	policyMap := make(map[string]int64)
-	for name, num := range collectGpu {
-		gpuName := strings.ReplaceAll(name, " ", "-")
-		remainGpu[gpuName] = num - nodeGpu[gpuName]
-
-		for _, gpu := range policy.Gpu {
-			upperName := strings.ReplaceAll(gpu.Name, "Nvidia", "NVIDIA")
-			if gpuName == upperName {
-				policyMap[gpuName] = gpu.Quota
-				break
-			}
-		}
-	}
-
-	var gpuFlag bool
-	for name, quota := range policyMap {
-		if remainGpu[name] > quota {
-			gpuFlag = true
-			break
-		}
-	}
-
-	if gpuFlag {
-		if nodeResource[ResourceCpu] < policy.Cpu.Quota || nodeResource[ResourceMem] < policy.Memory.Quota || nodeResource[ResourceStorage] < policy.Memory.Quota {
-			logs.GetLogger().Infof("have gpu, status: %s", models.InactiveStatus)
-			return models.InactiveStatus, nil
-		}
-		return models.ActiveStatus, nil
-	} else {
-		if nodeResource[ResourceCpu] < policy.Cpu.Quota || nodeResource[ResourceMem] < policy.Memory.Quota || nodeResource[ResourceStorage] < policy.Memory.Quota {
-			logs.GetLogger().Infof("no gpu, status: %s", models.InactiveStatus)
-			return models.InactiveStatus, nil
-		} else {
-			return models.ActiveStatus, nil
+		if remainderResource[ResourceStorage] < policy.Storage.Quota {
+			logs.GetLogger().Warningf("Insufficient storage resources, current storage resource: %s less than %d %s", nodeResource.Storage.Free, policy.Storage.Quota, policy.Storage.Unit)
+			return
 		}
 	}
 }
@@ -236,72 +190,15 @@ func checkClusterProviderStatus() (string, error) {
 func defaultResourcePolicy() models.ResourcePolicy {
 	return models.ResourcePolicy{
 		Cpu: models.CpuQuota{
-			Quota: 0,
+			Quota: 1,
 		},
 		Memory: models.Quota{
-			Quota: 0,
+			Quota: 5,
 			Unit:  "GiB",
 		},
 		Storage: models.Quota{
-			Quota: 0,
+			Quota: 10,
 			Unit:  "GiB",
-		},
-		Gpu: []models.GpuQuota{
-			{
-				Name:  "Nvidia-2060",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-3070",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-3080",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-3090",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-4090",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-A100",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-H100",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-A10G",
-				Quota: 0,
-			}, {
-				Name:  "Nvidia-T4",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-2080-Ti",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-3060-Ti",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-3070-Ti",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-3080-Ti",
-				Quota: 0,
-			},
-			{
-				Name:  "Nvidia-4090-Ti",
-				Quota: 0,
-			},
 		},
 	}
 }
