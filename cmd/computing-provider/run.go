@@ -229,7 +229,7 @@ var createAccountCmd = &cli.Command{
 		},
 		&cli.BoolFlag{
 			Name:  "ubi-flag",
-			Usage: "Whether to accept the UBI task (Default: false)",
+			Usage: "Whether to accept the UBI task",
 			Value: false,
 		},
 	},
