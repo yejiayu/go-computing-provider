@@ -751,8 +751,10 @@ func GetCpResource(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, models.ClusterResource{
-		Region:      location,
-		ClusterInfo: []*models.NodeResource{&nodeResource},
+		Region:       location,
+		ClusterInfo:  []*models.NodeResource{&nodeResource},
+		MultiAddress: conf.GetConfig().API.MultiAddress,
+		NodeName:     conf.GetConfig().API.NodeName,
 	})
 }
 
