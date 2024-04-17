@@ -4,12 +4,14 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
 	cors "github.com/itsjamie/gin-cors"
 	"github.com/olekukonko/tablewriter"
+	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
 	"github.com/swanchain/go-computing-provider/internal/computing"
@@ -129,9 +131,8 @@ var daemonCmd = &cli.Command{
 	Usage: "Start a cp process",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:     "multi-address",
-			Usage:    "The multiAddress for libp2p(public ip)",
-			Required: true,
+			Name:  "multi-address",
+			Usage: "The multiAddress for libp2p(public ip)",
 		},
 		&cli.StringFlag{
 			Name:     "node-name",
@@ -143,7 +144,8 @@ var daemonCmd = &cli.Command{
 		logs.GetLogger().Info("Start a computing-provider client that only accepts ubi-task mode.")
 
 		cpRepoPath, _ := os.LookupEnv("CP_PATH")
-		err := conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"), cctx.String("node-name"))
+		multiAddr := cctx.String("multi-address")
+		isUpdate, err := conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"), cctx.String("node-name"))
 		if err != nil {
 			return fmt.Errorf("generate config failed, error: %v", err)
 		}
@@ -171,6 +173,29 @@ var daemonCmd = &cli.Command{
 
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
+		}
+
+		if isUpdate {
+			chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
+			if err != nil {
+				return err
+			}
+			client, err := ethclient.Dial(chainRpc)
+			if err != nil {
+				return err
+			}
+			defer client.Close()
+
+			var ownerAddress string
+			cpStub, err := account.NewAccountStub(client)
+			if err == nil {
+				cpAccount, err := cpStub.GetCpAccountInfo()
+				if err != nil {
+					return fmt.Errorf("get cpAccount faile, error: %v", err)
+				}
+				ownerAddress = cpAccount.OwnerAddress
+			}
+			return changeMultiAddress(ownerAddress, multiAddr)
 		}
 
 		computing.CleanDockerResource()

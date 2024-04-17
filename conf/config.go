@@ -193,7 +193,7 @@ var configFileContent string
 //go:embed redis.conf
 var redisConfigFileContent string
 
-func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) error {
+func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) (bool, error) {
 	var configTmpl ComputeNode
 	var configFile *os.File
 	var err error
@@ -202,20 +202,20 @@ func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) error 
 	if _, err = os.Stat(dataDir); os.IsNotExist(err) {
 		err := os.MkdirAll(dataDir, 0755)
 		if err != nil {
-			return err
+			return false, err
 		}
 	} else if err != nil {
-		return err
+		return false, err
 	}
 
 	confDir := path.Join(cpRepoPath, "store_data/conf")
 	if _, err = os.Stat(confDir); os.IsNotExist(err) {
 		err := os.MkdirAll(confDir, 0755)
 		if err != nil {
-			return err
+			return false, err
 		}
 	} else if err != nil {
-		return err
+		return false, err
 	}
 
 	redisConfigFilePath := path.Join(confDir, "redis.conf")
@@ -223,40 +223,44 @@ func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) error 
 
 		redisConfigFile, err := os.Create(redisConfigFilePath)
 		if err != nil {
-			return fmt.Errorf("create redis config file failed, error: %v", err)
+			return false, fmt.Errorf("create redis config file failed, error: %v", err)
 		}
 		defer redisConfigFile.Close()
 		if _, err = redisConfigFile.WriteString(redisConfigFileContent); err != nil {
-			return fmt.Errorf("write redis config file failed, error: %v", err)
+			return false, fmt.Errorf("write redis config file failed, error: %v", err)
 		}
 	}
 
 	configFilePath := path.Join(cpRepoPath, "config.toml")
 	if _, err = os.Stat(configFilePath); os.IsNotExist(err) {
 		if _, err = toml.Decode(configFileContent, &configTmpl); err != nil {
-			return err
+			return false, err
 		}
 	} else {
 		if _, err = toml.DecodeFile(configFilePath, &configTmpl); err != nil {
-			return err
+			return false, err
 		}
 		os.Remove(configFilePath)
 	}
 
 	configFile, err = os.Create(configFilePath)
 	if err != nil {
-		return err
+		return false, err
 	}
 
+	var isUpdate bool
 	if len(strings.TrimSpace(multiAddress)) != 0 {
+		if !strings.EqualFold(strings.TrimSpace(multiAddress), strings.TrimSpace(configTmpl.API.MultiAddress)) {
+			isUpdate = true
+		}
 		configTmpl.API.MultiAddress = multiAddress
 	}
 	if len(strings.TrimSpace(nodeName)) != 0 {
 		configTmpl.API.NodeName = nodeName
 	}
 	if err := toml.NewEncoder(configFile).Encode(configTmpl); err != nil {
-		return err
+		return false, err
 	}
 
-	return nil
+	return isUpdate, nil
 }
