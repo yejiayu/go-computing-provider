@@ -52,7 +52,7 @@ Output:
 export FIL_PROOFS_PARAMETER_CACHE="$PARENT_PATH"
 export RUST_GPU_TOOLS_CUSTOM_GPU="GeForce RTX 4090:16384"   
         
-nohup ./computing-provider ubi-task daemon >> cp.log 2>&1 &
+nohup ./computing-provider ubi daemon >> cp.log 2>&1 &
 ```
 **Note:**
 -  `<FIL_PROOFS_PARAMETER_CACHE>` is your parameters directory,

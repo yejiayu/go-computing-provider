@@ -455,7 +455,7 @@ Note: Follow [this guide](https://docs.swanchain.io/swan-testnet/swan-saturn-tes
 1.  Deploy a contract with CP's basic info:
 
     ```bash
-    computing-provider init --ownerAddress 0xFbc1d38a2127D81BFe3EA347bec7310a1cfa2373
+    computing-provider account create --ownerAddress 0xFbc1d38a2127D81BFe3EA347bec7310a1cfa2373
     ```
 
     _Output:_
@@ -479,6 +479,7 @@ USAGE:
    computing-provider account command [command options] [arguments...]
 
 COMMANDS:
+   create                    Create a cp account to chain
    changeMultiAddress        Update MultiAddress of CP
    changeOwnerAddress        Update OwnerAddress of CP
    changeBeneficiaryAddress  Update BeneficiaryAddress of CP
@@ -494,7 +495,7 @@ OPTIONS:
 To check the UBI task list, use the following command:
 
 ```
-computing-provider ubi-task list
+computing-provider ubi list
 ```
 
 Example output:
