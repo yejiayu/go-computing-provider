@@ -220,8 +220,8 @@ var createAccountCmd = &cli.Command{
 	Usage: "Create a cp account to chain",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "multi-address",
-			Usage: "The multiAddress for libp2p(public ip)",
+			Name:  "ownerAddress",
+			Usage: "Specify a OwnerAddress",
 		},
 		&cli.StringFlag{
 			Name:  "beneficiaryAddress",
