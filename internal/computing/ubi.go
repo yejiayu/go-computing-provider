@@ -797,12 +797,10 @@ func reportClusterResourceForDocker() {
 	var freeGpuMap = make(map[string]int)
 	if nodeResource.Gpu.AttachedGpus > 0 {
 		for _, g := range nodeResource.Gpu.Details {
-			if g.Status == models.Available {
-				if num, ok := freeGpuMap[g.ProductName]; ok {
-					freeGpuMap[g.ProductName] = num + 1
-				} else {
-					freeGpuMap[g.ProductName] = 1
-				}
+			if g.FbMemoryUsage.Free != "0 MiB" {
+				freeGpuMap[g.ProductName] += 1
+			} else {
+				freeGpuMap[g.ProductName] = 1
 			}
 		}
 	}
