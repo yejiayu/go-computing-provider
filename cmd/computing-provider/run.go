@@ -125,7 +125,7 @@ var infoCmd = &cli.Command{
 		if err == nil {
 			cpAccount, err := cpStub.GetCpAccountInfo()
 			if err != nil {
-				return fmt.Errorf("get cpAccount faile, error: %v", err)
+				return fmt.Errorf("get cpAccount failed, error: %v", err)
 			}
 			if cpAccount.UbiFlag == 1 {
 				ubiFlag = "Accept"
@@ -184,9 +184,14 @@ var initCmd = &cli.Command{
 			Name:  "beneficiaryAddress",
 			Usage: "Specify a beneficiaryAddress to receive rewards. If not specified, use the same address as ownerAddress",
 		},
+		&cli.StringFlag{
+			Name:  "multi-address",
+			Usage: "The multiAddress for libp2p(public ip)",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 
+		multiAddr := cctx.String("multi-address")
 		ownerAddress := cctx.String("ownerAddress")
 		if strings.TrimSpace(ownerAddress) == "" {
 			return fmt.Errorf("ownerAddress is not empty")
@@ -204,7 +209,7 @@ var initCmd = &cli.Command{
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
-		return registerAccount(cpRepoPath, ownerAddress, beneficiaryAddress)
+		return registerAccount(cpRepoPath, ownerAddress, beneficiaryAddress, multiAddr)
 	},
 }
 

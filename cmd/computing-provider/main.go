@@ -51,7 +51,7 @@ func main() {
 				}
 
 			}
-			if err = conf.GenerateConfigFile(cpRepoPath, "", ""); err != nil {
+			if _, err = conf.GenerateConfigFile(cpRepoPath, "", ""); err != nil {
 				return fmt.Errorf("generate config failed, error: %v", err)
 			}
 

@@ -257,6 +257,12 @@ func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) (bool,
 	}
 	if len(strings.TrimSpace(nodeName)) != 0 {
 		configTmpl.API.NodeName = nodeName
+	} else {
+		hostname, err := os.Hostname()
+		if err != nil {
+			return false, fmt.Errorf("get hostname failed, error: %v", err)
+		}
+		configTmpl.API.NodeName = hostname
 	}
 	if err := toml.NewEncoder(configFile).Encode(configTmpl); err != nil {
 		return false, err

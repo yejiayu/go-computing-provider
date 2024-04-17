@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-func registerAccount(cpRepoPath, ownerAddress, beneficiaryAddress string) error {
+func registerAccount(cpRepoPath, ownerAddress, beneficiaryAddress, multiAddresses string) error {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
 		return fmt.Errorf("get rpc url failed, error: %v", err)
@@ -79,7 +79,10 @@ func registerAccount(cpRepoPath, ownerAddress, beneficiaryAddress string) error 
 	auth.Context = context.Background()
 
 	nodeID := computing.GetNodeId(cpRepoPath)
-	multiAddresses := conf.GetConfig().API.MultiAddress
+	if len(strings.TrimSpace(multiAddresses)) == 0 {
+		multiAddresses = conf.GetConfig().API.MultiAddress
+	}
+
 	var ubiTaskFlag uint8
 	if conf.GetConfig().UBI.UbiTask {
 		ubiTaskFlag = 1

@@ -135,16 +135,16 @@ var daemonCmd = &cli.Command{
 			Usage: "The multiAddress for libp2p(public ip)",
 		},
 		&cli.StringFlag{
-			Name:     "node-name",
-			Usage:    "The name of cp",
-			Required: true,
+			Name:  "node-name",
+			Usage: "The name of cp",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
 		logs.GetLogger().Info("Start a computing-provider client that only accepts ubi-task mode.")
 
 		cpRepoPath, _ := os.LookupEnv("CP_PATH")
-		err := conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"), cctx.String("node-name"))
+		multiAddr := cctx.String("multi-address")
+		isUpdate, err := conf.GenerateConfigFile(cpRepoPath, multiAddr, cctx.String("node-name"))
 		if err != nil {
 			return fmt.Errorf("generate config failed, error: %v", err)
 		}
@@ -190,7 +190,7 @@ var daemonCmd = &cli.Command{
 			if err == nil {
 				cpAccount, err := cpStub.GetCpAccountInfo()
 				if err != nil {
-					return fmt.Errorf("get cpAccount faile, error: %v", err)
+					return fmt.Errorf("get cpAccount failed, error: %v", err)
 				}
 				ownerAddress = cpAccount.OwnerAddress
 			}
