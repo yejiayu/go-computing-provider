@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-func registerAccount(cpRepoPath, ownerAddress, beneficiaryAddress, multiAddresses string) error {
+func createAccount(cpRepoPath, ownerAddress, beneficiaryAddress string) error {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
 		return fmt.Errorf("get rpc url failed, error: %v", err)
@@ -79,12 +79,10 @@ func registerAccount(cpRepoPath, ownerAddress, beneficiaryAddress, multiAddresse
 	auth.Context = context.Background()
 
 	nodeID := computing.GetNodeId(cpRepoPath)
-	if len(strings.TrimSpace(multiAddresses)) == 0 {
-		multiAddresses = conf.GetConfig().API.MultiAddress
-	} else {
-		if err = conf.UpdateConfigFile(cpRepoPath, multiAddresses); err != nil {
-			return err
-		}
+	multiAddresses := conf.GetConfig().API.MultiAddress
+
+	if strings.Contains(conf.GetConfig().API.MultiAddress, "<") || strings.Contains(conf.GetConfig().API.MultiAddress, "PUBLIC") {
+		return fmt.Errorf("the multi-address field needs to be configured, by modify config.toml or computing-provider init")
 	}
 
 	var ubiTaskFlag uint8
@@ -127,7 +125,7 @@ func registerAccount(cpRepoPath, ownerAddress, beneficiaryAddress, multiAddresse
 				if err != nil {
 					return err
 				}
-				fmt.Println("cp successfully initialized, you can now start it with 'computing-provider run'")
+				fmt.Println("computing-provider successfully initialized, you can now start it with 'computing-provider daemon'")
 				return nil
 			} else if receipt != nil && receipt.Status == 0 {
 				return err

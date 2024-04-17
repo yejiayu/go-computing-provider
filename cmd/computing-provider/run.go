@@ -177,21 +177,58 @@ var initCmd = &cli.Command{
 	Usage: "Initialize a new cp",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
-			Name:  "ownerAddress",
-			Usage: "Specify a OwnerAddress",
+			Name:  "multi-address",
+			Usage: "The multiAddress for libp2p(public ip)",
 		},
 		&cli.StringFlag{
-			Name:  "beneficiaryAddress",
-			Usage: "Specify a beneficiaryAddress to receive rewards. If not specified, use the same address as ownerAddress",
+			Name:  "node-name",
+			Usage: "The name of cp",
 		},
+	},
+	Action: func(cctx *cli.Context) error {
+		multiAddr := cctx.String("multi-address")
+		if strings.TrimSpace(multiAddr) == "" {
+			return fmt.Errorf("the multi-address field required")
+		}
+		nodeName := cctx.String("node-name")
+
+		cpRepoPath, ok := os.LookupEnv("CP_PATH")
+		if !ok {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
+			logs.GetLogger().Fatal(err)
+		}
+		return conf.UpdateConfigFile(cpRepoPath, multiAddr, nodeName)
+	},
+}
+
+var accountCmd = &cli.Command{
+	Name:  "account",
+	Usage: "Manage account info of CP",
+	Subcommands: []*cli.Command{
+		createAccountCmd,
+		changeMultiAddressCmd,
+		changeOwnerAddressCmd,
+		changeBeneficiaryAddressCmd,
+		changeUbiFlagCmd,
+	},
+}
+
+var createAccountCmd = &cli.Command{
+	Name:  "create",
+	Usage: "Create a cp account to chain",
+	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "multi-address",
 			Usage: "The multiAddress for libp2p(public ip)",
 		},
+		&cli.StringFlag{
+			Name:  "node-name",
+			Usage: "The name of cp",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
-
-		multiAddr := cctx.String("multi-address")
 		ownerAddress := cctx.String("ownerAddress")
 		if strings.TrimSpace(ownerAddress) == "" {
 			return fmt.Errorf("ownerAddress is not empty")
@@ -209,18 +246,7 @@ var initCmd = &cli.Command{
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
-		return registerAccount(cpRepoPath, ownerAddress, beneficiaryAddress, multiAddr)
-	},
-}
-
-var accountCmd = &cli.Command{
-	Name:  "account",
-	Usage: "Manage account info of CP",
-	Subcommands: []*cli.Command{
-		changeMultiAddressCmd,
-		changeOwnerAddressCmd,
-		changeBeneficiaryAddressCmd,
-		changeUbiFlagCmd,
+		return createAccount(cpRepoPath, ownerAddress, beneficiaryAddress)
 	},
 }
 

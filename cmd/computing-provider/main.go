@@ -47,14 +47,12 @@ func main() {
 			if _, err = os.Stat(cpRepoPath); os.IsNotExist(err) {
 				err := os.MkdirAll(cpRepoPath, 0755)
 				if err != nil {
-					return fmt.Errorf("create dir failed, error: %v", cpRepoPath)
+					return fmt.Errorf("create cp repo failed, error: %v", cpRepoPath)
 				}
-
 			}
-			if _, err = conf.GenerateConfigFile(cpRepoPath, "", ""); err != nil {
-				return fmt.Errorf("generate config failed, error: %v", err)
+			if err = conf.GenerateRepo(cpRepoPath); err != nil {
+				return fmt.Errorf("init repo failed, error: %v", err)
 			}
-
 			os.Setenv("CP_PATH", cpRepoPath)
 			return nil
 		},

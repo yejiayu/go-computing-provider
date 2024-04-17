@@ -193,6 +193,55 @@ var configFileContent string
 //go:embed redis.conf
 var redisConfigFileContent string
 
+func GenerateRepo(cpRepoPath string) error {
+	var configTmpl ComputeNode
+	var configFile *os.File
+	var err error
+
+	dataDir := path.Join(cpRepoPath, "store_data/data")
+	if _, err = os.Stat(dataDir); os.IsNotExist(err) {
+		err = os.MkdirAll(dataDir, 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	confDir := path.Join(cpRepoPath, "store_data/conf")
+	if _, err = os.Stat(confDir); os.IsNotExist(err) {
+		err = os.MkdirAll(confDir, 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	redisConfigFilePath := path.Join(confDir, "redis.conf")
+	if _, err = os.Stat(redisConfigFilePath); os.IsNotExist(err) {
+		redisConfigFile, err := os.Create(redisConfigFilePath)
+		if err != nil {
+			return fmt.Errorf("create redis config file failed, error: %v", err)
+		}
+		defer redisConfigFile.Close()
+		if _, err = redisConfigFile.WriteString(redisConfigFileContent); err != nil {
+			return fmt.Errorf("write redis config file failed, error: %v", err)
+		}
+	}
+
+	configFilePath := path.Join(cpRepoPath, "config.toml")
+	if _, err = os.Stat(configFilePath); os.IsNotExist(err) {
+		if _, err = toml.Decode(configFileContent, &configTmpl); err != nil {
+			return fmt.Errorf("parse toml data failed, error: %v", err)
+		}
+		configFile, err = os.Create(configFilePath)
+		if err != nil {
+			return fmt.Errorf("create config.toml file failed, error: %v", err)
+		}
+		if err = toml.NewEncoder(configFile).Encode(configTmpl); err != nil {
+			return fmt.Errorf("write data to config.toml file failed, error: %v", err)
+		}
+	}
+	return nil
+}
+
 func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) (bool, error) {
 	var configTmpl ComputeNode
 	var configFile *os.File
@@ -271,7 +320,7 @@ func GenerateConfigFile(cpRepoPath string, multiAddress, nodeName string) (bool,
 	return isUpdate, nil
 }
 
-func UpdateConfigFile(cpRepoPath string, multiAddress string) error {
+func UpdateConfigFile(cpRepoPath string, multiAddress, nodeName string) error {
 	var configTmpl ComputeNode
 	var configFile *os.File
 	var err error
@@ -287,8 +336,18 @@ func UpdateConfigFile(cpRepoPath string, multiAddress string) error {
 		return err
 	}
 
-	if len(strings.TrimSpace(multiAddress)) != 0 {
+	if len(strings.TrimSpace(multiAddress)) != 0 && !strings.EqualFold(strings.TrimSpace(multiAddress), strings.TrimSpace(configTmpl.API.MultiAddress)) {
 		configTmpl.API.MultiAddress = multiAddress
+	}
+
+	if len(strings.TrimSpace(nodeName)) != 0 {
+		configTmpl.API.NodeName = nodeName
+	} else {
+		hostname, err := os.Hostname()
+		if err != nil {
+			return fmt.Errorf("get hostname failed, error: %v", err)
+		}
+		configTmpl.API.NodeName = hostname
 	}
 	if err = toml.NewEncoder(configFile).Encode(configTmpl); err != nil {
 		return err

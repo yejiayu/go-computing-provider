@@ -27,7 +27,7 @@ import (
 )
 
 var ubiTaskCmd = &cli.Command{
-	Name:  "ubi-task",
+	Name:  "ubi",
 	Usage: "Manage ubi tasks",
 	Subcommands: []*cli.Command{
 		ubiTaskListCmd,
