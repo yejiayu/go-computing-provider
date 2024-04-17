@@ -107,10 +107,12 @@ func RunDockerCompose(dockerComposeContent, cpPath string) error {
 }
 
 func extractComposeFile(dockerComposeContent, cpPath string) error {
-	dockerComposeContent = strings.ReplaceAll(dockerComposeContent, "$CP_PATH", cpPath)
 	filePath := filepath.Join(cpPath, "docker-compose.yaml")
-	if err := os.WriteFile(filePath, []byte(dockerComposeContent), 0644); err != nil {
-		return err
+	if _, err := os.Stat(filePath); err != nil {
+		dockerComposeContent = strings.ReplaceAll(dockerComposeContent, "$CP_PATH", cpPath)
+		if err = os.WriteFile(filePath, []byte(dockerComposeContent), 0644); err != nil {
+			return err
+		}
 	}
 	return nil
 }
