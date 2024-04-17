@@ -1,8 +1,6 @@
-
 package computing
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -782,54 +780,14 @@ func getLocalIp() (string, error) {
 	return "", fmt.Errorf("not found local ip")
 }
 
-func reportClusterResourceForDocker(location, nodeId string) {
+func reportClusterResourceForDocker() {
 	dockerService := NewDockerService()
 	containerLogStr, err := dockerService.ContainerLogs("resource-exporter")
 	if err != nil {
 		logs.GetLogger().Error("collect host hardware resource failed, error: %+v", err)
 		return
 	}
-
-	var nodeResource models.NodeResource
-	if err := json.Unmarshal([]byte(containerLogStr), &nodeResource); err != nil {
-		logs.GetLogger().Error("hardware info parse to json failed, error: %+v", err)
-		return
-	}
-
-	clusterSource := models.ClusterResource{
-		NodeId:        nodeId,
-		Region:        location,
-		ClusterInfo:   []*models.NodeResource{&nodeResource},
-		PublicAddress: conf.GetConfig().HUB.WalletAddress,
-	}
-
-	payload, err := json.Marshal(clusterSource)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
-		return
-	}
-
-	client := &http.Client{}
-	url := conf.GetConfig().HUB.ServerUrl + "/cp/summary"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	if err != nil {
-		logs.GetLogger().Errorf("Error creating request: %v", err)
-		return
-	}
-	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
-		return
-	}
+	logs.GetLogger().Infof("collect hardware resource, %s", containerLogStr)
 }
 
 func CleanDockerResource() {
@@ -837,6 +795,13 @@ func CleanDockerResource() {
 		ticker := time.NewTicker(10 * time.Minute)
 		for range ticker.C {
 			NewDockerService().CleanResource()
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		for range ticker.C {
+			reportClusterResourceForDocker()
 		}
 	}()
 }

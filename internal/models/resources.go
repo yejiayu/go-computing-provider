@@ -2,9 +2,9 @@ package models
 
 type ClusterResource struct {
 	NodeId        string          `json:"node_id,omitempty"`
-	Region        string          `json:"region"`
+	Region        string          `json:"region,omitempty"`
 	ClusterInfo   []*NodeResource `json:"cluster_info"`
-	PublicAddress string          `json:"public_address"`
+	PublicAddress string          `json:"public_address,omitempty"`
 	MultiAddress  string          `json:"multi_address,omitempty"`
 	NodeName      string          `json:"node_name,omitempty"`
 	TaskFlag      int             `json:"task_flag,omitempty"`
