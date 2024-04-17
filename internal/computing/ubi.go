@@ -787,7 +787,19 @@ func reportClusterResourceForDocker() {
 		logs.GetLogger().Error("collect host hardware resource failed, error: %+v", err)
 		return
 	}
-	logs.GetLogger().Infof("collect hardware resource, %s", containerLogStr)
+
+	var nodeResource models.NodeResource
+	if err := json.Unmarshal([]byte(containerLogStr), &nodeResource); err != nil {
+		logs.GetLogger().Error("hardware info parse to json failed, error: %+v", err)
+		return
+	}
+
+	payload, err := json.Marshal(nodeResource)
+	if err != nil {
+		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
+		return
+	}
+	logs.GetLogger().Infof("collect hardware resource, %s", string(payload))
 }
 
 func CleanDockerResource() {
