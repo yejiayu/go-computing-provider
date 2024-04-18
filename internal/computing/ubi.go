@@ -643,16 +643,9 @@ func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, in
 }
 
 func ReceiveUbiProofForDocker(c *gin.Context) {
-	var c2Proof struct {
-		TaskId    string `json:"task_id"`
-		TaskType  string `json:"task_type"`
-		Proof     string `json:"proof"`
-		ZkType    string `json:"zk_type"`
-		NameSpace string `json:"name_space"`
-	}
-
 	var submitUBIProofTx string
 	var err error
+	var c2Proof models.UbiC2Proof
 	defer func() {
 		key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
 		ubiTask, _ := RetrieveUbiTaskMetadata(key)
@@ -669,63 +662,16 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
-	logs.GetLogger().Infof("task_id: %s, C2 proof out received: %+v", c2Proof.TaskId, c2Proof)
+	logs.GetLogger().Infof("task_id: %s, c2 proof out received: %+v", c2Proof.TaskId, c2Proof)
 
-	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
-	if err != nil {
-		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
-		return
+	retries := 3
+	for i := 0; i < retries; i++ {
+		submitUBIProofTx, err = submitUBIProof(c2Proof)
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Second * 2)
 	}
-
-	client, err := ethclient.Dial(chainUrl)
-	if err != nil {
-		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
-		return
-	}
-	defer client.Close()
-
-	cpStub, err := account.NewAccountStub(client)
-	if err != nil {
-		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
-		return
-	}
-	cpAccount, err := cpStub.GetCpAccountInfo()
-	if err != nil {
-		logs.GetLogger().Errorf("get account info failed, error: %v,", err)
-		return
-	}
-
-	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
-	if err != nil {
-		logs.GetLogger().Errorf("setup wallet failed, error: %v,", err)
-		return
-	}
-
-	ki, err := localWallet.FindKey(cpAccount.OwnerAddress)
-	if err != nil || ki == nil {
-		logs.GetLogger().Errorf("the address: %s, private key %v,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
-		return
-	}
-
-	accountStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
-	if err != nil {
-		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
-		return
-	}
-
-	taskType, err := strconv.ParseUint(c2Proof.TaskType, 10, 8)
-	if err != nil {
-		logs.GetLogger().Errorf("conversion to uint8 error: %v", err)
-		return
-	}
-
-	submitUBIProofTx, err = accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
-	if err != nil {
-		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
-		return
-	}
-
-	fmt.Printf("submitUBIProofTx: %s", submitUBIProofTx)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
@@ -756,6 +702,62 @@ func GetCpResource(c *gin.Context) {
 		MultiAddress: conf.GetConfig().API.MultiAddress,
 		NodeName:     conf.GetConfig().API.NodeName,
 	})
+}
+
+func submitUBIProof(c2Proof models.UbiC2Proof) (string, error) {
+	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+	if err != nil {
+		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+		return "", err
+	}
+	client, err := ethclient.Dial(chainUrl)
+	if err != nil {
+		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+		return "", err
+	}
+	client.Close()
+
+	cpStub, err := account.NewAccountStub(client)
+	if err != nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		return "", err
+	}
+	cpAccount, err := cpStub.GetCpAccountInfo()
+	if err != nil {
+		logs.GetLogger().Errorf("get account info failed, error: %v,", err)
+		return "", err
+	}
+
+	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+	if err != nil {
+		logs.GetLogger().Errorf("setup wallet failed, error: %v,", err)
+		return "", err
+	}
+
+	ki, err := localWallet.FindKey(cpAccount.OwnerAddress)
+	if err != nil || ki == nil {
+		logs.GetLogger().Errorf("the address: %s, private key %v,", cpAccount.OwnerAddress, wallet.ErrKeyInfoNotFound)
+		return "", err
+	}
+
+	accountStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
+	if err != nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		return "", err
+	}
+
+	taskType, err := strconv.ParseUint(c2Proof.TaskType, 10, 8)
+	if err != nil {
+		logs.GetLogger().Errorf("conversion to uint8 error: %v", err)
+		return "", err
+	}
+
+	submitUBIProofTx, err := accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
+	if err != nil {
+		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
+		return "", err
+	}
+	return submitUBIProofTx, nil
 }
 
 func getLocalIp() (string, error) {
