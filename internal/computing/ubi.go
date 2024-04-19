@@ -696,11 +696,13 @@ func GetCpResource(c *gin.Context) {
 		return
 	}
 
+	cpRepo, _ := os.LookupEnv("CP_PATH")
 	c.JSON(http.StatusOK, models.ClusterResource{
 		Region:       location,
 		ClusterInfo:  []*models.NodeResource{&nodeResource},
 		MultiAddress: conf.GetConfig().API.MultiAddress,
 		NodeName:     conf.GetConfig().API.NodeName,
+		NodeId:       GetNodeId(cpRepo),
 	})
 }
 
