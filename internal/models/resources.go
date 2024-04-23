@@ -1,10 +1,10 @@
 package models
 
 type ClusterResource struct {
-	NodeId        string          `json:"node_id"`
-	Region        string          `json:"region"`
+	NodeId        string          `json:"node_id,omitempty"`
+	Region        string          `json:"region,omitempty"`
 	ClusterInfo   []*NodeResource `json:"cluster_info"`
-	PublicAddress string          `json:"public_address"`
+	PublicAddress string          `json:"public_address,omitempty"`
 	MultiAddress  string          `json:"multi_address,omitempty"`
 	NodeName      string          `json:"node_name,omitempty"`
 	TaskFlag      int             `json:"task_flag,omitempty"`
@@ -12,7 +12,6 @@ type ClusterResource struct {
 
 type NodeResource struct {
 	MachineId string `json:"machine_id"`
-	Model     string `json:"model"`
 	CpuName   string `json:"cpu_name"`
 	Cpu       Common `json:"cpu"`
 	Vcpu      Common `json:"vcpu"`

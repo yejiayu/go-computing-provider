@@ -1,8 +1,6 @@
-
 package computing
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -645,16 +643,9 @@ func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, in
 }
 
 func ReceiveUbiProofForDocker(c *gin.Context) {
-	var c2Proof struct {
-		TaskId    string `json:"task_id"`
-		TaskType  string `json:"task_type"`
-		Proof     string `json:"proof"`
-		ZkType    string `json:"zk_type"`
-		NameSpace string `json:"name_space"`
-	}
-
 	var submitUBIProofTx string
 	var err error
+	var c2Proof models.UbiC2Proof
 	defer func() {
 		key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
 		ubiTask, _ := RetrieveUbiTaskMetadata(key)
@@ -671,63 +662,16 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
-	logs.GetLogger().Infof("task_id: %s, C2 proof out received: %+v", c2Proof.TaskId, c2Proof)
+	logs.GetLogger().Infof("task_id: %s, c2 proof out received: %+v", c2Proof.TaskId, c2Proof)
 
-	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
-	if err != nil {
-		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
-		return
+	retries := 3
+	for i := 0; i < retries; i++ {
+		submitUBIProofTx, err = submitUBIProof(c2Proof)
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Second * 2)
 	}
-
-	client, err := ethclient.Dial(chainUrl)
-	if err != nil {
-		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
-		return
-	}
-	defer client.Close()
-
-	cpStub, err := account.NewAccountStub(client)
-	if err != nil {
-		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
-		return
-	}
-	cpAccount, err := cpStub.GetCpAccountInfo()
-	if err != nil {
-		logs.GetLogger().Errorf("get account info failed, error: %v,", err)
-		return
-	}
-
-	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
-	if err != nil {
-		logs.GetLogger().Errorf("setup wallet failed, error: %v,", err)
-		return
-	}
-
-	ki, err := localWallet.FindKey(cpAccount.OwnerAddress)
-	if err != nil || ki == nil {
-		logs.GetLogger().Errorf("the address: %s, private key %v,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
-		return
-	}
-
-	accountStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
-	if err != nil {
-		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
-		return
-	}
-
-	taskType, err := strconv.ParseUint(c2Proof.TaskType, 10, 8)
-	if err != nil {
-		logs.GetLogger().Errorf("conversion to uint8 error: %v", err)
-		return
-	}
-
-	submitUBIProofTx, err = accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
-	if err != nil {
-		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
-		return
-	}
-
-	fmt.Printf("submitUBIProofTx: %s", submitUBIProofTx)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
@@ -752,10 +696,70 @@ func GetCpResource(c *gin.Context) {
 		return
 	}
 
+	cpRepo, _ := os.LookupEnv("CP_PATH")
 	c.JSON(http.StatusOK, models.ClusterResource{
-		Region:      location,
-		ClusterInfo: []*models.NodeResource{&nodeResource},
+		Region:       location,
+		ClusterInfo:  []*models.NodeResource{&nodeResource},
+		MultiAddress: conf.GetConfig().API.MultiAddress,
+		NodeName:     conf.GetConfig().API.NodeName,
+		NodeId:       GetNodeId(cpRepo),
 	})
+}
+
+func submitUBIProof(c2Proof models.UbiC2Proof) (string, error) {
+	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+	if err != nil {
+		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+		return "", err
+	}
+	client, err := ethclient.Dial(chainUrl)
+	if err != nil {
+		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+		return "", err
+	}
+	client.Close()
+
+	cpStub, err := account.NewAccountStub(client)
+	if err != nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		return "", err
+	}
+	cpAccount, err := cpStub.GetCpAccountInfo()
+	if err != nil {
+		logs.GetLogger().Errorf("get account info failed, error: %v,", err)
+		return "", err
+	}
+
+	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+	if err != nil {
+		logs.GetLogger().Errorf("setup wallet failed, error: %v,", err)
+		return "", err
+	}
+
+	ki, err := localWallet.FindKey(cpAccount.OwnerAddress)
+	if err != nil || ki == nil {
+		logs.GetLogger().Errorf("the address: %s, private key %v,", cpAccount.OwnerAddress, wallet.ErrKeyInfoNotFound)
+		return "", err
+	}
+
+	accountStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
+	if err != nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		return "", err
+	}
+
+	taskType, err := strconv.ParseUint(c2Proof.TaskType, 10, 8)
+	if err != nil {
+		logs.GetLogger().Errorf("conversion to uint8 error: %v", err)
+		return "", err
+	}
+
+	submitUBIProofTx, err := accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
+	if err != nil {
+		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
+		return "", err
+	}
+	return submitUBIProofTx, nil
 }
 
 func getLocalIp() (string, error) {
@@ -782,7 +786,7 @@ func getLocalIp() (string, error) {
 	return "", fmt.Errorf("not found local ip")
 }
 
-func reportClusterResourceForDocker(location, nodeId string) {
+func reportClusterResourceForDocker() {
 	dockerService := NewDockerService()
 	containerLogStr, err := dockerService.ContainerLogs("resource-exporter")
 	if err != nil {
@@ -796,40 +800,18 @@ func reportClusterResourceForDocker(location, nodeId string) {
 		return
 	}
 
-	clusterSource := models.ClusterResource{
-		NodeId:        nodeId,
-		Region:        location,
-		ClusterInfo:   []*models.NodeResource{&nodeResource},
-		PublicAddress: conf.GetConfig().HUB.WalletAddress,
+	var freeGpuMap = make(map[string]int)
+	if nodeResource.Gpu.AttachedGpus > 0 {
+		for _, g := range nodeResource.Gpu.Details {
+			if g.FbMemoryUsage.Free != "0 MiB" {
+				freeGpuMap[g.ProductName] += 1
+			} else {
+				freeGpuMap[g.ProductName] = 1
+			}
+		}
 	}
-
-	payload, err := json.Marshal(clusterSource)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
-		return
-	}
-
-	client := &http.Client{}
-	url := conf.GetConfig().HUB.ServerUrl + "/cp/summary"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	if err != nil {
-		logs.GetLogger().Errorf("Error creating request: %v", err)
-		return
-	}
-	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
-		return
-	}
+	logs.GetLogger().Infof("collect hardware resource, freeCpu:%s, freeMemory: %s, freeStorage: %s, freeGpu: %v",
+		nodeResource.Cpu.Free, nodeResource.Memory.Free, nodeResource.Storage.Free, freeGpuMap)
 }
 
 func CleanDockerResource() {
@@ -837,6 +819,13 @@ func CleanDockerResource() {
 		ticker := time.NewTicker(10 * time.Minute)
 		for range ticker.C {
 			NewDockerService().CleanResource()
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		for range ticker.C {
+			reportClusterResourceForDocker()
 		}
 	}()
 }

@@ -41,7 +41,6 @@ func GetNodeResource(allPods []corev1.Pod, node *corev1.Node) (map[string]int64,
 
 	var nodeResource = new(models.NodeResource)
 	nodeResource.MachineId = node.Status.NodeInfo.MachineID
-	nodeResource.Model = node.Status.NodeInfo.Architecture
 
 	for _, pod := range getPodsFromNode(allPods, node) {
 		usedCpu += cpuInPod(&pod)

@@ -25,7 +25,7 @@ import (
 )
 
 var ubiTaskCmd = &cli.Command{
-	Name:  "ubi-task",
+	Name:  "ubi",
 	Usage: "Manage ubi tasks",
 	Subcommands: []*cli.Command{
 		ubiTaskListCmd,
@@ -127,28 +127,12 @@ var dockerComposeContent string
 var daemonCmd = &cli.Command{
 	Name:  "daemon",
 	Usage: "Start a cp process",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:     "multi-address",
-			Usage:    "The multiAddress for libp2p(public ip)",
-			Required: true,
-		},
-		&cli.StringFlag{
-			Name:     "node-name",
-			Usage:    "The name of cp",
-			Required: true,
-		},
-	},
+
 	Action: func(cctx *cli.Context) error {
 		logs.GetLogger().Info("Start a computing-provider client that only accepts ubi-task mode.")
-
 		cpRepoPath, _ := os.LookupEnv("CP_PATH")
-		err := conf.GenerateConfigFile(cpRepoPath, cctx.String("multi-address"), cctx.String("node-name"))
-		if err != nil {
-			return fmt.Errorf("generate config failed, error: %v", err)
-		}
 
-		err = computing.StopPreviousServices(dockerComposeContent, cpRepoPath)
+		err := computing.StopPreviousServices(dockerComposeContent, cpRepoPath)
 		if err != nil {
 			return fmt.Errorf("stop pre-dependency-env failed, error: %v", err)
 		}

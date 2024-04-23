@@ -77,12 +77,11 @@ func (cas *ComposeApiService) ServiceDown(dockerComposeBody string) error {
 }
 
 func StopPreviousServices(dockerComposeContent, cpPath string) error {
-	tmpDir, err := extractComposeFile(dockerComposeContent, cpPath)
+	err := extractComposeFile(dockerComposeContent, cpPath)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(tmpDir)
-	cmd := exec.Command("docker-compose", "-f", filepath.Join(tmpDir, "docker-compose.yaml"), "down")
+	cmd := exec.Command("docker-compose", "-f", filepath.Join(cpPath, "docker-compose.yaml"), "down")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -93,13 +92,12 @@ func StopPreviousServices(dockerComposeContent, cpPath string) error {
 }
 
 func RunDockerCompose(dockerComposeContent, cpPath string) error {
-	tmpDir, err := extractComposeFile(dockerComposeContent, cpPath)
+	err := extractComposeFile(dockerComposeContent, cpPath)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(tmpDir)
 
-	cmd := exec.Command("docker-compose", "-f", filepath.Join(tmpDir, "docker-compose.yaml"), "up", "-d")
+	cmd := exec.Command("docker-compose", "-f", filepath.Join(cpPath, "docker-compose.yaml"), "up", "-d")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -108,16 +106,13 @@ func RunDockerCompose(dockerComposeContent, cpPath string) error {
 	return nil
 }
 
-func extractComposeFile(dockerComposeContent, cpPath string) (string, error) {
-	tmpDir, err := os.MkdirTemp("", "ubi-compose")
-	if err != nil {
-		return "", err
+func extractComposeFile(dockerComposeContent, cpPath string) error {
+	filePath := filepath.Join(cpPath, "docker-compose.yaml")
+	if _, err := os.Stat(filePath); err != nil {
+		dockerComposeContent = strings.ReplaceAll(dockerComposeContent, "$CP_PATH", cpPath)
+		if err = os.WriteFile(filePath, []byte(dockerComposeContent), 0644); err != nil {
+			return err
+		}
 	}
-
-	dockerComposeContent = strings.ReplaceAll(dockerComposeContent, "$CP_PATH", cpPath)
-	filePath := filepath.Join(tmpDir, "docker-compose.yaml")
-	if err := os.WriteFile(filePath, []byte(dockerComposeContent), 0644); err != nil {
-		return "", err
-	}
-	return tmpDir, nil
+	return nil
 }

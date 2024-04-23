@@ -132,6 +132,14 @@ type UBITaskReq struct {
 	Resource   *TaskResource `json:"resource"`
 }
 
+type UbiC2Proof struct {
+	TaskId    string `json:"task_id"`
+	TaskType  string `json:"task_type"`
+	Proof     string `json:"proof"`
+	ZkType    string `json:"zk_type"`
+	NameSpace string `json:"name_space"`
+}
+
 type TaskResource struct {
 	CPU     string `json:"cpu"`
 	GPU     string `json:"gpu"`
