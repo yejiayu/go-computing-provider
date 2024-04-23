@@ -30,12 +30,13 @@ type ComputeNode struct {
 }
 
 type API struct {
-	Port          int
-	MultiAddress  string
-	Domain        string
-	NodeName      string
-	RedisUrl      string
-	RedisPassword string
+	Port            int
+	MultiAddress    string
+	Domain          string
+	NodeName        string
+	RedisUrl        string
+	RedisPassword   string
+	WalletWhiteList string
 }
 type UBI struct {
 	UbiTask     bool

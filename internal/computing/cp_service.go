@@ -1,6 +1,7 @@
 package computing
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	stErr "errors"
@@ -71,6 +72,11 @@ func ReceiveJob(c *gin.Context) {
 		return
 	}
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
+
+	if !CheckWalletWhiteList(jobData.JobSourceURI) {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckWhiteListError))
+		return
+	}
 
 	if conf.GetConfig().HUB.VerifySign {
 		if len(jobData.NodeIdJobSourceUriSignature) == 0 {
@@ -1286,4 +1292,52 @@ func convertGpuName(name string) string {
 		}
 	}
 	return name
+}
+
+func CheckWalletWhiteList(jobSourceURI string) bool {
+	walletWhiteListUrl := conf.GetConfig().API.WalletWhiteList
+	if strings.TrimSpace(walletWhiteListUrl) != "" {
+		var walletMap = make(map[string]struct{})
+		resp, err := http.Get(walletWhiteListUrl)
+		if err != nil {
+			logs.GetLogger().Errorf("send wallet whitelist failed, error: %v", err)
+			return false
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			logs.GetLogger().Errorf("response wallet whitelist failed, error: %v", err)
+			return false
+		}
+
+		scanner := bufio.NewScanner(resp.Body)
+		for scanner.Scan() {
+			fmt.Println(scanner.Text())
+			if strings.HasPrefix(scanner.Text(), "#") {
+				continue
+			}
+			walletAddress := scanner.Text()
+			if strings.TrimSpace(walletAddress) != "" {
+				walletMap[walletAddress] = struct{}{}
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			logs.GetLogger().Errorf("read response of wallet whitelist failed, error: %v", err)
+			return false
+		}
+
+		spaceDetail, err := getSpaceDetail(jobSourceURI)
+		if err != nil {
+			logs.GetLogger().Errorln(err)
+			return false
+		}
+		userWalletAddress := spaceDetail.Data.Owner.PublicAddress
+		if _, ok := walletMap[userWalletAddress]; ok {
+			return true
+		} else {
+			return false
+		}
+	}
+	return true
 }
