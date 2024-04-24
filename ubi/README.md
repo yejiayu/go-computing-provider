@@ -5,6 +5,10 @@
 At the current stage, ECP supports the generation of **ZK-Snark proof of Filecoin network**, and more ZK proof types will be gradually supported, such as Aleo, Scroll, starkNet, etc
 
 ## Prerequisites
+ - Need to map the ECP service port of the intranet to the public network:
+```
+ <Intranet IP>:<9085> --> <Public Ip>:<Port>
+```
  - Running the `setup.sh`
 ```bash
 curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/blob/releases/ubi/setup.sh | bash
