@@ -5,7 +5,7 @@
 At the current stage, ECP supports the generation of **ZK-Snark proof of Filecoin network**, and more ZK proof types will be gradually supported, such as Aleo, Scroll, starkNet, etc
 
 ## Prerequisites
- - Need to map the ECP service port of the intranet to the public network:
+ - Need to map the ECP service port of the intranet to the public network, the default port for ECP is`9085`:
 ```
  <Intranet IP>:<9085> --> <Public Ip>:<Port>
 ```
