@@ -38,7 +38,7 @@ func BuildSpaceTaskImage(spaceUuid string, files []models.SpaceFile) (bool, stri
 		var modelsSetting string
 
 		err = filepath.WalkDir(imagePath, func(path string, d fs.DirEntry, err error) error {
-			if strings.HasSuffix(d.Name(), "deploy.yaml") || strings.HasSuffix(d.Name(), "deploy.yml") {
+			if strings.HasSuffix(strings.ToLower(d.Name()), "deploy.yaml") || strings.HasSuffix(strings.ToLower(d.Name()), "deploy.yml") {
 				containsYaml = true
 				yamlPath = path
 			}
@@ -72,6 +72,9 @@ func BuildImagesByDockerfile(jobUuid, spaceUuid, spaceName, imagePath string) (s
 	}
 	imageName = strings.ToLower(imageName)
 	dockerfilePath := filepath.Join(imagePath, "Dockerfile")
+	if dockerfilePath == "" {
+		dockerfilePath = filepath.Join(imagePath, "dockerfile")
+	}
 	log.Printf("Image path: %s", imagePath)
 
 	dockerService := NewDockerService()
