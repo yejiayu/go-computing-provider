@@ -300,7 +300,7 @@ func watchNameSpaceForDeleted() {
 }
 
 func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
-	url := fmt.Sprintf("%s/check_task_status/%s/%s", conf.GetConfig().HUB.ServerUrl, taskUuid, nodeId)
+	url := fmt.Sprintf("%s/check_task_status_with_node_id/%s/%s", conf.GetConfig().HUB.ServerUrl, taskUuid, nodeId)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -332,7 +332,7 @@ func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
 	}
 	err = json.Unmarshal(respBody, &taskStatus)
 	if err != nil {
-		logs.GetLogger().Errorf("check_task_status resp: %s", string(respBody))
+		logs.GetLogger().Errorf("check_task_status_with_node_id resp: %s", string(respBody))
 		return "", err
 	}
 	if taskStatus.Status == "failed" {
