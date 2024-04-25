@@ -833,7 +833,7 @@ func CleanDockerResource() {
 	go func() {
 		ticker := time.NewTicker(3 * time.Minute)
 		for range ticker.C {
-			conn := redisPool.Get()
+			conn := GetRedisClient()
 			prefix := constants.REDIS_UBI_C2_PERFIX + "*"
 			keys, err := redis.Strings(conn.Do("KEYS", prefix))
 			if err != nil {
