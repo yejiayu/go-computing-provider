@@ -107,8 +107,8 @@ func DoUbiTaskForK8s(c *gin.Context) {
 	}
 
 	c2GpuConfig := envVars["RUST_GPU_TOOLS_CUSTOM_GPU"]
-	c2GpuConfig = convertGpuName(strings.TrimSpace(c2GpuConfig))
-	nodeName, architecture, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.Type, c2GpuConfig, ubiTask.Resource)
+	c2GpuName := convertGpuName(strings.TrimSpace(c2GpuConfig))
+	nodeName, architecture, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.Type, c2GpuName, ubiTask.Resource)
 	if err != nil {
 		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
 		SaveUbiTaskMetadata(ubiTaskToRedis)
@@ -286,7 +286,8 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			Spec: batchv1.JobSpec{
 				Template: v1.PodTemplateSpec{
 					Spec: v1.PodSpec{
-						NodeName: nodeName,
+						NodeName:     nodeName,
+						NodeSelector: generateLabel(strings.ReplaceAll(c2GpuName, " ", "-")),
 						Containers: []v1.Container{
 							{
 								Name:  JobName + generateString(5),
