@@ -16,6 +16,7 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -188,6 +189,8 @@ func reportClusterResource(location, nodeId string) {
 }
 
 func watchExpiredTask() {
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	nodeId := GetNodeId(cpRepoPath)
 	ticker := time.NewTicker(5 * time.Minute)
 	go func() {
 		var deleteKey []string
@@ -214,7 +217,7 @@ func watchExpiredTask() {
 
 					namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobMetadata.WalletAddress)
 
-					taskStatus, err := checkTaskStatusByHub(jobMetadata.TaskUuid)
+					taskStatus, err := checkTaskStatusByHub(jobMetadata.TaskUuid, nodeId)
 					if err != nil {
 						logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
 						return
@@ -296,8 +299,8 @@ func watchNameSpaceForDeleted() {
 	}()
 }
 
-func checkTaskStatusByHub(taskUuid string) (string, error) {
-	url := fmt.Sprintf("%s/check_task_status/%s", conf.GetConfig().HUB.ServerUrl, taskUuid)
+func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
+	url := fmt.Sprintf("%s/check_task_status/%s/%s", conf.GetConfig().HUB.ServerUrl, taskUuid, nodeId)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
