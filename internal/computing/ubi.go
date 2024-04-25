@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-swan-lib/logs"
 	"github.com/gin-gonic/gin"
+	"github.com/gomodule/redigo/redis"
 	"github.com/joho/godotenv"
 	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/build"
@@ -826,6 +827,31 @@ func CleanDockerResource() {
 		ticker := time.NewTicker(1 * time.Minute)
 		for range ticker.C {
 			reportClusterResourceForDocker()
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(3 * time.Minute)
+		for range ticker.C {
+			conn := redisPool.Get()
+			prefix := constants.REDIS_UBI_C2_PERFIX + "*"
+			keys, err := redis.Strings(conn.Do("KEYS", prefix))
+			if err != nil {
+				logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
+				return
+			}
+			for _, key := range keys {
+				ubiTask, err := RetrieveUbiTaskMetadata(key)
+				if err != nil {
+					logs.GetLogger().Errorf("Failed get ubi task from redis, key: %s, error: %+v", key, err)
+					return
+				}
+
+				if ubiTask.Status != constants.UBI_TASK_SUCCESS_STATUS && ubiTask.Status != constants.UBI_TASK_FAILED_STATUS {
+					ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
+				}
+				SaveUbiTaskMetadata(ubiTask)
+			}
 		}
 	}()
 }
