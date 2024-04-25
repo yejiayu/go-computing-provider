@@ -379,6 +379,8 @@ func (s *K8sService) StatisticalSources(ctx context.Context) ([]*models.NodeReso
 					}
 				}
 
+				logs.GetLogger().Infof("nodeGpu: %+v", nodeGpu)
+				logs.GetLogger().Infof("collectGpu: %+v", collectGpu)
 				for name, info := range collectGpu {
 					runCount := int(nodeGpu[name])
 					if runCount < info.count {
