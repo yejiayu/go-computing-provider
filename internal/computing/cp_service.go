@@ -1312,7 +1312,6 @@ func CheckWalletWhiteList(jobSourceURI string) bool {
 
 		scanner := bufio.NewScanner(resp.Body)
 		for scanner.Scan() {
-			fmt.Println(scanner.Text())
 			if strings.HasPrefix(scanner.Text(), "#") {
 				continue
 			}
