@@ -332,6 +332,7 @@ func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
 	}
 	err = json.Unmarshal(respBody, &taskStatus)
 	if err != nil {
+		logs.GetLogger().Errorf("check_task_status resp: %s", string(respBody))
 		return "", err
 	}
 	if taskStatus.Status == "failed" {
