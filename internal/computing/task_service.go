@@ -217,23 +217,25 @@ func watchExpiredTask() {
 
 					namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobMetadata.WalletAddress)
 
-					taskStatus, err := checkTaskStatusByHub(jobMetadata.TaskUuid, nodeId)
-					if err != nil {
-						logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
-						return
-					}
-					if strings.Contains(taskStatus, "Task not found") {
-						logs.GetLogger().Infof("task_uuid: %s, task not found on the orchestrator service, starting to delete it.", jobMetadata.TaskUuid)
-						deleteJob(namespace, jobMetadata.SpaceUuid)
-						deleteKey = append(deleteKey, key)
-						continue
-					}
-					if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") ||
-						strings.Contains(taskStatus, "Cancelled") || strings.Contains(taskStatus, "Failed") {
-						logs.GetLogger().Infof("task_uuid: %s, current status is %s, starting to delete it.", jobMetadata.TaskUuid, taskStatus)
-						if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
+					if len(strings.TrimSpace(jobMetadata.TaskUuid)) == 0 {
+						taskStatus, err := checkTaskStatusByHub(jobMetadata.TaskUuid, nodeId)
+						if err != nil {
+							logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
+							return
+						}
+						if strings.Contains(taskStatus, "Task not found") {
+							logs.GetLogger().Infof("task_uuid: %s, task not found on the orchestrator service, starting to delete it.", jobMetadata.TaskUuid)
+							deleteJob(namespace, jobMetadata.SpaceUuid)
 							deleteKey = append(deleteKey, key)
 							continue
+						}
+						if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") ||
+							strings.Contains(taskStatus, "Cancelled") || strings.Contains(taskStatus, "Failed") {
+							logs.GetLogger().Infof("task_uuid: %s, current status is %s, starting to delete it.", jobMetadata.TaskUuid, taskStatus)
+							if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
+								deleteKey = append(deleteKey, key)
+								continue
+							}
 						}
 					}
 
