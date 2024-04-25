@@ -7,7 +7,7 @@ NodeName = "<YOUR CP NodeName>"               # The computing-provider node name
 RedisUrl = "redis://127.0.0.1:6379"             # The redis server address
 RedisPassword = ""                              # The redis server access password
 
-WalletWhiteList="https://github.com/swanchain/market-providers/blob/main/clients/whitelist.txt"
+WalletWhiteList="https://raw.githubusercontent.com/swanchain/market-providers/main/clients/whitelist.txt"
 
 [UBI]
 UbiTask = true                                               # Accept the UBI task (Default: true)
