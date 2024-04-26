@@ -237,7 +237,6 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		receiveUrl := fmt.Sprintf("%s:%d/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), conf.GetConfig().API.Port)
 		execCommand := []string{"ubi-bench", "c2"}
 		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
-
 		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
 		if gpuFlag == "0" {
 			delete(envVars, "RUST_GPU_TOOLS_CUSTOM_GPU")
@@ -331,20 +330,19 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			return
 		}
 
-			time.Sleep(5 * time.Second)
-		createdJob, err := k8sService.k8sClient.BatchV1().Jobs(namespace).Get(context.TODO(), JobName, metaV1.GetOptions{})
-		if err != nil {
-			panic(err.Error())
+		time.Sleep(4 * time.Second)
+
+		pods, err := k8sService.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
+			LabelSelector: fmt.Sprintf("job-name=%s", JobName),
+		})
+
+		var podName string
+		for _, pod := range pods.Items {
+			podName = pod.Name
+			break
 		}
 
-		var podNames string
-		for _, ownerReference := range createdJob.OwnerReferences {
-			if ownerReference.Kind == "Pod" {
-				podNames = ownerReference.Name
-				break
-			}
-		}
-		req := k8sService.k8sClient.CoreV1().Pods(namespace).GetLogs(podNames, &v1.PodLogOptions{
+		req := k8sService.k8sClient.CoreV1().Pods(namespace).GetLogs(podName, &v1.PodLogOptions{
 			Container:  "",
 			Follow:     true,
 			Timestamps: true,
@@ -357,7 +355,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		}
 		defer podLogs.Close()
 
-		ubiLogFileName := filepath.Join(os.Getenv("CP_PATH"), "ubi.log")
+		ubiLogFileName := filepath.Join(cpRepoPath, "ubi.log")
 		logFile, err := os.OpenFile(ubiLogFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			logs.GetLogger().Errorf("opening ubi log file failed, error: %v", err)
