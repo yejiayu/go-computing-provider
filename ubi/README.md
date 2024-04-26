@@ -53,7 +53,7 @@ Output:
 ## Start ECP service
 ```bash
 #!/bin/bash
-export FIL_PROOFS_PARAMETER_CACHE="$PARENT_PATH"
+export FIL_PROOFS_PARAMETER_CACHE=$PARENT_PATH
 export RUST_GPU_TOOLS_CUSTOM_GPU="GeForce RTX 4090:16384"   
         
 nohup ./computing-provider ubi daemon >> cp.log 2>&1 &
