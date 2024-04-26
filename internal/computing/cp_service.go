@@ -1063,7 +1063,7 @@ func getLocation() (string, error) {
 			return "", err
 		}
 
-		region := strings.TrimSpace(ipInfo.RegionName) + "-" + ipInfo.CountryCode
+		region = strings.TrimSpace(ipInfo.RegionName) + "-" + ipInfo.CountryCode
 		fullArgs = append(fullArgs, region)
 		_, _ = conn.Do("SET", fullArgs...)
 		return region, nil
