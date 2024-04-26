@@ -1030,7 +1030,7 @@ func generateString(length int) string {
 }
 
 func getLocation() (string, error) {
-	conn := redisPool.Get()
+	conn := GetRedisClient()
 	fullArgs := []interface{}{constants.REDIS_REGION_PERFIX}
 
 	region, err := redis.String(conn.Do("GET", fullArgs...))
