@@ -1,11 +1,12 @@
 [API]
 Port = 9085                                     # The port number that the web server listens on
 MultiAddress = "/ip4/<PUBLIC IP>/tcp/<PORT>"    # The multiAddress for libp2p
-Domain = "<YOUR CP Domain>"                                     # The domain name
-NodeName = "<YOUR CP NodeName>"               # The computing-provider node name
+Domain = "<YOUR CP Domain>"                     # The domain name
+NodeName = "<YOUR CP NodeName>"                 # The computing-provider node name
 
 RedisUrl = "redis://127.0.0.1:16379"             # The redis server address
 RedisPassword = "rootadmin!213"                  # The redis server access password, default password
+WalletWhiteList = ""                             #
 
 [UBI]
 UbiTask = false                                               # Accept the UBI task (Default: true)
@@ -36,9 +37,9 @@ UserName = ""                                 # The login username, if only a si
 Password = ""                                 # The login password, if only a single node, you can ignore
 
 [RPC]
-SWAN_TESTNET ="https://rpc-atom.swanchain.io"     # Swan testnet RPC
+SWAN_TESTNET ="https://rpc-proxima.swanchain.io"  # Swan testnet RPC
 SWAN_MAINNET= ""                                  # Swan mainnet RPC
 
 [CONTRACT]
 SWAN_CONTRACT="0x91B25A65b295F0405552A4bbB77879ab5e38166c"              # Swan token's contract address
-SWAN_COLLATERAL_CONTRACT="0xa1f724Deb5E0ff38423578C1744239530B8C2676"   # Swan's collateral address
+SWAN_COLLATERAL_CONTRACT="0xfD9190027cd42Fc4f653Dfd9c4c45aeBAf0ae063"   # Swan's collateral address

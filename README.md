@@ -29,7 +29,7 @@ As a resource provider, you can run a **ECP**(Edge Computing Provider) and **FCP
 		- [Install the NVIDIA Plugin](#Install-the-NVIDIA-Plugin)
 		- [Install the Ingress-nginx Controller](#Install-the-Ingress-nginx-Controller)
  	- [Install and config the Nginx](#Install-the-Ingress-nginx-Controller)
- 	- [Install the Hardware resource-exporter](#Install-Hardware-resource-exporter)
+ 	- [Install the Hardware resource-exporter](#Install-the-Hardware-resource-exporter)
  	- [Install the Redis service](#Install-Redis-service)
  	- [Build and config the Computing Provider](#Build-and-config-the-Computing-Provider)
  	- [Install AI Inference Dependency(Optional)](#Install-AI-Inference-Dependency)
@@ -344,6 +344,7 @@ NodeName = ""                                   # The computing-provider node na
 
 RedisUrl = "redis://127.0.0.1:6379"           # The redis server address
 RedisPassword = ""                            # The redis server access password
+WalletWhiteList = ""                          # 
 
 [UBI]
 UbiTask = true                                 # Accept the UBI task (Default: true)
@@ -375,12 +376,12 @@ UserName = ""                                 # The login username, if only a si
 Password = ""                                 # The login password, if only a single node, you can ignore
 
 [RPC]
-SWAN_TESTNET ="https://saturn-rpc.swanchain.io"  # Swan testnet RPC
+SWAN_TESTNET ="https://rpc-proxima.swanchain.io"  # Swan testnet RPC
 SWAN_MAINNET= ""								   # Swan mainnet RPC
 
 [CONTRACT]
-SWAN_CONTRACT="0x91B25A65b295F0405552A4bbB77879ab5e38166c"   # Swan token's contract address
-SWAN_COLLATERAL_CONTRACT="0xdc200f89258e72aC3602dD23BD3642C4bd4eE34e"   # Swan's collateral address
+SWAN_CONTRACT="0x91B25A65b295F0405552A4bbB77879ab5e38166c"              # Swan token's contract address
+SWAN_COLLATERAL_CONTRACT="0xfD9190027cd42Fc4f653Dfd9c4c45aeBAf0ae063"   # Swan's collateral address
 ```
 ## Install AI Inference Dependency
 It is necessary for Computing Provider to deploy the  AI inference endpoint. But if you do not want to support the feature, you can skip it.
