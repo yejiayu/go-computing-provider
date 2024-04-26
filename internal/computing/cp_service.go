@@ -1033,7 +1033,7 @@ func getLocation() (string, error) {
 	conn := redisPool.Get()
 	fullArgs := []interface{}{constants.REDIS_REGION_PERFIX}
 
-	region, err := redis.String(conn.Do("HMGET", fullArgs...))
+	region, err := redis.String(conn.Do("GET", fullArgs...))
 	if err != nil {
 		publicIpAddress, err := getLocalIPAddress()
 		if err != nil {
