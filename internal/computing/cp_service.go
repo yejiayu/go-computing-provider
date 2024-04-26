@@ -1029,7 +1029,13 @@ func generateString(length int) string {
 	return string(result)
 }
 
+var publicRegionInfo string
+
 func getLocation() (string, error) {
+	if publicRegionInfo != "" {
+		return publicRegionInfo, nil
+	}
+
 	publicIpAddress, err := getLocalIPAddress()
 	if err != nil {
 		return "", err
@@ -1058,7 +1064,8 @@ func getLocation() (string, error) {
 		return "", err
 	}
 
-	return strings.TrimSpace(ipInfo.RegionName) + "-" + ipInfo.CountryCode, nil
+	publicRegionInfo = strings.TrimSpace(ipInfo.RegionName) + "-" + ipInfo.CountryCode
+	return publicRegionInfo, nil
 }
 
 func getLocalIPAddress() (string, error) {
