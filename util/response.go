@@ -63,6 +63,7 @@ const (
 	UbiTaskError            = 8003
 	CheckResourcesError     = 9001
 	CheckAvailableResources = 9002
+	CheckWhiteListError     = 9003
 )
 
 var codeMsg = map[int]string{
@@ -76,4 +77,5 @@ var codeMsg = map[int]string{
 
 	CheckResourcesError:     "An error occurred while check resources available",
 	CheckAvailableResources: "No resources available",
+	CheckWhiteListError:     "This cp does not accept tasks from wallet addresses outside the whitelist",
 }

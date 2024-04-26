@@ -1,6 +1,7 @@
 package computing
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	stErr "errors"
@@ -71,6 +72,11 @@ func ReceiveJob(c *gin.Context) {
 		return
 	}
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
+
+	if !CheckWalletWhiteList(jobData.JobSourceURI) {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckWhiteListError))
+		return
+	}
 
 	if conf.GetConfig().HUB.VerifySign {
 		if len(jobData.NodeIdJobSourceUriSignature) == 0 {
@@ -1024,35 +1030,47 @@ func generateString(length int) string {
 }
 
 func getLocation() (string, error) {
-	publicIpAddress, err := getLocalIPAddress()
+	conn := redisPool.Get()
+	fullArgs := []interface{}{constants.REDIS_REGION_PERFIX}
+
+	region, err := redis.String(conn.Do("GET", fullArgs...))
 	if err != nil {
-		return "", err
-	}
-	logs.GetLogger().Infof("publicIpAddress: %s", publicIpAddress)
+		publicIpAddress, err := getLocalIPAddress()
+		if err != nil {
+			return "", err
+		}
+		logs.GetLogger().Infof("publicIpAddress: %s", publicIpAddress)
 
-	resp, err := http.Get("http://ip-api.com/json/" + publicIpAddress)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
+		resp, err := http.Get("http://ip-api.com/json/" + publicIpAddress)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
 
-	var ipInfo struct {
-		Country     string `json:"country"`
-		CountryCode string `json:"countryCode"`
-		City        string `json:"city"`
-		Region      string `json:"region"`
-		RegionName  string `json:"regionName"`
-	}
-	if err = json.Unmarshal(body, &ipInfo); err != nil {
-		return "", err
-	}
+		var ipInfo struct {
+			Country     string `json:"country"`
+			CountryCode string `json:"countryCode"`
+			City        string `json:"city"`
+			Region      string `json:"region"`
+			RegionName  string `json:"regionName"`
+		}
+		if err = json.Unmarshal(body, &ipInfo); err != nil {
+			return "", err
+		}
 
-	return strings.TrimSpace(ipInfo.RegionName) + "-" + ipInfo.CountryCode, nil
+		region = strings.TrimSpace(ipInfo.RegionName) + "-" + ipInfo.CountryCode
+		fullArgs = append(fullArgs, region)
+		_, _ = conn.Do("SET", fullArgs...)
+		return region, nil
+	} else {
+		logs.GetLogger().Infof("get region from cache : %s", region)
+		return region, nil
+	}
 }
 
 func getLocalIPAddress() (string, error) {
@@ -1286,4 +1304,51 @@ func convertGpuName(name string) string {
 		}
 	}
 	return name
+}
+
+func CheckWalletWhiteList(jobSourceURI string) bool {
+	walletWhiteListUrl := conf.GetConfig().API.WalletWhiteList
+	if strings.TrimSpace(walletWhiteListUrl) != "" {
+		var walletMap = make(map[string]struct{})
+		resp, err := http.Get(walletWhiteListUrl)
+		if err != nil {
+			logs.GetLogger().Errorf("send wallet whitelist failed, error: %v", err)
+			return false
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			logs.GetLogger().Errorf("response wallet whitelist failed, error: %v", err)
+			return false
+		}
+
+		scanner := bufio.NewScanner(resp.Body)
+		for scanner.Scan() {
+			if strings.HasPrefix(scanner.Text(), "#") {
+				continue
+			}
+			walletAddress := scanner.Text()
+			if strings.TrimSpace(walletAddress) != "" {
+				walletMap[walletAddress] = struct{}{}
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			logs.GetLogger().Errorf("read response of wallet whitelist failed, error: %v", err)
+			return false
+		}
+
+		spaceDetail, err := getSpaceDetail(jobSourceURI)
+		if err != nil {
+			logs.GetLogger().Errorln(err)
+			return false
+		}
+		userWalletAddress := spaceDetail.Data.Owner.PublicAddress
+		if _, ok := walletMap[userWalletAddress]; ok {
+			return true
+		} else {
+			return false
+		}
+	}
+	return true
 }
