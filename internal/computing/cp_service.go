@@ -1029,43 +1029,47 @@ func generateString(length int) string {
 	return string(result)
 }
 
-var publicRegionInfo string
-
 func getLocation() (string, error) {
-	if publicRegionInfo != "" {
-		return publicRegionInfo, nil
-	}
+	conn := redisPool.Get()
+	fullArgs := []interface{}{constants.REDIS_REGION_PERFIX}
 
-	publicIpAddress, err := getLocalIPAddress()
+	region, err := redis.String(conn.Do("HMGET", fullArgs...))
 	if err != nil {
-		return "", err
-	}
-	logs.GetLogger().Infof("publicIpAddress: %s", publicIpAddress)
+		publicIpAddress, err := getLocalIPAddress()
+		if err != nil {
+			return "", err
+		}
+		logs.GetLogger().Infof("publicIpAddress: %s", publicIpAddress)
 
-	resp, err := http.Get("http://ip-api.com/json/" + publicIpAddress)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
+		resp, err := http.Get("http://ip-api.com/json/" + publicIpAddress)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
 
-	var ipInfo struct {
-		Country     string `json:"country"`
-		CountryCode string `json:"countryCode"`
-		City        string `json:"city"`
-		Region      string `json:"region"`
-		RegionName  string `json:"regionName"`
-	}
-	if err = json.Unmarshal(body, &ipInfo); err != nil {
-		return "", err
-	}
+		var ipInfo struct {
+			Country     string `json:"country"`
+			CountryCode string `json:"countryCode"`
+			City        string `json:"city"`
+			Region      string `json:"region"`
+			RegionName  string `json:"regionName"`
+		}
+		if err = json.Unmarshal(body, &ipInfo); err != nil {
+			return "", err
+		}
 
-	publicRegionInfo = strings.TrimSpace(ipInfo.RegionName) + "-" + ipInfo.CountryCode
-	return publicRegionInfo, nil
+		region := strings.TrimSpace(ipInfo.RegionName) + "-" + ipInfo.CountryCode
+		fullArgs = append(fullArgs, region)
+		_, _ = conn.Do("SET", fullArgs...)
+		return region, nil
+	} else {
+		return region, nil
+	}
 }
 
 func getLocalIPAddress() (string, error) {
