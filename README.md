@@ -344,7 +344,7 @@ NodeName = ""                                   # The computing-provider node na
 
 RedisUrl = "redis://127.0.0.1:6379"           # The redis server address
 RedisPassword = ""                            # The redis server access password
-WalletWhiteList = ""                          # 
+WalletWhiteList = ""                          # CP only accepts user addresses from this whitelist for space deployment. Example whitelist hosted on GitHub can be found [here](https://raw.githubusercontent.com/swanchain/market-providers/main/clients/whitelist.txt)
 
 [UBI]
 UbiTask = true                                 # Accept the UBI task (Default: true)
