@@ -619,11 +619,12 @@ func DoUbiTaskForDocker(c *gin.Context) {
 				env = append(env, "RUST_GPU_TOOLS_CUSTOM_GPU="+gpuEnv)
 			}
 			neeedResource = container.Resources{
+
 				Memory: needMemory * 1024 * 1024 * 1024,
 				DeviceRequests: []container.DeviceRequest{
 					{
 						Driver:       "nvidia",
-						Count:        0,
+						Count:        -1,
 						DeviceIDs:    []string{"0", "1", "2", "3", "4", "5", "6", "7"},
 						Capabilities: [][]string{{"gpu"}},
 						Options:      nil,
