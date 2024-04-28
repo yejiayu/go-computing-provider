@@ -695,8 +695,6 @@ func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, in
 		for _, detail := range nodeResource.Gpu.Details {
 			if detail.Status == models.Available {
 				gpuMap[detail.ProductName] += 1
-			} else {
-				gpuMap[detail.ProductName] = 1
 			}
 		}
 	}
@@ -872,8 +870,6 @@ func reportClusterResourceForDocker() {
 		for _, g := range nodeResource.Gpu.Details {
 			if g.Status == models.Available {
 				freeGpuMap[g.ProductName] += 1
-			} else {
-				freeGpuMap[g.ProductName] = 1
 			}
 		}
 	}
