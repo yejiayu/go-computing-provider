@@ -604,12 +604,30 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		env = append(env, "ZK_TYPE="+ubiTask.ZkType)
 		env = append(env, "NAME_SPACE=docker-ubi-task")
 		env = append(env, "PARAM_URL="+ubiTask.InputParam)
+
+		var needResource container.Resources
 		if gpuFlag == "0" {
-			env = append(env, "BELLMAN_NO_GPU="+ubiTask.InputParam)
+			env = append(env, "BELLMAN_NO_GPU=1")
+
+			needResource = container.Resources{
+				Memory: needMemory * 1024 * 1024 * 1024,
+			}
+
 		} else {
 			gpuEnv, ok := os.LookupEnv("RUST_GPU_TOOLS_CUSTOM_GPU")
 			if ok {
 				env = append(env, "RUST_GPU_TOOLS_CUSTOM_GPU="+gpuEnv)
+			}
+			needResource = container.Resources{
+				Memory: needMemory * 1024 * 1024 * 1024,
+				DeviceRequests: []container.DeviceRequest{
+					{
+						Driver:       "nvidia",
+						Count:        -1,
+						Capabilities: [][]string{{"gpu"}},
+						Options:      nil,
+					},
+				},
 			}
 		}
 
@@ -619,10 +637,8 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		}
 
 		hostConfig := &container.HostConfig{
-			Binds: []string{fmt.Sprintf("%s:/var/tmp/filecoin-proof-parameters", filC2Param)},
-			Resources: container.Resources{
-				Memory: needMemory * 1024 * 1024 * 1024,
-			},
+			Binds:     []string{fmt.Sprintf("%s:/var/tmp/filecoin-proof-parameters", filC2Param)},
+			Resources: needResource,
 		}
 		containerConfig := &container.Config{
 			Image:        ubiTaskImage,
@@ -674,8 +690,17 @@ func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, in
 		remainderStorage, err = strconv.ParseFloat(strings.Split(strings.TrimSpace(nodeResource.Storage.Free), " ")[0], 64)
 	}
 
+	var gpuMap = make(map[string]int)
+	if nodeResource.Gpu.AttachedGpus > 0 {
+		for _, detail := range nodeResource.Gpu.Details {
+			if detail.Status == models.Available {
+				gpuMap[detail.ProductName] += 1
+			}
+		}
+	}
+
 	logs.GetLogger().Infof("checkResourceForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
-	logs.GetLogger().Infof("checkResourceForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
+	logs.GetLogger().Infof("checkResourceForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f, remainingGpu: %+v", remainderCpu, remainderMemory, remainderStorage, gpuMap)
 	if needCpu <= remainderCpu && needMemory <= remainderMemory && needStorage <= remainderStorage {
 		return true, nodeResource.CpuName, needCpu, int64(needMemory), nil
 	}
@@ -843,10 +868,8 @@ func reportClusterResourceForDocker() {
 	var freeGpuMap = make(map[string]int)
 	if nodeResource.Gpu.AttachedGpus > 0 {
 		for _, g := range nodeResource.Gpu.Details {
-			if g.FbMemoryUsage.Free != "0 MiB" {
+			if g.Status == models.Available {
 				freeGpuMap[g.ProductName] += 1
-			} else {
-				freeGpuMap[g.ProductName] = 1
 			}
 		}
 	}

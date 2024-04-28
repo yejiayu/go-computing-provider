@@ -1072,7 +1072,6 @@ func getLocation() (string, error) {
 		_, _ = conn.Do("SET", fullArgs...)
 		return region, nil
 	} else {
-		logs.GetLogger().Infof("get region from cache : %s", region)
 		return region, nil
 	}
 }
