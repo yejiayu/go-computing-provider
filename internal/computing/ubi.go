@@ -605,11 +605,11 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		env = append(env, "NAME_SPACE=docker-ubi-task")
 		env = append(env, "PARAM_URL="+ubiTask.InputParam)
 
-		var neeedResource container.Resources
+		var needResource container.Resources
 		if gpuFlag == "0" {
 			env = append(env, "BELLMAN_NO_GPU=1")
 
-			neeedResource = container.Resources{
+			needResource = container.Resources{
 				Memory: needMemory * 1024 * 1024 * 1024,
 			}
 
@@ -618,8 +618,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 			if ok {
 				env = append(env, "RUST_GPU_TOOLS_CUSTOM_GPU="+gpuEnv)
 			}
-			neeedResource = container.Resources{
-
+			needResource = container.Resources{
 				Memory: needMemory * 1024 * 1024 * 1024,
 				DeviceRequests: []container.DeviceRequest{
 					{
@@ -639,7 +638,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 
 		hostConfig := &container.HostConfig{
 			Binds:     []string{fmt.Sprintf("%s:/var/tmp/filecoin-proof-parameters", filC2Param)},
-			Resources: neeedResource,
+			Resources: needResource,
 		}
 		containerConfig := &container.Config{
 			Image:        ubiTaskImage,
