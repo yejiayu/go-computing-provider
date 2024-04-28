@@ -1039,35 +1039,14 @@ func getLocation() (string, error) {
 
 	region, err := redis.String(conn.Do("GET", fullArgs...))
 	if err != nil {
-		publicIpAddress, err := getLocalIPAddress()
+		region, err = getRegionByIpInfo()
 		if err != nil {
-			return "", err
+			region, err = getRegionByIpApi()
+			if err != nil {
+				logs.GetLogger().Errorf("get region info failed, error: %+v", err)
+				return "", err
+			}
 		}
-		logs.GetLogger().Infof("publicIpAddress: %s", publicIpAddress)
-
-		resp, err := http.Get("http://ip-api.com/json/" + publicIpAddress)
-		if err != nil {
-			return "", err
-		}
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return "", err
-		}
-
-		var ipInfo struct {
-			Country     string `json:"country"`
-			CountryCode string `json:"countryCode"`
-			City        string `json:"city"`
-			Region      string `json:"region"`
-			RegionName  string `json:"regionName"`
-		}
-		if err = json.Unmarshal(body, &ipInfo); err != nil {
-			return "", err
-		}
-
-		region = strings.TrimSpace(ipInfo.RegionName) + "-" + ipInfo.CountryCode
 		fullArgs = append(fullArgs, region)
 		_, _ = conn.Do("SET", fullArgs...)
 		return region, nil
@@ -1076,8 +1055,52 @@ func getLocation() (string, error) {
 	}
 }
 
-func getLocalIPAddress() (string, error) {
+func getRegionByIpApi() (string, error) {
 	req, err := http.NewRequest("GET", "https://ipapi.co/ip", nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36")
+
+	client := http.DefaultClient
+	IpResp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer IpResp.Body.Close()
+
+	ipBytes, err := io.ReadAll(IpResp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	regionResp, err := http.Get("http://ip-api.com/json/" + string(ipBytes))
+	if err != nil {
+		return "", err
+	}
+	defer regionResp.Body.Close()
+
+	body, err := io.ReadAll(regionResp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var ipInfo struct {
+		Country     string `json:"country"`
+		CountryCode string `json:"countryCode"`
+		City        string `json:"city"`
+		Region      string `json:"region"`
+		RegionName  string `json:"regionName"`
+	}
+	if err = json.Unmarshal(body, &ipInfo); err != nil {
+		return "", err
+	}
+	region := strings.TrimSpace(ipInfo.RegionName) + "-" + ipInfo.CountryCode
+	return region, nil
+}
+
+func getRegionByIpInfo() (string, error) {
+	req, err := http.NewRequest("GET", "https://ipinfo.io", nil)
 	if err != nil {
 		return "", err
 	}
@@ -1094,7 +1117,18 @@ func getLocalIPAddress() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(string(ipBytes)), nil
+
+	var ipInfo struct {
+		Ip      string `json:"ip"`
+		City    string `json:"city"`
+		Region  string `json:"region"`
+		Country string `json:"country"`
+	}
+	if err = json.Unmarshal(ipBytes, &ipInfo); err != nil {
+		return "", err
+	}
+	region := strings.TrimSpace(ipInfo.Region) + "-" + ipInfo.Country
+	return region, nil
 }
 
 var NotFoundRedisKey = stErr.New("not found redis key")
