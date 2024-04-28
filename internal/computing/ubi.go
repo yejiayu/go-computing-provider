@@ -690,8 +690,19 @@ func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, in
 		remainderStorage, err = strconv.ParseFloat(strings.Split(strings.TrimSpace(nodeResource.Storage.Free), " ")[0], 64)
 	}
 
+	var gpuMap = make(map[string]int)
+	if nodeResource.Gpu.AttachedGpus > 0 {
+		for _, detail := range nodeResource.Gpu.Details {
+			if detail.Status == models.Available {
+				gpuMap[detail.ProductName] += 1
+			} else {
+				gpuMap[detail.ProductName] = 1
+			}
+		}
+	}
+
 	logs.GetLogger().Infof("checkResourceForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
-	logs.GetLogger().Infof("checkResourceForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f", remainderCpu, remainderMemory, remainderStorage)
+	logs.GetLogger().Infof("checkResourceForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f, remainingGpu: %+v", remainderCpu, remainderMemory, remainderStorage, gpuMap)
 	if needCpu <= remainderCpu && needMemory <= remainderMemory && needStorage <= remainderStorage {
 		return true, nodeResource.CpuName, needCpu, int64(needMemory), nil
 	}
