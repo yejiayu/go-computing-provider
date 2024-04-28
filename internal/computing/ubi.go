@@ -604,14 +604,32 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		env = append(env, "ZK_TYPE="+ubiTask.ZkType)
 		env = append(env, "NAME_SPACE=docker-ubi-task")
 		env = append(env, "PARAM_URL="+ubiTask.InputParam)
+
+		var neeedResource container.Resources
 		if gpuFlag == "0" {
 			env = append(env, "BELLMAN_NO_GPU=1")
+
+			neeedResource = container.Resources{
+				Memory: needMemory * 1024 * 1024 * 1024,
+			}
+
 		} else {
-			//gpuEnv, ok := os.LookupEnv("RUST_GPU_TOOLS_CUSTOM_GPU")
-			//if ok {
-			//	env = append(env, "RUST_GPU_TOOLS_CUSTOM_GPU="+gpuEnv)
-			//}
-			env = append(env, "BELLMAN_NO_GPU=1")
+			gpuEnv, ok := os.LookupEnv("RUST_GPU_TOOLS_CUSTOM_GPU")
+			if ok {
+				env = append(env, "RUST_GPU_TOOLS_CUSTOM_GPU="+gpuEnv)
+			}
+			neeedResource = container.Resources{
+				Memory: needMemory * 1024 * 1024 * 1024,
+				DeviceRequests: []container.DeviceRequest{
+					{
+						Driver:       "nvidia",
+						Count:        0,
+						DeviceIDs:    []string{"0", "1", "2", "3", "4", "5", "6", "7"},
+						Capabilities: [][]string{{"gpu"}},
+						Options:      nil,
+					},
+				},
+			}
 		}
 
 		filC2Param, ok := os.LookupEnv("FIL_PROOFS_PARAMETER_CACHE")
@@ -620,10 +638,8 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		}
 
 		hostConfig := &container.HostConfig{
-			Binds: []string{fmt.Sprintf("%s:/var/tmp/filecoin-proof-parameters", filC2Param)},
-			Resources: container.Resources{
-				Memory: needMemory * 1024 * 1024 * 1024,
-			},
+			Binds:     []string{fmt.Sprintf("%s:/var/tmp/filecoin-proof-parameters", filC2Param)},
+			Resources: neeedResource,
 		}
 		containerConfig := &container.Config{
 			Image:        ubiTaskImage,
