@@ -11,6 +11,7 @@ import (
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
+	"github.com/olekukonko/tablewriter"
 	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/internal/computing"
@@ -170,8 +171,22 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"   Available(SWAN-ETH):", balance})
 		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", collateralBalance})
 
+		var rowColor []tablewriter.Colors
+		if ubiFlag == "Accept" {
+			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
+		} else {
+			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgRedColor}}
+		}
+
+		var rowColorList []RowColor
+		rowColorList = append(rowColorList, RowColor{
+			row:    5,
+			column: []int{1},
+			color:  rowColor,
+		})
+
 		header := []string{"Name:", conf.GetConfig().API.NodeName}
-		NewVisualTable(header, taskData, []RowColor{}).Generate(false)
+		NewVisualTable(header, taskData, rowColorList).Generate(false)
 		if localNodeId != chainNodeId {
 			fmt.Printf("NodeId mismatch, local node id: %s, chain node id: %s.\n", localNodeId, chainNodeId)
 		}
