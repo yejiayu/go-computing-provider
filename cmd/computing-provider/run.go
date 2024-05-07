@@ -180,7 +180,7 @@ var infoCmd = &cli.Command{
 
 		var rowColorList []RowColor
 		rowColorList = append(rowColorList, RowColor{
-			row:    5,
+			row:    4,
 			column: []int{1},
 			color:  rowColor,
 		})
