@@ -118,14 +118,14 @@ var infoCmd = &cli.Command{
 		}
 		defer client.Close()
 
-		var balance, collateralBalance string
+		var balance, collateralBalance, ownerBalance string
 		var contractAddress, ownerAddress, beneficiaryAddress, ubiFlag, chainNodeId string
 
 		cpStub, err := account.NewAccountStub(client)
 		if err == nil {
 			cpAccount, err := cpStub.GetCpAccountInfo()
 			if err != nil {
-				return fmt.Errorf("get cpAccount failed, error: %v", err)
+				err = fmt.Errorf("get cpAccount failed, error: %v", err)
 			}
 			if cpAccount.UbiFlag == 1 {
 				ubiFlag = "Accept"
@@ -144,26 +144,33 @@ var infoCmd = &cli.Command{
 			collateralBalance, err = collateralStub.Balances()
 		}
 
+		if ownerAddress != "" {
+			ownerBalance, err = wallet.Balance(context.TODO(), client, ownerAddress)
+		}
+
 		var domain = conf.GetConfig().API.Domain
 		if strings.HasPrefix(domain, ".") {
 			domain = domain[1:]
 		}
 		var taskData [][]string
 
-		taskData = append(taskData, []string{"Contract Address:", contractAddress})
 		taskData = append(taskData, []string{"Multi-Address:", conf.GetConfig().API.MultiAddress})
-		taskData = append(taskData, []string{"Name:", conf.GetConfig().API.NodeName})
 		taskData = append(taskData, []string{"Node ID:", localNodeId})
-		taskData = append(taskData, []string{"Domain:", domain})
-		taskData = append(taskData, []string{"Running deployments:", strconv.Itoa(count)})
+		taskData = append(taskData, []string{"ECP:"})
+		taskData = append(taskData, []string{"   Contract Address:", contractAddress})
+		taskData = append(taskData, []string{"	 UBI FLAG:", ubiFlag})
+		taskData = append(taskData, []string{"	 Owner:", ownerAddress})
+		taskData = append(taskData, []string{"   Beneficiary Address:", beneficiaryAddress})
+		taskData = append(taskData, []string{"   Available(SWAN-ETH):", ownerBalance})
+		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", "0"})
+		taskData = append(taskData, []string{"FCP:"})
+		taskData = append(taskData, []string{"	 Wallet:", conf.GetConfig().HUB.WalletAddress})
+		taskData = append(taskData, []string{"   Domain:", domain})
+		taskData = append(taskData, []string{"   Running deployments:", strconv.Itoa(count)})
+		taskData = append(taskData, []string{"   Available(SWAN-ETH):", balance})
+		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", collateralBalance})
 
-		taskData = append(taskData, []string{"Available(SWAN-ETH):", balance})
-		taskData = append(taskData, []string{"Collateral(SWAN-ETH):", collateralBalance})
-
-		taskData = append(taskData, []string{"UBI FLAG:", ubiFlag})
-		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
-
-		header := []string{"Owner:", ownerAddress}
+		header := []string{"Name:", conf.GetConfig().API.NodeName}
 		NewVisualTable(header, taskData, []RowColor{}).Generate(false)
 		if localNodeId != chainNodeId {
 			fmt.Printf("NodeId mismatch, local node id: %s, chain node id: %s.\n", localNodeId, chainNodeId)
