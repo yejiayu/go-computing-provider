@@ -72,6 +72,7 @@ func NewWallet(keystore KeyStore) *LocalWallet {
 }
 
 func (w *LocalWallet) WalletSign(ctx context.Context, addr string, msg []byte) (string, error) {
+	defer w.keystore.Close()
 	ki, err := w.FindKey(addr)
 	if err != nil {
 		return "", err
@@ -92,6 +93,7 @@ func (w *LocalWallet) WalletVerify(ctx context.Context, addr string, sigByte []b
 }
 
 func (w *LocalWallet) FindKey(addr string) (*KeyInfo, error) {
+	defer w.keystore.Close()
 	w.lk.Lock()
 	defer w.lk.Unlock()
 
@@ -130,6 +132,7 @@ func (w *LocalWallet) tryFind(key string) (KeyInfo, error) {
 }
 
 func (w *LocalWallet) WalletExport(ctx context.Context, addr string) (*KeyInfo, error) {
+	defer w.keystore.Close()
 	k, err := w.FindKey(addr)
 	if err != nil {
 		return nil, xerrors.Errorf("failed to find key to export: %w", err)
@@ -142,6 +145,7 @@ func (w *LocalWallet) WalletExport(ctx context.Context, addr string) (*KeyInfo, 
 }
 
 func (w *LocalWallet) WalletImport(ctx context.Context, ki *KeyInfo) (string, error) {
+	defer w.keystore.Close()
 	if ki == nil || len(strings.TrimSpace(ki.PrivateKey)) == 0 {
 		return "", fmt.Errorf("not found private key")
 	}
@@ -152,6 +156,12 @@ func (w *LocalWallet) WalletImport(ctx context.Context, ki *KeyInfo) (string, er
 	}
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
+
+	existAddress, err := w.tryFind(address)
+	if err == nil && existAddress.PrivateKey != "" {
+		return "", xerrors.Errorf("This wallet address already exists")
+	}
+
 	if err := w.keystore.Put(KNamePrefix+address, *ki); err != nil {
 		return "", xerrors.Errorf("saving to keystore: %w", err)
 	}
@@ -159,6 +169,7 @@ func (w *LocalWallet) WalletImport(ctx context.Context, ki *KeyInfo) (string, er
 }
 
 func (w *LocalWallet) WalletList(ctx context.Context, chainName string, contractFlag bool) error {
+	defer w.keystore.Close()
 	addressList, err := w.addressList(ctx)
 	if err != nil {
 		return err
@@ -223,6 +234,8 @@ func (w *LocalWallet) WalletList(ctx context.Context, chainName string, contract
 }
 
 func (w *LocalWallet) WalletNew(ctx context.Context) (string, error) {
+	defer w.keystore.Close()
+
 	w.lk.Lock()
 	defer w.lk.Unlock()
 
@@ -264,6 +277,7 @@ func (w *LocalWallet) walletDelete(ctx context.Context, addr string) error {
 }
 
 func (w *LocalWallet) WalletDelete(ctx context.Context, addr string) error {
+	defer w.keystore.Close()
 	if err := w.walletDelete(ctx, addr); err != nil {
 		return xerrors.Errorf("wallet delete: %w", err)
 	}
@@ -271,6 +285,7 @@ func (w *LocalWallet) WalletDelete(ctx context.Context, addr string) error {
 }
 
 func (w *LocalWallet) WalletSend(ctx context.Context, chainName string, from, to string, amount string) (string, error) {
+	defer w.keystore.Close()
 	chainUrl, err := conf.GetRpcByName(chainName)
 	if err != nil {
 		return "", err
@@ -302,6 +317,7 @@ func (w *LocalWallet) WalletSend(ctx context.Context, chainName string, from, to
 }
 
 func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, from string, amount string) (string, error) {
+	defer w.keystore.Close()
 	sendAmount, err := convertToWei(amount)
 	if err != nil {
 		return "", err
@@ -368,6 +384,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 }
 
 func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) error {
+	defer w.keystore.Close()
 	addrs, err := w.addressList(ctx)
 	if err != nil {
 		return err
@@ -430,6 +447,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 }
 
 func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, to string, amount string) (string, error) {
+	defer w.keystore.Close()
 	withDrawAmount, err := convertToWei(amount)
 	if err != nil {
 		return "", err
@@ -467,6 +485,7 @@ func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, 
 }
 
 func (w *LocalWallet) CollateralSendCmd(ctx context.Context, from, to string, amount string) (string, error) {
+	defer w.keystore.Close()
 	withDrawAmount, err := convertToWei(amount)
 	if err != nil {
 		return "", err
@@ -504,6 +523,7 @@ func (w *LocalWallet) CollateralSendCmd(ctx context.Context, from, to string, am
 }
 
 func (w *LocalWallet) addressList(ctx context.Context) ([]string, error) {
+	defer w.keystore.Close()
 	all, err := w.keystore.List()
 	if err != nil {
 		return nil, xerrors.Errorf("listing keystore: %w", err)
