@@ -251,15 +251,6 @@ func (w *LocalWallet) WalletNew(ctx context.Context) (string, error) {
 }
 
 func (w *LocalWallet) walletDelete(ctx context.Context, addr string) error {
-	k, err := w.FindKey(addr)
-
-	if err != nil {
-		return xerrors.Errorf("failed to delete key %s : %w", addr, err)
-	}
-	if k == nil {
-		return nil // already not there
-	}
-
 	w.lk.Lock()
 	defer w.lk.Unlock()
 
