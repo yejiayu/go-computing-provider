@@ -74,7 +74,8 @@ func ReceiveJob(c *gin.Context) {
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
 
 	if !CheckWalletWhiteList(jobData.JobSourceURI) {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckWhiteListError))
+		logs.GetLogger().Errorf("This cp does not accept tasks from wallet addresses outside the whitelist")
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.CheckWhiteListError))
 		return
 	}
 
