@@ -281,6 +281,7 @@ func (w *LocalWallet) WalletDelete(ctx context.Context, addr string) error {
 	if err := w.walletDelete(ctx, addr); err != nil {
 		return xerrors.Errorf("wallet delete: %w", err)
 	}
+	fmt.Printf("%s has been deleted from the local success \n", addr)
 	return nil
 }
 

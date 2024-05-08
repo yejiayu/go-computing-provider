@@ -244,7 +244,7 @@ func GenerateRepo(cpRepoPath string) error {
 	return nil
 }
 
-func UpdateConfigFile(cpRepoPath string, multiAddress, nodeName string) error {
+func UpdateConfigFile(cpRepoPath string, multiAddress, nodeName string, port int) error {
 	var configTmpl ComputeNode
 	var configFile *os.File
 	var err error
@@ -273,6 +273,11 @@ func UpdateConfigFile(cpRepoPath string, multiAddress, nodeName string) error {
 		}
 		configTmpl.API.NodeName = hostname
 	}
+
+	if port != 0 {
+		configTmpl.API.Port = port
+	}
+
 	if err = toml.NewEncoder(configFile).Encode(configTmpl); err != nil {
 		return err
 	}

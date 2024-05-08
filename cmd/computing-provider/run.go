@@ -214,9 +214,14 @@ var initCmd = &cli.Command{
 			Name:  "node-name",
 			Usage: "The name of cp",
 		},
+		&cli.IntFlag{
+			Name:  "port",
+			Usage: "The cp listens on port, default: 9085",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		multiAddr := cctx.String("multi-address")
+		port := cctx.Int("port")
 		if strings.TrimSpace(multiAddr) == "" {
 			return fmt.Errorf("the multi-address field required")
 		}
@@ -229,7 +234,7 @@ var initCmd = &cli.Command{
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
-		return conf.UpdateConfigFile(cpRepoPath, multiAddr, nodeName)
+		return conf.UpdateConfigFile(cpRepoPath, multiAddr, nodeName, port)
 	},
 }
 

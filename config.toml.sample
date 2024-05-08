@@ -1,8 +1,8 @@
 [API]
 Port = 8085                                     # The port number that the web server listens on
-MultiAddress = "/ip4/<PUBLIC IP>/tcp/<PORT>"    # The multiAddress for libp2p
+MultiAddress = "/ip4/<PUBLIC_IP>/tcp/<PORT>"    # The multiAddress for libp2p
 Domain = ""                                     # The domain name
-NodeName = "<YOUR CP NodeName>"                 # The computing-provider node name
+NodeName = "<YOUR_CP_Node_Name>"                 # The computing-provider node name
 
 RedisUrl = "redis://127.0.0.1:6379"             # The redis server address
 RedisPassword = ""                              # The redis server access password
@@ -20,8 +20,8 @@ KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"            # Your domain name 
 
 [HUB]
 ServerUrl = "https://orchestrator-api.swanchain.io"           # The Orchestrator's API address
-AccessToken = "<YOUR AccessToken>"                            # The Orchestrator's access token, Acquired from "https://orchestrator.swanchain.io"
-WalletAddress = "<YOUR WalletAddress>"                        # The cp‘s wallet address
+AccessToken = "<YOUR_Access_Token>"                            # The Orchestrator's access token, Acquired from "https://orchestrator.swanchain.io"
+WalletAddress = "<YOUR_Wallet_Address>"                        # The cp‘s wallet address
 BalanceThreshold= 1                                           # The cp’s collateral balance threshold
 OrchestratorPk = "0x29eD49c8E973696D07E7927f748F6E5Eacd5516D" # Orchestrator's public key, CP only accept the task from this Orchestrator
 VerifySign = true                                             # Verify that the task signature is from Orchestrator
