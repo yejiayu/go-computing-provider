@@ -216,7 +216,8 @@ var initCmd = &cli.Command{
 		},
 		&cli.IntFlag{
 			Name:  "port",
-			Usage: "The cp listens on port, default: 9085",
+			Usage: "The cp listens on port",
+			Value: 9085,
 		},
 	},
 	Action: func(cctx *cli.Context) error {
