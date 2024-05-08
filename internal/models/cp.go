@@ -1,7 +1,6 @@
 package models
 
 import (
-	"math/big"
 	"time"
 )
 
@@ -161,12 +160,9 @@ type Account struct {
 	OwnerAddress   string
 	NodeId         string
 	MultiAddresses []string
-	UbiFlag        uint8
-	Beneficiary    struct {
-		BeneficiaryAddress string
-		Quota              *big.Int
-		Expiration         *big.Int
-	}
+	TaskTypes      []uint8 // 1: Filecoin 2: Aleo
+	Beneficiary    string
+	WorkerAddress  string
 }
 
 type TaskList []CacheUbiTaskDetail

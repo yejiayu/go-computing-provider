@@ -21,7 +21,6 @@ import (
 	"github.com/swanchain/go-computing-provider/wallet/contract/collateral"
 	"github.com/urfave/cli/v2"
 	"io"
-	"math/big"
 	"net/http"
 	"os"
 	"strconv"
@@ -120,7 +119,7 @@ var infoCmd = &cli.Command{
 		defer client.Close()
 
 		var balance, collateralBalance, ownerBalance string
-		var contractAddress, ownerAddress, beneficiaryAddress, ubiFlag, chainNodeId string
+		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId string
 
 		cpStub, err := account.NewAccountStub(client)
 		if err == nil {
@@ -128,14 +127,24 @@ var infoCmd = &cli.Command{
 			if err != nil {
 				err = fmt.Errorf("get cpAccount failed, error: %v", err)
 			}
-			if cpAccount.UbiFlag == 1 {
-				ubiFlag = "Accept"
-			} else {
-				ubiFlag = "Reject"
+
+			for _, taskType := range cpAccount.TaskTypes {
+				switch taskType {
+				case 1:
+					taskTypes += "Filecoin,"
+
+				case 2:
+					taskTypes += "Aleo,"
+				}
 			}
+			if taskTypes != "" {
+				taskTypes = taskTypes[:len(taskTypes)-1]
+			}
+
 			contractAddress = cpStub.ContractAddress
 			ownerAddress = cpAccount.OwnerAddress
-			beneficiaryAddress = cpAccount.Beneficiary.BeneficiaryAddress
+			workerAddress = cpAccount.WorkerAddress
+			beneficiaryAddress = cpAccount.Beneficiary
 			chainNodeId = cpAccount.NodeId
 		}
 
@@ -159,8 +168,9 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Node ID:", localNodeId})
 		taskData = append(taskData, []string{"ECP:"})
 		taskData = append(taskData, []string{"   Contract Address:", contractAddress})
-		taskData = append(taskData, []string{"   UBI FLAG:", ubiFlag})
+		taskData = append(taskData, []string{"   Task Types:", taskTypes})
 		taskData = append(taskData, []string{"   Owner:", ownerAddress})
+		taskData = append(taskData, []string{"   Worker:", workerAddress})
 		taskData = append(taskData, []string{"   Beneficiary Address:", beneficiaryAddress})
 		taskData = append(taskData, []string{"   Available(SWAN-ETH):", ownerBalance})
 		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", "0"})
@@ -172,10 +182,8 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", collateralBalance})
 
 		var rowColor []tablewriter.Colors
-		if ubiFlag == "Accept" {
+		if taskTypes != "" {
 			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
-		} else {
-			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgRedColor}}
 		}
 
 		var rowColorList []RowColor
@@ -232,8 +240,9 @@ var accountCmd = &cli.Command{
 		createAccountCmd,
 		changeMultiAddressCmd,
 		changeOwnerAddressCmd,
+		changeWorkerAddressCmd,
 		changeBeneficiaryAddressCmd,
-		changeUbiFlagCmd,
+		changeTaskTypesCmd,
 	},
 }
 
@@ -246,13 +255,16 @@ var createAccountCmd = &cli.Command{
 			Usage: "Specify a OwnerAddress",
 		},
 		&cli.StringFlag{
+			Name:  "workerAddress",
+			Usage: "Specify a workerAddress",
+		},
+		&cli.StringFlag{
 			Name:  "beneficiaryAddress",
 			Usage: "Specify a beneficiaryAddress to receive rewards. If not specified, use the same address as ownerAddress",
 		},
-		&cli.BoolFlag{
-			Name:  "ubi-flag",
-			Usage: "Whether to accept the UBI task",
-			Value: false,
+		&cli.StringFlag{
+			Name:  "task-types",
+			Usage: "task types of CP (1:Filecoin, 2:Aleo), separated by commas",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -261,12 +273,36 @@ var createAccountCmd = &cli.Command{
 			return fmt.Errorf("ownerAddress is not empty")
 		}
 
+		workerAddress := cctx.String("workerAddress")
+		if strings.TrimSpace(workerAddress) == "" {
+			return fmt.Errorf("workerAddress is not empty")
+		}
+
 		beneficiaryAddress := cctx.String("beneficiaryAddress")
 		if strings.TrimSpace(beneficiaryAddress) == "" {
 			beneficiaryAddress = ownerAddress
 		}
 
-		ubiFlag := cctx.Bool("ubi-flag")
+		taskTypes := strings.TrimSpace(cctx.String("task-types"))
+		if strings.TrimSpace(taskTypes) == "" {
+			return fmt.Errorf("taskTypes is not empty")
+		}
+
+		var taskTypesUint []uint8
+		if strings.Index(taskTypes, ",") > 0 {
+			for _, taskT := range strings.Split(taskTypes, ",") {
+				tt, _ := strconv.ParseUint(taskT, 10, 64)
+				if tt != 1 && tt != 2 {
+					return fmt.Errorf("TaskTypes supports 1, 2")
+				}
+				taskTypesUint = append(taskTypesUint, uint8(tt))
+			}
+		} else {
+			tt, _ := strconv.ParseUint(taskTypes, 10, 64)
+			if tt != 1 && tt != 2 {
+				return fmt.Errorf("TaskTypes supports 1, 2")
+			}
+		}
 
 		cpRepoPath, ok := os.LookupEnv("CP_PATH")
 		if !ok {
@@ -275,7 +311,7 @@ var createAccountCmd = &cli.Command{
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
-		return createAccount(cpRepoPath, ownerAddress, beneficiaryAddress, ubiFlag)
+		return createAccount(cpRepoPath, ownerAddress, beneficiaryAddress, workerAddress, taskTypesUint)
 	},
 }
 
@@ -475,11 +511,9 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 		if !strings.EqualFold(cpAccount.OwnerAddress, ownerAddress) {
 			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
 		}
-		newQuota := big.NewInt(int64(0))
-		newExpiration := big.NewInt(int64(0))
-		changeBeneficiaryAddressTx, err := cpStub.ChangeBeneficiary(common.HexToAddress(beneficiaryAddress), newQuota, newExpiration)
+		changeBeneficiaryAddressTx, err := cpStub.ChangeBeneficiary(common.HexToAddress(beneficiaryAddress))
 		if err != nil {
-			logs.GetLogger().Errorf("change owner address tx failed, error: %v,", err)
+			logs.GetLogger().Errorf("change beneficiary address tx failed, error: %v,", err)
 			return err
 		}
 		fmt.Printf("changeBeneficiaryAddress Transaction hash: %s \n", changeBeneficiaryAddressTx)
@@ -487,10 +521,10 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 	},
 }
 
-var changeUbiFlagCmd = &cli.Command{
-	Name:      "changeUbiFlag",
-	Usage:     "Update ubiFlag of CP (0:Reject, 1:Accept)",
-	ArgsUsage: "[ubiFlag]",
+var changeWorkerAddressCmd = &cli.Command{
+	Name:      "changeWorkerAddress",
+	Usage:     "Update workerAddress of CP",
+	ArgsUsage: "[workerAddress]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:     "ownerAddress",
@@ -509,13 +543,108 @@ var changeUbiFlagCmd = &cli.Command{
 			return fmt.Errorf(" Requires a beneficiaryAddress")
 		}
 
-		ubiFlag := cctx.Args().Get(0)
-		if strings.TrimSpace(ubiFlag) == "" {
-			return fmt.Errorf("ubiFlag is not empty")
+		workerAddress := cctx.Args().Get(0)
+		if strings.TrimSpace(workerAddress) == "" {
+			return fmt.Errorf("failed to parse target address: %s", workerAddress)
 		}
 
-		if strings.TrimSpace(ubiFlag) != "0" && strings.TrimSpace(ubiFlag) != "1" {
-			return fmt.Errorf("ubiFlag must be 0 or 1")
+		cpRepoPath, ok := os.LookupEnv("CP_PATH")
+		if !ok {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
+			logs.GetLogger().Fatal(err)
+		}
+
+		chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+		if err != nil {
+			logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+			return err
+		}
+
+		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+		if err != nil {
+			logs.GetLogger().Errorf("setup wallet ubi failed, error: %v,", err)
+			return err
+		}
+
+		ki, err := localWallet.FindKey(ownerAddress)
+		if err != nil || ki == nil {
+			logs.GetLogger().Errorf("the address: %s, private key %v. Please import the address into the wallet", ownerAddress, wallet.ErrKeyInfoNotFound)
+			return err
+		}
+
+		client, err := ethclient.Dial(chainUrl)
+		if err != nil {
+			logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+			return err
+		}
+		defer client.Close()
+
+		cpStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
+		if err != nil {
+			logs.GetLogger().Errorf("create cp client failed, error: %v,", err)
+			return err
+		}
+
+		cpAccount, err := cpStub.GetCpAccountInfo()
+		if err != nil {
+			return fmt.Errorf("get cpAccount faile, error: %v", err)
+		}
+		if !strings.EqualFold(cpAccount.OwnerAddress, ownerAddress) {
+			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
+		}
+		changeBeneficiaryAddressTx, err := cpStub.ChangeWorkerAddress(common.HexToAddress(workerAddress))
+		if err != nil {
+			logs.GetLogger().Errorf("change worker address tx failed, error: %v,", err)
+			return err
+		}
+		fmt.Printf("changeWorkerAddress Transaction hash: %s \n", changeBeneficiaryAddressTx)
+		return nil
+	},
+}
+
+var changeTaskTypesCmd = &cli.Command{
+	Name:      "changeTaskTypes",
+	Usage:     "Update taskTypes of CP (1:Filecoin, 2:Aleo), separated by commas",
+	ArgsUsage: "[TaskTypes]",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:     "ownerAddress",
+			Usage:    "Specify a OwnerAddress",
+			Required: true,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+
+		ownerAddress := cctx.String("ownerAddress")
+		if strings.TrimSpace(ownerAddress) == "" {
+			return fmt.Errorf("ownerAddress is not empty")
+		}
+
+		if cctx.NArg() != 1 {
+			return fmt.Errorf(" Requires a beneficiaryAddress")
+		}
+
+		taskTypes := strings.TrimSpace(cctx.Args().Get(0))
+		if strings.TrimSpace(taskTypes) == "" {
+			return fmt.Errorf("taskTypes is not empty")
+		}
+
+		var taskTypesUint []uint8
+		if strings.Index(taskTypes, ",") > 0 {
+			for _, taskT := range strings.Split(taskTypes, ",") {
+				tt, _ := strconv.ParseUint(taskT, 10, 64)
+				if tt != 1 && tt != 2 {
+					return fmt.Errorf("TaskTypes supports 1, 2")
+				}
+				taskTypesUint = append(taskTypesUint, uint8(tt))
+			}
+		} else {
+			tt, _ := strconv.ParseUint(taskTypes, 10, 64)
+			if tt != 1 && tt != 2 {
+				return fmt.Errorf("TaskTypes supports 1, 2")
+			}
 		}
 
 		cpRepoPath, ok := os.LookupEnv("CP_PATH")
@@ -565,14 +694,12 @@ var changeUbiFlagCmd = &cli.Command{
 			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
 		}
 
-		newUbiFlag, _ := strconv.ParseUint(strings.TrimSpace(ubiFlag), 10, 64)
-
-		changeBeneficiaryAddressTx, err := cpStub.ChangeUbiFlag(uint8(newUbiFlag))
+		changeTaskTypesTx, err := cpStub.ChangeTaskTypes(taskTypesUint)
 		if err != nil {
-			logs.GetLogger().Errorf("change ubi flag tx failed, error: %v,", err)
+			logs.GetLogger().Errorf("change TaskTypes tx failed, error: %v,", err)
 			return err
 		}
-		fmt.Printf("ChangeUbiFlag Transaction hash: %s \n", changeBeneficiaryAddressTx)
+		fmt.Printf("ChangeTaskTypes Transaction hash: %s \n", changeTaskTypesTx)
 		return nil
 	},
 }

@@ -64,7 +64,7 @@ func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, err
 	return stub, nil
 }
 
-func (s *CpStub) SubmitUBIProof(taskId string, taskType uint8, zkType, proof string) (string, error) {
+func (s *CpStub) SubmitUBIProof(taskId string, taskType uint8, proof string) (string, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {
 		return "", err
@@ -75,7 +75,7 @@ func (s *CpStub) SubmitUBIProof(taskId string, taskType uint8, zkType, proof str
 		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.account.SubmitUBIProof(txOptions, taskId, taskType, zkType, proof)
+	transaction, err := s.account.SubmitUBIProof(txOptions, taskId, taskType, proof)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, cpAccount client create SubmitUBIProof tx error: %+v", publicAddress, err)
 	}
@@ -118,7 +118,7 @@ func (s *CpStub) ChangeOwnerAddress(newOwner common.Address) (string, error) {
 	return transaction.Hash().String(), nil
 }
 
-func (s *CpStub) ChangeBeneficiary(newBeneficiary common.Address, newQuota *big.Int, newExpiration *big.Int) (string, error) {
+func (s *CpStub) ChangeBeneficiary(newBeneficiary common.Address) (string, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {
 		return "", err
@@ -129,14 +129,14 @@ func (s *CpStub) ChangeBeneficiary(newBeneficiary common.Address, newQuota *big.
 		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.account.ChangeBeneficiary(txOptions, newBeneficiary, newQuota, newExpiration)
+	transaction, err := s.account.ChangeBeneficiary(txOptions, newBeneficiary)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, cpAccount client create ChangeBeneficiary tx error: %+v", publicAddress, err)
 	}
 	return transaction.Hash().String(), nil
 }
 
-func (s *CpStub) ChangeUbiFlag(newUbiFlag uint8) (string, error) {
+func (s *CpStub) ChangeTaskTypes(newTaskTypes []uint8) (string, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {
 		return "", err
@@ -147,15 +147,33 @@ func (s *CpStub) ChangeUbiFlag(newUbiFlag uint8) (string, error) {
 		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.account.ChangeUbiFlag(txOptions, newUbiFlag)
+	transaction, err := s.account.ChangeTaskTypes(txOptions, newTaskTypes)
 	if err != nil {
-		return "", fmt.Errorf("address: %s, cpAccount client create ChangeOwnerAddress tx error: %+v", publicAddress, err)
+		return "", fmt.Errorf("address: %s, cpAccount client create ChangeTaskTypes tx error: %+v", publicAddress, err)
+	}
+	return transaction.Hash().String(), nil
+}
+
+func (s *CpStub) ChangeWorkerAddress(newWorkerAddress common.Address) (string, error) {
+	publicAddress, err := s.privateKeyToPublicKey()
+	if err != nil {
+		return "", err
+	}
+
+	txOptions, err := s.createTransactOpts()
+	if err != nil {
+		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
+	}
+
+	transaction, err := s.account.ChangeWorker(txOptions, newWorkerAddress)
+	if err != nil {
+		return "", fmt.Errorf("address: %s, cpAccount client create ChangeWorkerAddress tx error: %+v", publicAddress, err)
 	}
 	return transaction.Hash().String(), nil
 }
 
 func (s *CpStub) GetCpAccountInfo() (models.Account, error) {
-	ownerAddress, nodeId, multiAddresses, ubiFlag, beneficiaryAddress, quota, expiration, err := s.account.GetAccount(&bind.CallOpts{})
+	ownerAddress, workerAddress, nodeId, multiAddresses, taskTypes, beneficiaryAddress, err := s.account.GetAccount(&bind.CallOpts{})
 	if err != nil {
 		return models.Account{}, fmt.Errorf("cpAccount client create GetCpAccountInfo tx error: %+v", err)
 	}
@@ -163,10 +181,9 @@ func (s *CpStub) GetCpAccountInfo() (models.Account, error) {
 	account.OwnerAddress = ownerAddress.Hex()
 	account.NodeId = nodeId
 	account.MultiAddresses = multiAddresses
-	account.UbiFlag = ubiFlag
-	account.Beneficiary.BeneficiaryAddress = beneficiaryAddress.Hex()
-	account.Beneficiary.Quota = quota
-	account.Beneficiary.Expiration = expiration
+	account.TaskTypes = taskTypes
+	account.Beneficiary = beneficiaryAddress.Hex()
+	account.WorkerAddress = workerAddress.Hex()
 	return account, nil
 }
 

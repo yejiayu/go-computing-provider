@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -453,7 +452,7 @@ func ReceiveUbiProofForK8s(c *gin.Context) {
 		return
 	}
 
-	submitUBIProofTx, err = accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
+	submitUBIProofTx, err = accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return
@@ -814,36 +813,12 @@ func submitUBIProof(c2Proof models.UbiC2Proof) (string, error) {
 		return "", err
 	}
 
-	submitUBIProofTx, err := accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.ZkType, c2Proof.Proof)
+	submitUBIProofTx, err := accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return "", err
 	}
 	return submitUBIProofTx, nil
-}
-
-func getLocalIp() (string, error) {
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return "", err
-	}
-
-	for _, iface := range interfaces {
-		if iface.Flags&net.FlagLoopback == 0 && iface.Flags&net.FlagUp != 0 {
-			addrs, err := iface.Addrs()
-			if err != nil {
-				return "", err
-			}
-
-			for _, addr := range addrs {
-				ipNet, ok := addr.(*net.IPNet)
-				if ok && !ipNet.IP.IsLoopback() && ipNet.IP.To4() != nil {
-					return ipNet.IP.String(), nil
-				}
-			}
-		}
-	}
-	return "", fmt.Errorf("not found local ip")
 }
 
 func reportClusterResourceForDocker() {

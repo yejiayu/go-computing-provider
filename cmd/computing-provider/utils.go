@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-func createAccount(cpRepoPath, ownerAddress, beneficiaryAddress string, ubiFlag bool) error {
+func createAccount(cpRepoPath, ownerAddress, beneficiaryAddress string, workerAddress string, taskTypes []uint8) error {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
 		return fmt.Errorf("get rpc url failed, error: %v", err)
@@ -85,12 +85,8 @@ func createAccount(cpRepoPath, ownerAddress, beneficiaryAddress string, ubiFlag 
 		return fmt.Errorf("the multi-address field needs to be configured, by modify config.toml or computing-provider init")
 	}
 
-	var ubiTaskFlag uint8
-	if ubiFlag || conf.GetConfig().UBI.UbiTask {
-		ubiTaskFlag = 1
-	}
-
-	contractAddress, tx, _, err := account.DeployAccount(auth, client, nodeID, []string{multiAddresses}, ubiTaskFlag, common.HexToAddress(beneficiaryAddress))
+	contractAddress, tx, _, err := account.DeployAccount(auth, client, nodeID, []string{multiAddresses}, common.HexToAddress(beneficiaryAddress),
+		common.HexToAddress(workerAddress), common.HexToAddress(conf.GetConfig().CONTRACT.Register), taskTypes)
 	if err != nil {
 		return fmt.Errorf("deploy cp account contract failed, error: %v", err)
 	}

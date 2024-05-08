@@ -80,6 +80,7 @@ type RPC struct {
 type CONTRACT struct {
 	SwanToken  string `toml:"SWAN_CONTRACT"`
 	Collateral string `toml:"SWAN_COLLATERAL_CONTRACT"`
+	Register   string `toml:"REGISTER_CP_CONTRACT"`
 }
 
 func GetRpcByName(rpcName string) (string, error) {
