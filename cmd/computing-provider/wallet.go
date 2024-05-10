@@ -315,6 +315,10 @@ var collateralCmd = &cli.Command{
 			Usage: "Specify which rpc connection chain to use",
 			Value: conf.DefaultRpc,
 		},
+		&cli.StringFlag{
+			Name:  "type",
+			Usage: "Specify the type of collateral, support: fcp, ecp",
+		},
 	},
 	Subcommands: []*cli.Command{
 		collateralInfoCmd,
@@ -328,13 +332,13 @@ var collateralAddCmd = &cli.Command{
 	Name:      "add",
 	Usage:     "Send the collateral amount to the hub",
 	ArgsUsage: "add [targetAddress] [amount]",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "chain",
-			Usage: "Specify which rpc connection chain to use",
-			Value: conf.DefaultRpc,
-		},
-	},
+	//Flags: []cli.Flag{
+	//	&cli.StringFlag{
+	//		Name:  "chain",
+	//		Usage: "Specify which rpc connection chain to use",
+	//		Value: conf.DefaultRpc,
+	//	},
+	//},
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
 		if cctx.NArg() != 2 {
@@ -343,6 +347,15 @@ var collateralAddCmd = &cli.Command{
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
 			return fmt.Errorf("failed to parse chain: %s", chain)
+		}
+
+		collateralType := cctx.String("type")
+		if strings.TrimSpace(chain) == "" {
+			return fmt.Errorf("failed to parse type: %s", collateralType)
+		}
+
+		if collateralType != "fcp" && collateralType != "ecp" {
+			return fmt.Errorf("unsupported collateral types: %s, only supports fcp and ecp", collateralType)
 		}
 
 		from := cctx.Args().Get(0)
@@ -359,7 +372,7 @@ var collateralAddCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		txHash, err := localWallet.WalletCollateral(ctx, chain, from, amount)
+		txHash, err := localWallet.WalletCollateral(ctx, chain, from, amount, collateralType)
 		if err != nil {
 			return err
 		}

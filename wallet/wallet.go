@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/wallet/contract/collateral"
 	"github.com/swanchain/go-computing-provider/wallet/contract/swan_token"
@@ -317,7 +318,7 @@ func (w *LocalWallet) WalletSend(ctx context.Context, chainName string, from, to
 	return txHash, nil
 }
 
-func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, from string, amount string) (string, error) {
+func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, from string, amount string, collateralType string) (string, error) {
 	defer w.keystore.Close()
 	sendAmount, err := convertToWei(amount)
 	if err != nil {
@@ -342,45 +343,65 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 	}
 	defer client.Close()
 
-	tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPrivateKey(ki.PrivateKey))
-	if err != nil {
-		return "", err
-	}
+	if collateralType == "fcp" {
+		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPrivateKey(ki.PrivateKey))
+		if err != nil {
+			return "", err
+		}
 
-	swanTokenTxHash, err := tokenStub.Approve(sendAmount)
-	if err != nil {
-		return "", err
-	}
+		swanTokenTxHash, err := tokenStub.Approve(sendAmount)
+		if err != nil {
+			return "", err
+		}
 
-	timeout := time.After(3 * time.Minute)
-	ticker := time.Tick(3 * time.Second)
-	for {
-		select {
-		case <-timeout:
-			return "", fmt.Errorf("timeout waiting for transaction confirmation, tx: %s", swanTokenTxHash)
-		case <-ticker:
-			receipt, err := client.TransactionReceipt(context.Background(), common.HexToHash(swanTokenTxHash))
-			if err != nil {
-				if errors.Is(err, ethereum.NotFound) {
-					continue
-				}
-				return "", fmt.Errorf("mintor swan token Approve tx, error: %+v", err)
-			}
-
-			if receipt != nil && receipt.Status == types.ReceiptStatusSuccessful {
-				collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPrivateKey(ki.PrivateKey))
+		timeout := time.After(3 * time.Minute)
+		ticker := time.Tick(3 * time.Second)
+		for {
+			select {
+			case <-timeout:
+				return "", fmt.Errorf("timeout waiting for transaction confirmation, tx: %s", swanTokenTxHash)
+			case <-ticker:
+				receipt, err := client.TransactionReceipt(context.Background(), common.HexToHash(swanTokenTxHash))
 				if err != nil {
-					return "", err
+					if errors.Is(err, ethereum.NotFound) {
+						continue
+					}
+					return "", fmt.Errorf("mintor swan token Approve tx, error: %+v", err)
 				}
-				collateralTxHash, err := collateralStub.Deposit(sendAmount)
-				if err != nil {
-					return "", err
+
+				if receipt != nil && receipt.Status == types.ReceiptStatusSuccessful {
+					collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPrivateKey(ki.PrivateKey))
+					if err != nil {
+						return "", err
+					}
+					collateralTxHash, err := collateralStub.Deposit(sendAmount)
+					if err != nil {
+						return "", err
+					}
+					return collateralTxHash, nil
+				} else if receipt != nil && receipt.Status == 0 {
+					return "", fmt.Errorf("swan token approve transaction execution failed, tx: %s", swanTokenTxHash)
 				}
-				return collateralTxHash, nil
-			} else if receipt != nil && receipt.Status == 0 {
-				return "", fmt.Errorf("swan token approve transaction execution failed, tx: %s", swanTokenTxHash)
 			}
 		}
+	} else {
+		//cpStub, err := account.NewAccountStub(client)
+		//if err == nil {
+		//	cpAccount, err := cpStub.GetCpAccountInfo()
+		//	var ownerAddress = common.HexToAddress(cpAccount.OwnerAddress)
+		//}
+		zkCollateral, err := account.NewCollateralStub(client, account.WithPrivateKey(ki.PrivateKey))
+		if err != nil {
+			return "", err
+		}
+		if err != nil {
+			return "", err
+		}
+		collateralTxHash, err := zkCollateral.Deposit(sendAmount)
+		if err != nil {
+			return "", err
+		}
+		return collateralTxHash, nil
 	}
 }
 
