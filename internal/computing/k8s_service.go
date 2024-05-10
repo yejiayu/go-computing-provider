@@ -71,7 +71,6 @@ func NewK8sService() *K8sService {
 
 		versionInfo, err := clientSet.Discovery().ServerVersion()
 		if err != nil {
-			logs.GetLogger().Errorf("Failed get k8s version, error: %v", err)
 			return
 		}
 		version = versionInfo.String()

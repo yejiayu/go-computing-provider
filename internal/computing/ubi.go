@@ -96,6 +96,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 	ubiTaskToRedis.Status = constants.UBI_TASK_RECEIVED_STATUS
 	ubiTaskToRedis.ZkType = ubiTask.ZkType
 	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+	ubiTaskToRedis.Contract = ubiTask.Contract
 	SaveUbiTaskMetadata(ubiTaskToRedis)
 
 	var envFilePath string
@@ -205,6 +206,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 				ubiTaskRun.TaskType = ubiTaskToRedis.TaskType
 				ubiTaskRun.ZkType = ubiTask.ZkType
 				ubiTaskRun.CreateTime = ubiTaskToRedis.CreateTime
+				ubiTaskRun.Contract = ubiTask.Contract
 			}
 
 			if err == nil {
@@ -452,7 +454,14 @@ func ReceiveUbiProofForK8s(c *gin.Context) {
 		return
 	}
 
-	submitUBIProofTx, err = accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.Proof)
+	key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
+	ubiTask, _ := RetrieveUbiTaskMetadata(key)
+	if err != nil {
+		logs.GetLogger().Errorf("get task contract error: %v", err)
+		return
+	}
+
+	submitUBIProofTx, err = accountStub.SubmitUBIProof(ubiTask.Contract, c2Proof.TaskId, uint8(taskType), c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return
@@ -498,6 +507,10 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
 		return
 	}
+	if strings.TrimSpace(ubiTask.Contract) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: contract"))
+		return
+	}
 
 	cpRepoPath, _ := os.LookupEnv("CP_PATH")
 	nodeID := GetNodeId(cpRepoPath)
@@ -526,6 +539,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 	ubiTaskToRedis.Status = constants.UBI_TASK_RECEIVED_STATUS
 	ubiTaskToRedis.ZkType = ubiTask.ZkType
 	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
+	ubiTaskToRedis.Contract = ubiTask.Contract
 	SaveUbiTaskMetadata(ubiTaskToRedis)
 
 	suffice, architecture, _, needMemory, err := checkResourceForUbi(ubiTask.Resource)
@@ -576,6 +590,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 				ubiTaskRun.TaskId = ubiTaskToRedis.TaskId
 				ubiTaskRun.TaskType = ubiTaskToRedis.TaskType
 				ubiTaskRun.ZkType = ubiTask.ZkType
+				ubiTaskRun.Contract = ubiTask.Contract
 				ubiTaskRun.CreateTime = ubiTaskToRedis.CreateTime
 			}
 
@@ -813,7 +828,14 @@ func submitUBIProof(c2Proof models.UbiC2Proof) (string, error) {
 		return "", err
 	}
 
-	submitUBIProofTx, err := accountStub.SubmitUBIProof(c2Proof.TaskId, uint8(taskType), c2Proof.Proof)
+	key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
+	ubiTask, _ := RetrieveUbiTaskMetadata(key)
+	if err != nil {
+		logs.GetLogger().Errorf("get task contract error: %v", err)
+		return "", err
+	}
+
+	submitUBIProofTx, err := accountStub.SubmitUBIProof(ubiTask.Contract, c2Proof.TaskId, uint8(taskType), c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return "", err

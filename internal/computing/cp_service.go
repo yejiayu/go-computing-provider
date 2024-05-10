@@ -1217,6 +1217,7 @@ func SaveUbiTaskMetadata(ubiTask *models.CacheUbiTaskDetail) {
 		"tx":          ubiTask.Tx,
 		"status":      ubiTask.Status,
 		"create_time": ubiTask.CreateTime,
+		"contract":    ubiTask.Contract,
 	}
 
 	for k, val := range fields {
@@ -1245,9 +1246,10 @@ func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
 		Status     string `json:"status"`
 		Reward     string `json:"reward"`
 		CreateTime string `json:"create_time"`
+		contract   string
 	}
 
-	args := append([]interface{}{key}, "task_id", "task_type", "zk_type", "tx", "status", "create_time")
+	args := append([]interface{}{key}, "task_id", "task_type", "zk_type", "tx", "status", "create_time", "contract")
 	valuesStr, err := redis.Strings(redisConn.Do("HMGET", args...))
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)

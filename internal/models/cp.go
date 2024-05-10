@@ -129,6 +129,7 @@ type UBITaskReq struct {
 	InputParam string        `json:"input_param"`
 	Signature  string        `json:"signature"`
 	Resource   *TaskResource `json:"resource"`
+	Contract   string        `json:"contract"`
 }
 
 type UbiC2Proof struct {
@@ -154,6 +155,7 @@ type CacheUbiTaskDetail struct {
 	Status     string `json:"status"`
 	Reward     string `json:"reward"`
 	CreateTime string `json:"create_time"`
+	Contract   string `json:"contract"`
 }
 
 type Account struct {

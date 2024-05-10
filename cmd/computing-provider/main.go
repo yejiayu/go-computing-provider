@@ -33,6 +33,7 @@ func main() {
 			initCmd,
 			runCmd,
 			infoCmd,
+			stateInfoCmd,
 			accountCmd,
 			taskCmd,
 			walletCmd,
@@ -49,9 +50,9 @@ func main() {
 				if err != nil {
 					return fmt.Errorf("create cp repo failed, error: %v", cpRepoPath)
 				}
-			}
-			if err = conf.GenerateRepo(cpRepoPath); err != nil {
-				return fmt.Errorf("init repo failed, error: %v", err)
+				if err = conf.GenerateRepo(cpRepoPath); err != nil {
+					return fmt.Errorf("init repo failed, error: %v", err)
+				}
 			}
 			os.Setenv("CP_PATH", cpRepoPath)
 			return nil

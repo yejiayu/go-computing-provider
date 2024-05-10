@@ -202,6 +202,55 @@ var infoCmd = &cli.Command{
 	},
 }
 
+var stateInfoCmd = &cli.Command{
+	Name:  "state-info",
+	Usage: "Print computing-provider chain info",
+	Action: func(cctx *cli.Context) error {
+		cpRepoPath, ok := os.LookupEnv("CP_PATH")
+		if !ok {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
+			return fmt.Errorf("load config file failed, error: %+v", err)
+		}
+
+		chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
+		if err != nil {
+			return err
+		}
+		client, err := ethclient.Dial(chainRpc)
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		var ownerAddress, beneficiaryAddress, chainNodeId, multiAddress string
+
+		cpStub, err := account.NewAccountStub(client)
+		if err == nil {
+			cpAccount, err := cpStub.GetCpAccountInfo()
+			if err != nil {
+				err = fmt.Errorf("get cpAccount failed, error: %v", err)
+			}
+
+			chainNodeId = cpAccount.NodeId
+			multiAddress = strings.Join(cpAccount.MultiAddresses, ",")
+			ownerAddress = cpAccount.OwnerAddress
+			beneficiaryAddress = cpAccount.Beneficiary
+		}
+
+		var taskData [][]string
+
+		taskData = append(taskData, []string{"Node ID:", chainNodeId})
+		taskData = append(taskData, []string{"Multi-Address:", multiAddress})
+		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
+
+		header := []string{"Owner:", ownerAddress}
+		NewVisualTable(header, taskData, []RowColor{}).Generate(false)
+		return nil
+	},
+}
+
 var initCmd = &cli.Command{
 	Name:  "init",
 	Usage: "Initialize a new cp",

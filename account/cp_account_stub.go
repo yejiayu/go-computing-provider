@@ -64,7 +64,7 @@ func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, err
 	return stub, nil
 }
 
-func (s *CpStub) SubmitUBIProof(taskId string, taskType uint8, proof string) (string, error) {
+func (s *CpStub) SubmitUBIProof(taskContractAddress string, taskId string, taskType uint8, proof string) (string, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {
 		return "", err
@@ -75,7 +75,8 @@ func (s *CpStub) SubmitUBIProof(taskId string, taskType uint8, proof string) (st
 		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.account.SubmitUBIProof(txOptions, taskId, taskType, proof)
+	taskContract := common.HexToAddress(taskContractAddress)
+	transaction, err := s.account.SubmitUBIProof(txOptions, taskContract, taskId, taskType, proof)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, cpAccount client create SubmitUBIProof tx error: %+v", publicAddress, err)
 	}
@@ -173,17 +174,17 @@ func (s *CpStub) ChangeWorkerAddress(newWorkerAddress common.Address) (string, e
 }
 
 func (s *CpStub) GetCpAccountInfo() (models.Account, error) {
-	ownerAddress, workerAddress, nodeId, multiAddresses, taskTypes, beneficiaryAddress, err := s.account.GetAccount(&bind.CallOpts{})
+	cpAccount, err := s.account.GetAccount(&bind.CallOpts{})
 	if err != nil {
 		return models.Account{}, fmt.Errorf("cpAccount client create GetCpAccountInfo tx error: %+v", err)
 	}
 	var account models.Account
-	account.OwnerAddress = ownerAddress.Hex()
-	account.NodeId = nodeId
-	account.MultiAddresses = multiAddresses
-	account.TaskTypes = taskTypes
-	account.Beneficiary = beneficiaryAddress.Hex()
-	account.WorkerAddress = workerAddress.Hex()
+	account.OwnerAddress = cpAccount.Owner.Hex()
+	account.NodeId = cpAccount.NodeId
+	account.MultiAddresses = cpAccount.MultiAddresses
+	account.TaskTypes = cpAccount.TaskTypes
+	account.Beneficiary = cpAccount.Beneficiary.Hex()
+	account.WorkerAddress = cpAccount.Worker.Hex()
 	return account, nil
 }
 
