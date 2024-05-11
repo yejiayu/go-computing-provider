@@ -181,17 +181,16 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"   Available(SWAN-ETH):", balance})
 		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", collateralBalance})
 
-		var rowColor []tablewriter.Colors
-		if taskTypes != "" {
-			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
-		}
-
 		var rowColorList []RowColor
-		rowColorList = append(rowColorList, RowColor{
-			row:    4,
-			column: []int{1},
-			color:  rowColor,
-		})
+		if taskTypes != "" {
+			var rowColor []tablewriter.Colors
+			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
+			rowColorList = append(rowColorList, RowColor{
+				row:    4,
+				column: []int{1},
+				color:  rowColor,
+			})
+		}
 
 		header := []string{"Name:", conf.GetConfig().API.NodeName}
 		NewVisualTable(header, taskData, rowColorList).Generate(false)
