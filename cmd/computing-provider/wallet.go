@@ -332,13 +332,6 @@ var collateralAddCmd = &cli.Command{
 	Name:      "add",
 	Usage:     "Send the collateral amount to the collateral contract address",
 	ArgsUsage: "add [targetAddress] [amount]",
-	//Flags: []cli.Flag{
-	//	&cli.StringFlag{
-	//		Name:  "chain",
-	//		Usage: "Specify which rpc connection chain to use",
-	//		Value: conf.DefaultRpc,
-	//	},
-	//},
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
 		if cctx.NArg() != 2 {
@@ -346,12 +339,12 @@ var collateralAddCmd = &cli.Command{
 		}
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
-			return fmt.Errorf("failed to parse chain: %s", chain)
+			return fmt.Errorf("chain field cannot be empty")
 		}
 
 		collateralType := cctx.String("type")
-		if strings.TrimSpace(chain) == "" {
-			return fmt.Errorf("failed to parse type: %s", collateralType)
+		if strings.TrimSpace(collateralType) == "" {
+			return fmt.Errorf("type field cannot be empty")
 		}
 
 		if collateralType != "fcp" && collateralType != "ecp" {
@@ -360,7 +353,7 @@ var collateralAddCmd = &cli.Command{
 
 		from := cctx.Args().Get(0)
 		if strings.TrimSpace(from) == "" {
-			return fmt.Errorf("failed to parse from address: %s", from)
+			return fmt.Errorf("from address cannot be empty")
 		}
 
 		amount := cctx.Args().Get(1)
@@ -384,16 +377,8 @@ var collateralAddCmd = &cli.Command{
 var collateralInfoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "View staking wallet details",
-	//Flags: []cli.Flag{
-	//	&cli.StringFlag{
-	//		Name:  "chain",
-	//		Usage: "Specify which rpc connection chain to use",
-	//		Value: conf.DefaultRpc,
-	//	},
-	//},
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
-
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
 			return fmt.Errorf("failed to parse chain: %s", chain)
@@ -412,13 +397,6 @@ var collateralWithdrawCmd = &cli.Command{
 	Name:      "withdraw",
 	Usage:     "Withdraw funds from the collateral contract",
 	ArgsUsage: "[targetAddress] [amount]",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "chain",
-			Usage: "Specify which rpc connection chain to use",
-			Value: conf.DefaultRpc,
-		},
-	},
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
 		if cctx.NArg() != 2 {
@@ -427,17 +405,17 @@ var collateralWithdrawCmd = &cli.Command{
 
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
-			return fmt.Errorf("failed to parse chain: %s", chain)
+			return fmt.Errorf("chain field cannot be empty")
 		}
 
 		to := cctx.Args().Get(0)
 		if strings.TrimSpace(to) == "" {
-			return fmt.Errorf("failed to parse to address: %s", to)
+			return fmt.Errorf("the to address param cannot be empty")
 		}
 
 		amount := cctx.Args().Get(1)
 		if strings.TrimSpace(amount) == "" {
-			return fmt.Errorf("failed to get amount: %s", chain)
+			return fmt.Errorf("the amount param cannot be empty")
 		}
 
 		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
@@ -463,11 +441,6 @@ var collateralSendCmd = &cli.Command{
 			Usage:    "optionally specify the account to send funds from",
 			Required: true,
 		},
-		&cli.Uint64Flag{
-			Name:  "nonce",
-			Usage: "optionally specify the nonce to use",
-			Value: 0,
-		},
 	},
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
@@ -475,25 +448,30 @@ var collateralSendCmd = &cli.Command{
 			return fmt.Errorf(" need two params: the target address and amount")
 		}
 
+		chainName := cctx.String("chain")
+		if strings.TrimSpace(chainName) == "" {
+			return fmt.Errorf("chain field cannot be empty")
+		}
+
 		from := cctx.String("from")
 		if strings.TrimSpace(from) == "" {
-			return fmt.Errorf("failed to parse from address: %s", from)
+			return fmt.Errorf("the from address param cannot be empty")
 		}
 
 		to := cctx.Args().Get(0)
 		if strings.TrimSpace(to) == "" {
-			return fmt.Errorf("failed to parse target address: %s", to)
+			return fmt.Errorf("the to address param cannot be empty")
 		}
 
 		amount := cctx.Args().Get(1)
 		if strings.TrimSpace(amount) == "" {
-			return fmt.Errorf("failed to get amount: %s", amount)
+			return fmt.Errorf("the amount param cannot be empty")
 		}
 		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
 		if err != nil {
 			return err
 		}
-		txHash, err := localWallet.CollateralSendCmd(ctx, from, to, amount)
+		txHash, err := localWallet.CollateralSend(ctx, chainName, from, to, amount)
 		if err != nil {
 			return err
 		}

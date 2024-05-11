@@ -385,15 +385,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 			}
 		}
 	} else {
-		//cpStub, err := account.NewAccountStub(client)
-		//if err == nil {
-		//	cpAccount, err := cpStub.GetCpAccountInfo()
-		//	var ownerAddress = common.HexToAddress(cpAccount.OwnerAddress)
-		//}
 		zkCollateral, err := account.NewCollateralStub(client, account.WithPrivateKey(ki.PrivateKey))
-		if err != nil {
-			return "", err
-		}
 		if err != nil {
 			return "", err
 		}
@@ -506,14 +498,14 @@ func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, 
 	return withdrawHash, nil
 }
 
-func (w *LocalWallet) CollateralSendCmd(ctx context.Context, from, to string, amount string) (string, error) {
+func (w *LocalWallet) CollateralSend(ctx context.Context, chainName, from, to string, amount string) (string, error) {
 	defer w.keystore.Close()
 	withDrawAmount, err := convertToWei(amount)
 	if err != nil {
 		return "", err
 	}
 
-	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+	chainUrl, err := conf.GetRpcByName(chainName)
 	if err != nil {
 		return "", err
 	}
