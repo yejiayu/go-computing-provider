@@ -51,10 +51,15 @@ func (s *ScheduleTask) Run() {
 }
 
 func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) bool {
+	ownerAddress, err := GetOwnerAddress()
+	if err != nil {
+		return false
+	}
+
 	reqParam := map[string]interface{}{
 		"job_uuid":       jobUuid,
 		"status":         jobStatus,
-		"public_address": conf.GetConfig().HUB.WalletAddress,
+		"public_address": ownerAddress,
 	}
 
 	payload, err := json.Marshal(reqParam)
@@ -130,10 +135,15 @@ func RunSyncTask(nodeId string) {
 			logs.GetLogger().Error(err)
 		}
 
+		ownerAddress, err := GetOwnerAddress()
+		if err != nil {
+			return
+		}
+
 		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
-			reportClusterResource(location, nodeId)
+			reportClusterResource(location, nodeId, ownerAddress)
 			checkClusterProviderStatus()
 		}
 
@@ -144,7 +154,7 @@ func RunSyncTask(nodeId string) {
 	monitorDaemonSetPods()
 }
 
-func reportClusterResource(location, nodeId string) {
+func reportClusterResource(location, nodeId, ownerAddress string) {
 	k8sService := NewK8sService()
 	statisticalSources, err := k8sService.StatisticalSources(context.TODO())
 	if err != nil {
@@ -155,7 +165,7 @@ func reportClusterResource(location, nodeId string) {
 		NodeId:        nodeId,
 		Region:        location,
 		ClusterInfo:   statisticalSources,
-		PublicAddress: conf.GetConfig().HUB.WalletAddress,
+		PublicAddress: ownerAddress,
 	}
 
 	payload, err := json.Marshal(clusterSource)

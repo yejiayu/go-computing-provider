@@ -119,7 +119,7 @@ var infoCmd = &cli.Command{
 		defer client.Close()
 
 		var balance, collateralBalance, ownerBalance string
-		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId string
+		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 
 		cpStub, err := account.NewAccountStub(client)
 		if err == nil {
@@ -146,10 +146,11 @@ var infoCmd = &cli.Command{
 			workerAddress = cpAccount.WorkerAddress
 			beneficiaryAddress = cpAccount.Beneficiary
 			chainNodeId = cpAccount.NodeId
+			version = cpAccount.Version
 		}
 
-		balance, err = wallet.Balance(context.TODO(), client, conf.GetConfig().HUB.WalletAddress)
-		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(conf.GetConfig().HUB.WalletAddress))
+		balance, err = wallet.Balance(context.TODO(), client, ownerAddress)
+		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(ownerAddress))
 		if err == nil {
 			collateralBalance, err = collateralStub.Balances()
 		}
@@ -164,18 +165,18 @@ var infoCmd = &cli.Command{
 		}
 		var taskData [][]string
 
+		taskData = append(taskData, []string{"Owner:", ownerAddress})
 		taskData = append(taskData, []string{"Multi-Address:", conf.GetConfig().API.MultiAddress})
 		taskData = append(taskData, []string{"Node ID:", localNodeId})
 		taskData = append(taskData, []string{"ECP:"})
 		taskData = append(taskData, []string{"   Contract Address:", contractAddress})
+		taskData = append(taskData, []string{"   Contract Version:", version})
 		taskData = append(taskData, []string{"   Task Types:", taskTypes})
-		taskData = append(taskData, []string{"   Owner:", ownerAddress})
-		taskData = append(taskData, []string{"   Worker:", workerAddress})
+		taskData = append(taskData, []string{"   Worker Address:", workerAddress})
 		taskData = append(taskData, []string{"   Beneficiary Address:", beneficiaryAddress})
 		taskData = append(taskData, []string{"   Available(SWAN-ETH):", ownerBalance})
 		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", "0.0"})
 		taskData = append(taskData, []string{"FCP:"})
-		taskData = append(taskData, []string{"   Wallet:", conf.GetConfig().HUB.WalletAddress})
 		taskData = append(taskData, []string{"   Domain:", domain})
 		taskData = append(taskData, []string{"   Running deployments:", strconv.Itoa(count)})
 		taskData = append(taskData, []string{"   Available(SWAN-ETH):", balance})
@@ -186,12 +187,11 @@ var infoCmd = &cli.Command{
 			var rowColor []tablewriter.Colors
 			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
 			rowColorList = append(rowColorList, RowColor{
-				row:    4,
+				row:    5,
 				column: []int{1},
 				color:  rowColor,
 			})
 		}
-
 		header := []string{"Name:", conf.GetConfig().API.NodeName}
 		NewVisualTable(header, taskData, rowColorList).Generate(false)
 		if localNodeId != chainNodeId {
@@ -204,6 +204,17 @@ var infoCmd = &cli.Command{
 var stateInfoCmd = &cli.Command{
 	Name:  "state-info",
 	Usage: "Print computing-provider chain info",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "chain",
+			Usage: "specify the account to send funds from",
+			Value: conf.DefaultRpc,
+		},
+		&cli.StringFlag{
+			Name:  "contract",
+			Usage: "specify the account contract",
+		},
+	},
 	Action: func(cctx *cli.Context) error {
 		cpRepoPath, ok := os.LookupEnv("CP_PATH")
 		if !ok {
@@ -211,6 +222,11 @@ var stateInfoCmd = &cli.Command{
 		}
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
+		}
+
+		chain := cctx.String("chain")
+		if strings.TrimSpace(chain) == "" {
+			return fmt.Errorf("chain field cannot be empty")
 		}
 
 		chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
@@ -223,29 +239,59 @@ var stateInfoCmd = &cli.Command{
 		}
 		defer client.Close()
 
-		var ownerAddress, beneficiaryAddress, chainNodeId, multiAddress string
+		var ownerAddress, contractAddress, beneficiaryAddress, chainNodeId,
+			multiAddress, workerAddress, taskTypes, version string
 
-		cpStub, err := account.NewAccountStub(client)
+		cpStub, err := account.NewAccountStub(client, account.WithContractAddress(cctx.String("contract")))
 		if err == nil {
 			cpAccount, err := cpStub.GetCpAccountInfo()
 			if err != nil {
 				err = fmt.Errorf("get cpAccount failed, error: %v", err)
 			}
 
+			contractAddress = cpStub.ContractAddress
 			chainNodeId = cpAccount.NodeId
 			multiAddress = strings.Join(cpAccount.MultiAddresses, ",")
 			ownerAddress = cpAccount.OwnerAddress
 			beneficiaryAddress = cpAccount.Beneficiary
+			workerAddress = cpAccount.WorkerAddress
+			version = cpAccount.Version
+
+			for _, taskType := range cpAccount.TaskTypes {
+				switch taskType {
+				case 1:
+					taskTypes += "Filecoin,"
+
+				case 2:
+					taskTypes += "Aleo,"
+				}
+			}
+			if taskTypes != "" {
+				taskTypes = taskTypes[:len(taskTypes)-1]
+			}
 		}
 
 		var taskData [][]string
-
 		taskData = append(taskData, []string{"Node ID:", chainNodeId})
 		taskData = append(taskData, []string{"Multi-Address:", multiAddress})
+		taskData = append(taskData, []string{"Contract Address:", contractAddress})
+		taskData = append(taskData, []string{"Contract Version:", version})
+		taskData = append(taskData, []string{"Task Types:", taskTypes})
+		taskData = append(taskData, []string{"Worker Address:", workerAddress})
 		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
 
+		var rowColorList []RowColor
+		if taskTypes != "" {
+			var rowColor []tablewriter.Colors
+			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
+			rowColorList = append(rowColorList, RowColor{
+				row:    4,
+				column: []int{1},
+				color:  rowColor,
+			})
+		}
 		header := []string{"Owner:", ownerAddress}
-		NewVisualTable(header, taskData, []RowColor{}).Generate(false)
+		NewVisualTable(header, taskData, rowColorList).Generate(false)
 		return nil
 	},
 }

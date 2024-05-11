@@ -31,40 +31,48 @@ func WithCpPrivateKey(pk string) CpOption {
 	}
 }
 
+func WithContractAddress(contractAddress string) CpOption {
+	return func(obj *CpStub) {
+		obj.ContractAddress = contractAddress
+	}
+}
+
 func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, error) {
 	stub := &CpStub{}
 	for _, option := range options {
 		option(stub)
 	}
 
-	cpPath, exit := os.LookupEnv("CP_PATH")
-	if !exit {
-		return nil, fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+	if stub.ContractAddress == "" {
+		cpPath, exit := os.LookupEnv("CP_PATH")
+		if !exit {
+			return nil, fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
+
+		accountFileName := filepath.Join(cpPath, "account")
+		if _, err := os.Stat(accountFileName); err != nil {
+			return nil, fmt.Errorf("please use the account create command to initialize the account of CP")
+		}
+
+		accountAddress, err := os.ReadFile(filepath.Join(cpPath, "account"))
+		if err != nil {
+			return nil, fmt.Errorf("get cp account contract address failed, error: %v", err)
+		}
+		stub.ContractAddress = string(accountAddress)
 	}
 
-	accountFileName := filepath.Join(cpPath, "account")
-	if _, err := os.Stat(accountFileName); err != nil {
-		return nil, fmt.Errorf("please use the init command to initialize the account of CP")
-	}
-
-	accountAddress, err := os.ReadFile(filepath.Join(cpPath, "account"))
-	if err != nil {
-		return nil, fmt.Errorf("get cp account contract address failed, error: %v", err)
-	}
-
-	cpAccountAddress := common.HexToAddress(string(accountAddress))
-	taskClient, err := NewAccount(cpAccountAddress, client)
+	cpAccountAddress := common.HexToAddress(stub.ContractAddress)
+	accountClient, err := NewAccount(cpAccountAddress, client)
 	if err != nil {
 		return nil, fmt.Errorf("create cp account contract client, error: %+v", err)
 	}
 
-	stub.account = taskClient
+	stub.account = accountClient
 	stub.client = client
-	stub.ContractAddress = string(accountAddress)
 	return stub, nil
 }
 
-func (s *CpStub) SubmitUBIProof(taskContractAddress string, taskId string, taskType uint8, proof string) (string, error) {
+func (s *CpStub) SubmitUBIProof(taskContractAddress string, taskId string, taskType uint8, resourceType uint8, proof string) (string, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {
 		return "", err
@@ -76,7 +84,7 @@ func (s *CpStub) SubmitUBIProof(taskContractAddress string, taskId string, taskT
 	}
 
 	taskContract := common.HexToAddress(taskContractAddress)
-	transaction, err := s.account.SubmitUBIProof(txOptions, taskContract, taskId, taskType, proof)
+	transaction, err := s.account.SubmitUBIProof(txOptions, taskContract, taskId, taskType, resourceType, proof)
 	if err != nil {
 		return "", fmt.Errorf("address: %s, cpAccount client create SubmitUBIProof tx error: %+v", publicAddress, err)
 	}
@@ -185,6 +193,7 @@ func (s *CpStub) GetCpAccountInfo() (models.Account, error) {
 	account.TaskTypes = cpAccount.TaskTypes
 	account.Beneficiary = cpAccount.Beneficiary.Hex()
 	account.WorkerAddress = cpAccount.Worker.Hex()
+	account.Version = cpAccount.Version
 	return account, nil
 }
 

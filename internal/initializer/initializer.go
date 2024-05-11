@@ -14,14 +14,14 @@ import (
 	"github.com/swanchain/go-computing-provider/constants"
 )
 
-func sendHeartbeat(nodeId string) {
+func sendHeartbeat(nodeId, ownerAddress string) {
 	// Replace the following URL with your Flask application's heartbeat endpoint URL
 	heartbeatURL := conf.GetConfig().HUB.ServerUrl + "/cp/heartbeat"
 	payload := strings.NewReader(fmt.Sprintf(`{
 	"public_address": "%s",
     "node_id": "%s",
     "status": "Active"
-}`, conf.GetConfig().HUB.WalletAddress, nodeId))
+}`, ownerAddress, nodeId))
 
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", heartbeatURL, payload)
@@ -58,9 +58,13 @@ func sendHeartbeat(nodeId string) {
 }
 
 func SendHeartbeats(nodeId string) {
+	ownerAddress, err := computing.GetOwnerAddress()
+	if err != nil {
+		return
+	}
 	ticker := time.NewTicker(15 * time.Second)
 	for range ticker.C {
-		sendHeartbeat(nodeId)
+		sendHeartbeat(nodeId, ownerAddress)
 	}
 }
 

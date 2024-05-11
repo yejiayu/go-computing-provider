@@ -165,6 +165,7 @@ type Account struct {
 	TaskTypes      []uint8 // 1: Filecoin 2: Aleo
 	Beneficiary    string
 	WorkerAddress  string
+	Version        string
 }
 
 type TaskList []CacheUbiTaskDetail

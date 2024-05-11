@@ -438,7 +438,7 @@ func ReceiveUbiProofForK8s(c *gin.Context) {
 
 	ki, err := localWallet.FindKey(cpAccount.OwnerAddress)
 	if err != nil || ki == nil {
-		logs.GetLogger().Errorf("the address: %s, private key %v,", conf.GetConfig().HUB.WalletAddress, wallet.ErrKeyInfoNotFound)
+		logs.GetLogger().Errorf("the address: %s, private key %v,", cpAccount.OwnerAddress, wallet.ErrKeyInfoNotFound)
 		return
 	}
 
@@ -461,7 +461,7 @@ func ReceiveUbiProofForK8s(c *gin.Context) {
 		return
 	}
 
-	submitUBIProofTx, err = accountStub.SubmitUBIProof(ubiTask.Contract, c2Proof.TaskId, uint8(taskType), c2Proof.Proof)
+	submitUBIProofTx, err = accountStub.SubmitUBIProof(ubiTask.Contract, c2Proof.TaskId, uint8(taskType), uint8(taskType), c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return
@@ -835,7 +835,7 @@ func submitUBIProof(c2Proof models.UbiC2Proof) (string, error) {
 		return "", err
 	}
 
-	submitUBIProofTx, err := accountStub.SubmitUBIProof(ubiTask.Contract, c2Proof.TaskId, uint8(taskType), c2Proof.Proof)
+	submitUBIProofTx, err := accountStub.SubmitUBIProof(ubiTask.Contract, c2Proof.TaskId, uint8(taskType), uint8(taskType), c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return "", err

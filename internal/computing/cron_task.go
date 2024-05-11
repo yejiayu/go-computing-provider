@@ -32,6 +32,11 @@ func (task *CronTask) RunTask() {
 }
 
 func (task *CronTask) checkCollateralBalance() {
+	ownerAddress, err := GetOwnerAddress()
+	if err != nil {
+		return
+	}
+
 	c := cron.New(cron.WithSeconds())
 	c.AddFunc("0/15 * * * * ?", func() {
 		defer func() {
@@ -40,7 +45,7 @@ func (task *CronTask) checkCollateralBalance() {
 			}
 		}()
 
-		url := fmt.Sprintf("%s/cp/collateral/%s", conf.GetConfig().HUB.ServerUrl, conf.GetConfig().HUB.WalletAddress)
+		url := fmt.Sprintf("%s/cp/collateral/%s", conf.GetConfig().HUB.ServerUrl, ownerAddress)
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			logs.GetLogger().Errorf("create req failed: %+v", err)

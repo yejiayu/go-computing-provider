@@ -7,6 +7,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"io"
 	"log"
@@ -34,8 +37,13 @@ func updateProviderInfo(nodeID, peerID, address string, status string) {
 		cpName, _ = os.Hostname()
 	}
 
+	ownerAddress, err := GetOwnerAddress()
+	if err != nil {
+		return
+	}
+
 	provider := models.ComputingProvider{
-		PublicAddress: conf.GetConfig().HUB.WalletAddress,
+		PublicAddress: ownerAddress,
 		Name:          cpName,
 		NodeId:        nodeID,
 		MultiAddress:  conf.GetConfig().API.MultiAddress,
@@ -132,4 +140,31 @@ func hashPublicKey(publicKey *ecdsa.PublicKey) string {
 	publicKeyBytes := crypto.FromECDSAPub(publicKey)
 	hash := sha256.Sum256(publicKeyBytes)
 	return hex.EncodeToString(hash[:])
+}
+
+func GetOwnerAddress() (string, error) {
+	chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
+	if err != nil {
+		logs.GetLogger().Errorf("get rpc link failed, error: %v", err)
+		return "", err
+	}
+	client, err := ethclient.Dial(chainRpc)
+	if err != nil {
+		logs.GetLogger().Errorf("connect to rpc failed, error: %v", err)
+		return "", err
+	}
+	defer client.Close()
+
+	cpStub, err := account.NewAccountStub(client)
+	if err != nil {
+		logs.GetLogger().Errorf("create account stub failed, error: %v", err)
+		return "", err
+	}
+	cpAccount, err := cpStub.GetCpAccountInfo()
+	if err != nil {
+		err = fmt.Errorf("get cpAccount failed, error: %v", err)
+		return "", err
+	}
+	ownerAddress := cpAccount.OwnerAddress
+	return ownerAddress, nil
 }
