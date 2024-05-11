@@ -131,7 +131,7 @@ var infoCmd = &cli.Command{
 			for _, taskType := range cpAccount.TaskTypes {
 				switch taskType {
 				case 1:
-					taskTypes += "Filecoin,"
+					taskTypes += "Filecoin-C2,"
 
 				case 2:
 					taskTypes += "Aleo,"
@@ -187,7 +187,7 @@ var infoCmd = &cli.Command{
 			var rowColor []tablewriter.Colors
 			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
 			rowColorList = append(rowColorList, RowColor{
-				row:    5,
+				row:    6,
 				column: []int{1},
 				color:  rowColor,
 			})
@@ -260,7 +260,7 @@ var stateInfoCmd = &cli.Command{
 			for _, taskType := range cpAccount.TaskTypes {
 				switch taskType {
 				case 1:
-					taskTypes += "Filecoin,"
+					taskTypes += "Filecoin-C2,"
 
 				case 2:
 					taskTypes += "Aleo,"
@@ -364,7 +364,7 @@ var createAccountCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "task-types",
-			Usage: "task types of CP (1:Filecoin, 2:Aleo), separated by commas",
+			Usage: "Task types of CP (1:Filecoin-C2, 2:Aleo), separated by commas",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
