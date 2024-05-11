@@ -129,6 +129,7 @@ func requiredFieldsAreGiven(metaData toml.MetaData) bool {
 		{"API", "MultiAddress"},
 		{"API", "Domain"},
 		{"API", "RedisUrl"},
+		{"API", "NodeName"},
 
 		{"LOG", "CrtFile"},
 		{"LOG", "KeyFile"},
@@ -169,6 +170,7 @@ func requiredFieldsAreGivenForSeparate(metaData toml.MetaData) bool {
 
 		{"API", "MultiAddress"},
 		{"API", "RedisUrl"},
+		{"API", "NodeName"},
 
 		{"UBI", "UbiTask"},
 		{"UBI", "UbiEnginePk"},
