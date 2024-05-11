@@ -315,9 +315,13 @@ var collateralCmd = &cli.Command{
 			Usage: "Specify which rpc connection chain to use",
 			Value: conf.DefaultRpc,
 		},
-		&cli.StringFlag{
-			Name:  "type",
-			Usage: "Specify the type of collateral, support: fcp, ecp",
+		&cli.BoolFlag{
+			Name:  "fcp",
+			Usage: "Specify the fcp collateral",
+		},
+		&cli.BoolFlag{
+			Name:  "ecp",
+			Usage: "Specify the ecp collateral",
 		},
 	},
 	Subcommands: []*cli.Command{
