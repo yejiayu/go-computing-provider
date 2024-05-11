@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/swanchain/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/internal/models"
 	"math/big"
 	"strings"
 )
@@ -110,6 +111,22 @@ func (s *Stub) Withdraw(amount *big.Int) (string, error) {
 	return transaction.Hash().String(), nil
 }
 
+func (s *Stub) CpInfo(address string) (models.CpCollateralInfo, error) {
+	var cpInfo models.CpCollateralInfo
+
+	walletAddress := common.HexToAddress(address)
+	cpCollateralInfo, err := s.collateral.CpInfo(&bind.CallOpts{}, walletAddress)
+	if err != nil {
+		return cpInfo, fmt.Errorf("address: %s, collateral client cpInfo tx error: %+v", address, err)
+	}
+
+	cpInfo.Address = cpCollateralInfo.Cp.Hex()
+	cpInfo.CollateralBalance = balanceToStr(cpCollateralInfo.Balance)
+	cpInfo.FrozenBalance = balanceToStr(cpCollateralInfo.FrozenBalance)
+	cpInfo.Status = cpCollateralInfo.Status
+	return cpInfo, nil
+}
+
 func (s *Stub) privateKeyToPublicKey() (common.Address, error) {
 	if len(strings.TrimSpace(s.privateK)) == 0 {
 		return common.Address{}, fmt.Errorf("wallet address private key must be not empty")
@@ -168,4 +185,17 @@ func (s *Stub) createTransactOpts(amount *big.Int, isDeposit bool) (*bind.Transa
 	txOptions.GasFeeCap = suggestGasPrice
 	txOptions.Context = context.Background()
 	return txOptions, nil
+}
+
+func balanceToStr(balance *big.Int) string {
+	var ethValue string
+	if balance.String() == "0" {
+		ethValue = "0.0"
+	} else {
+		fbalance := new(big.Float)
+		fbalance.SetString(balance.String())
+		etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
+		ethValue = etherQuotient.Text('f', 5)
+	}
+	return ethValue
 }

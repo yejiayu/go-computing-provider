@@ -168,6 +168,13 @@ type Account struct {
 	Version        string
 }
 
+type CpCollateralInfo struct {
+	Address           string
+	CollateralBalance string
+	FrozenBalance     string
+	Status            string
+}
+
 type TaskList []CacheUbiTaskDetail
 
 func (t TaskList) Len() int {

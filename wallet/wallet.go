@@ -397,7 +397,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 	}
 }
 
-func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) error {
+func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string, collateralType string) error {
 	defer w.keystore.Close()
 	addrs, err := w.addressList(ctx)
 	if err != nil {
@@ -422,15 +422,25 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string) erro
 
 	var wallets []map[string]interface{}
 	for _, addr := range addrs {
-		var balance, collateralBalance string
+		var balance, collateralBalance, frozenCollateral string
 		balance, err = Balance(ctx, client, addr)
 
-		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(addr))
-		if err == nil {
-			collateralBalance, err = collateralStub.Balances()
+		if collateralType == "fcp" {
+			collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(addr))
+			if err == nil {
+				collateralBalance, err = collateralStub.Balances()
+			}
+			frozenCollateral, err = getFrozenCollateral(addr)
+		} else {
+			zkCollateral, err := account.NewCollateralStub(client)
+			if err == nil {
+				cpInfo, err := zkCollateral.CpInfo(addr)
+				if err == nil {
+					collateralBalance = cpInfo.CollateralBalance
+					frozenCollateral = cpInfo.FrozenBalance
+				}
+			}
 		}
-
-		frozenCollateral, err := getFrozenCollateral(addr)
 
 		var errmsg string
 		if err != nil {
