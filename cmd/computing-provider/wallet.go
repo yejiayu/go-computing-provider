@@ -384,21 +384,21 @@ var collateralInfoCmd = &cli.Command{
 			return fmt.Errorf("failed to parse chain: %s", chain)
 		}
 
-		collateralType := cctx.String("type")
-		if strings.TrimSpace(collateralType) == "" {
-			return fmt.Errorf("type field cannot be empty")
-		}
-
-		if collateralType != "fcp" && collateralType != "ecp" {
-			return fmt.Errorf("unsupported collateral types: %s, only supports fcp and ecp", collateralType)
-		}
+		//collateralType := cctx.String("type")
+		//if strings.TrimSpace(collateralType) == "" {
+		//	return fmt.Errorf("type field cannot be empty")
+		//}
+		//
+		//if collateralType != "fcp" && collateralType != "ecp" {
+		//	return fmt.Errorf("unsupported collateral types: %s, only supports fcp and ecp", collateralType)
+		//}
 
 		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
 		if err != nil {
 			return err
 		}
 
-		return localWallet.CollateralInfo(ctx, chain, collateralType)
+		return localWallet.CollateralInfo(ctx, chain, "fcp")
 	},
 }
 
