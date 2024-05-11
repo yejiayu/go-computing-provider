@@ -330,7 +330,7 @@ var collateralCmd = &cli.Command{
 
 var collateralAddCmd = &cli.Command{
 	Name:      "add",
-	Usage:     "Send the collateral amount to the hub",
+	Usage:     "Send the collateral amount to the collateral contract address",
 	ArgsUsage: "add [targetAddress] [amount]",
 	//Flags: []cli.Flag{
 	//	&cli.StringFlag{
@@ -384,13 +384,13 @@ var collateralAddCmd = &cli.Command{
 var collateralInfoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "View staking wallet details",
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:  "chain",
-			Usage: "Specify which rpc connection chain to use",
-			Value: conf.DefaultRpc,
-		},
-	},
+	//Flags: []cli.Flag{
+	//	&cli.StringFlag{
+	//		Name:  "chain",
+	//		Usage: "Specify which rpc connection chain to use",
+	//		Value: conf.DefaultRpc,
+	//	},
+	//},
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
 
