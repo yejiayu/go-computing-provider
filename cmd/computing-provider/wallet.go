@@ -346,13 +346,17 @@ var collateralAddCmd = &cli.Command{
 			return fmt.Errorf("chain field cannot be empty")
 		}
 
-		collateralType := cctx.String("type")
-		if strings.TrimSpace(collateralType) == "" {
-			return fmt.Errorf("type field cannot be empty")
+		fcpCollateral := cctx.Bool("fcp")
+		ecpCollateral := cctx.Bool("ecp")
+		if !fcpCollateral && !ecpCollateral {
+			return fmt.Errorf("must specify one of fcp or ecp")
 		}
-
-		if collateralType != "fcp" && collateralType != "ecp" {
-			return fmt.Errorf("unsupported collateral types: %s, only supports fcp and ecp", collateralType)
+		var collateralType string
+		if fcpCollateral {
+			collateralType = "fcp"
+		}
+		if ecpCollateral {
+			collateralType = "ecp"
 		}
 
 		from := cctx.Args().Get(0)
@@ -388,21 +392,25 @@ var collateralInfoCmd = &cli.Command{
 			return fmt.Errorf("failed to parse chain: %s", chain)
 		}
 
-		//collateralType := cctx.String("type")
-		//if strings.TrimSpace(collateralType) == "" {
-		//	return fmt.Errorf("type field cannot be empty")
-		//}
-		//
-		//if collateralType != "fcp" && collateralType != "ecp" {
-		//	return fmt.Errorf("unsupported collateral types: %s, only supports fcp and ecp", collateralType)
-		//}
+		fcpCollateral := cctx.Bool("fcp")
+		ecpCollateral := cctx.Bool("ecp")
+		if !fcpCollateral && !ecpCollateral {
+			return fmt.Errorf("must specify one of fcp or ecp")
+		}
+		var collateralType string
+		if fcpCollateral {
+			collateralType = "fcp"
+		}
+		if ecpCollateral {
+			collateralType = "ecp"
+		}
 
 		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
 		if err != nil {
 			return err
 		}
 
-		return localWallet.CollateralInfo(ctx, chain, "fcp")
+		return localWallet.CollateralInfo(ctx, chain, collateralType)
 	},
 }
 
