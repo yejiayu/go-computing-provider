@@ -118,7 +118,7 @@ var infoCmd = &cli.Command{
 		}
 		defer client.Close()
 
-		var balance, collateralBalance, ownerBalance string
+		var fcpCollateralBalance, ecpCollateralBalance, ownerBalance string
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 
 		cpStub, err := account.NewAccountStub(client)
@@ -149,14 +149,15 @@ var infoCmd = &cli.Command{
 			version = cpAccount.Version
 		}
 
-		balance, err = wallet.Balance(context.TODO(), client, ownerAddress)
-		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(ownerAddress))
+		ownerBalance, err = wallet.Balance(context.TODO(), client, ownerAddress)
+		fcpCollateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(ownerAddress))
 		if err == nil {
-			collateralBalance, err = collateralStub.Balances()
+			fcpCollateralBalance, err = fcpCollateralStub.Balances()
 		}
 
-		if ownerAddress != "" {
-			ownerBalance, err = wallet.Balance(context.TODO(), client, ownerAddress)
+		ecpCollateral, err := account.NewCollateralStub(client, account.WithPublicKey(ownerAddress))
+		if err == nil {
+			ecpCollateralBalance, err = ecpCollateral.Balances()
 		}
 
 		var domain = conf.GetConfig().API.Domain
@@ -175,12 +176,12 @@ var infoCmd = &cli.Command{
 		taskData = append(taskData, []string{"   Worker Address:", workerAddress})
 		taskData = append(taskData, []string{"   Beneficiary Address:", beneficiaryAddress})
 		taskData = append(taskData, []string{"   Available(SWAN-ETH):", ownerBalance})
-		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", "0.0"})
+		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", ecpCollateralBalance})
 		taskData = append(taskData, []string{"FCP:"})
 		taskData = append(taskData, []string{"   Domain:", domain})
 		taskData = append(taskData, []string{"   Running deployments:", strconv.Itoa(count)})
-		taskData = append(taskData, []string{"   Available(SWAN-ETH):", balance})
-		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", collateralBalance})
+		taskData = append(taskData, []string{"   Available(SWAN-ETH):", ownerBalance})
+		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", fcpCollateralBalance})
 
 		var rowColorList []RowColor
 		if taskTypes != "" {
