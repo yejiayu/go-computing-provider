@@ -16,6 +16,7 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -32,56 +33,24 @@ func NewScheduleTask() *ScheduleTask {
 }
 
 func (s *ScheduleTask) Run() {
-	go func() {
-		ticker := time.NewTicker(3 * time.Minute)
-		for {
-			select {
-			case <-ticker.C:
-				s.TaskMap.Range(func(key, value any) bool {
-					job := value.(*models2.Job)
-					job.Count++
-					s.TaskMap.Store(job.Uuid, job)
-
-					if job.Count > 50 {
-						s.TaskMap.Delete(job.Uuid)
-						return true
-					}
-
-					if job.Status != models2.JobDeployToK8s {
-						return true
-					}
-
-					response, err := http.Get(job.Url)
-					if err != nil {
-						return true
-					}
-					defer response.Body.Close()
-
-					if response.StatusCode == 200 {
-						s.TaskMap.Delete(job.Uuid)
-					}
-					return true
-				})
-			}
-		}
-	}()
-
 	for {
 		select {
 		case job := <-deployingChan:
 			s.TaskMap.Store(job.Uuid, &job)
-		case <-time.After(15 * time.Second):
+		case <-time.After(3 * time.Second):
 			s.TaskMap.Range(func(key, value any) bool {
 				jobUuid := key.(string)
 				job := value.(*models2.Job)
-				reportJobStatus(jobUuid, job.Status)
+				if reportJobStatus(jobUuid, job.Status) && job.Status == models2.JobDeployToK8s {
+					s.TaskMap.Delete(jobUuid)
+				}
 				return true
 			})
 		}
 	}
 }
 
-func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
+func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) bool {
 	reqParam := map[string]interface{}{
 		"job_uuid":       jobUuid,
 		"status":         jobStatus,
@@ -91,7 +60,7 @@ func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
 	payload, err := json.Marshal(reqParam)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
-		return
+		return false
 	}
 
 	client := &http.Client{}
@@ -99,7 +68,7 @@ func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		logs.GetLogger().Errorf("Error creating request: %v", err)
-		return
+		return false
 	}
 	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
 	req.Header.Add("Content-Type", "application/json")
@@ -107,16 +76,16 @@ func reportJobStatus(jobUuid string, jobStatus models2.JobStatus) {
 	resp, err := client.Do(req)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
-		return
+		return false
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return
+		return false
 	}
 
 	logs.GetLogger().Debugf("report job status successfully. uuid: %s, status: %s", jobUuid, jobStatus)
-	return
+	return true
 }
 
 func RunSyncTask(nodeId string) {
@@ -165,6 +134,7 @@ func RunSyncTask(nodeId string) {
 		defer ticker.Stop()
 		for range ticker.C {
 			reportClusterResource(location, nodeId)
+			checkClusterProviderStatus()
 		}
 
 	}()
@@ -215,9 +185,12 @@ func reportClusterResource(location, nodeId string) {
 		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
 		return
 	}
+
 }
 
 func watchExpiredTask() {
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	nodeId := GetNodeId(cpRepoPath)
 	ticker := time.NewTicker(5 * time.Minute)
 	go func() {
 		var deleteKey []string
@@ -244,23 +217,25 @@ func watchExpiredTask() {
 
 					namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobMetadata.WalletAddress)
 
-					taskStatus, err := checkTaskStatusByHub(jobMetadata.TaskUuid)
-					if err != nil {
-						logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
-						return
-					}
-					if strings.Contains(taskStatus, "Task not found") {
-						logs.GetLogger().Infof("task_uuid: %s, task not found on the orchestrator service, starting to delete it.", jobMetadata.TaskUuid)
-						deleteJob(namespace, jobMetadata.SpaceUuid)
-						deleteKey = append(deleteKey, key)
-						continue
-					}
-					if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") ||
-						strings.Contains(taskStatus, "Cancelled") || strings.Contains(taskStatus, "Failed") {
-						logs.GetLogger().Infof("task_uuid: %s, current status is %s, starting to delete it.", jobMetadata.TaskUuid, taskStatus)
-						if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
+					if len(strings.TrimSpace(jobMetadata.TaskUuid)) == 0 {
+						taskStatus, err := checkTaskStatusByHub(jobMetadata.TaskUuid, nodeId)
+						if err != nil {
+							logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
+							return
+						}
+						if strings.Contains(taskStatus, "Task not found") {
+							logs.GetLogger().Infof("task_uuid: %s, task not found on the orchestrator service, starting to delete it.", jobMetadata.TaskUuid)
+							deleteJob(namespace, jobMetadata.SpaceUuid)
 							deleteKey = append(deleteKey, key)
 							continue
+						}
+						if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") ||
+							strings.Contains(taskStatus, "Cancelled") || strings.Contains(taskStatus, "Failed") {
+							logs.GetLogger().Infof("task_uuid: %s, current status is %s, starting to delete it.", jobMetadata.TaskUuid, taskStatus)
+							if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
+								deleteKey = append(deleteKey, key)
+								continue
+							}
 						}
 					}
 
@@ -326,8 +301,8 @@ func watchNameSpaceForDeleted() {
 	}()
 }
 
-func checkTaskStatusByHub(taskUuid string) (string, error) {
-	url := fmt.Sprintf("%s/check_task_status/%s", conf.GetConfig().HUB.ServerUrl, taskUuid)
+func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
+	url := fmt.Sprintf("%s/check_task_status_with_node_id/%s/%s", conf.GetConfig().HUB.ServerUrl, taskUuid, nodeId)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -359,6 +334,7 @@ func checkTaskStatusByHub(taskUuid string) (string, error) {
 	}
 	err = json.Unmarshal(respBody, &taskStatus)
 	if err != nil {
+		logs.GetLogger().Errorf("check_task_status_with_node_id resp: %s", string(respBody))
 		return "", err
 	}
 	if taskStatus.Status == "failed" {

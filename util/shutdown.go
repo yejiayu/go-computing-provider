@@ -52,7 +52,7 @@ func MonitorShutdown(triggerCh <-chan struct{}, handlers ...ShutdownHandler) <-c
 	return out
 }
 
-func ServeHttp(h http.Handler, name string, addr string) (StopFunc, error) {
+func ServeHttp(h http.Handler, name string, addr string, ssl bool) (StopFunc, error) {
 	// Instantiate the server and start listening.
 	srv := &http.Server{
 		Addr:              addr,
@@ -61,17 +61,22 @@ func ServeHttp(h http.Handler, name string, addr string) (StopFunc, error) {
 	}
 
 	go func() {
-		certFile := conf.GetConfig().LOG.CrtFile
-		keyFile := conf.GetConfig().LOG.KeyFile
-		if _, err := os.Stat(certFile); err != nil {
-			logs.GetLogger().Fatalf("need to manually generate the wss authentication certificate. error: %v", err)
-			return
-		}
+		if ssl {
+			certFile := conf.GetConfig().LOG.CrtFile
+			keyFile := conf.GetConfig().LOG.KeyFile
+			if _, err := os.Stat(certFile); err != nil {
+				logs.GetLogger().Fatalf("need to manually generate the wss authentication certificate. error: %v", err)
+				return
+			}
 
-		if err := srv.ListenAndServeTLS(certFile, keyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logs.GetLogger().Fatalf("service: %s, listen: %s\n", name, err)
+			if err := srv.ListenAndServeTLS(certFile, keyFile); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logs.GetLogger().Fatalf("service: %s, listen: %s\n", name, err)
+			}
+		} else {
+			if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				logs.GetLogger().Fatalf("service: %s, listen: %s\n", name, err)
+			}
 		}
-
 	}()
 
 	return srv.Shutdown, nil

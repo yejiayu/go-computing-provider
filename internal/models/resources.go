@@ -1,15 +1,18 @@
 package models
 
 type ClusterResource struct {
-	NodeId        string          `json:"node_id"`
-	Region        string          `json:"region"`
+	NodeId        string          `json:"node_id,omitempty"`
+	Region        string          `json:"region,omitempty"`
 	ClusterInfo   []*NodeResource `json:"cluster_info"`
-	PublicAddress string          `json:"public_address"`
+	PublicAddress string          `json:"public_address,omitempty"`
+	MultiAddress  string          `json:"multi_address,omitempty"`
+	NodeName      string          `json:"node_name,omitempty"`
+	TaskFlag      int             `json:"task_flag,omitempty"`
 }
 
 type NodeResource struct {
 	MachineId string `json:"machine_id"`
-	Model     string `json:"model"`
+	CpuName   string `json:"cpu_name"`
 	Cpu       Common `json:"cpu"`
 	Vcpu      Common `json:"vcpu"`
 	Memory    Common `json:"memory"`
@@ -71,4 +74,47 @@ type GpuQuota struct {
 type Quota struct {
 	Quota int64  `json:"quota"`
 	Unit  string `json:"unit"`
+}
+
+type T struct {
+	Gpu struct {
+		DriverVersion string `json:"driver_version"`
+		CudaVersion   string `json:"cuda_version"`
+		AttachedGpus  int    `json:"attached_gpus"`
+		Details       []struct {
+			ProductName   string `json:"product_name"`
+			FbMemoryUsage struct {
+				Total string `json:"total"`
+				Used  string `json:"used"`
+				Free  string `json:"free"`
+			} `json:"fb_memory_usage"`
+			Bar1MemoryUsage struct {
+				Total string `json:"total"`
+				Used  string `json:"used"`
+				Free  string `json:"free"`
+			} `json:"bar1_memory_usage"`
+		} `json:"details"`
+	} `json:"gpu"`
+	MachineId string `json:"machine_id"`
+	CpuName   string `json:"cpu_name"`
+	Cpu       struct {
+		Total string `json:"total"`
+		Used  string `json:"used"`
+		Free  string `json:"free"`
+	} `json:"cpu"`
+	Vcpu struct {
+		Total string `json:"total"`
+		Used  string `json:"used"`
+		Free  string `json:"free"`
+	} `json:"vcpu"`
+	Memory struct {
+		Total string `json:"total"`
+		Used  string `json:"used"`
+		Free  string `json:"free"`
+	} `json:"memory"`
+	Storage struct {
+		Total string `json:"total"`
+		Used  string `json:"used"`
+		Free  string `json:"free"`
+	} `json:"storage"`
 }

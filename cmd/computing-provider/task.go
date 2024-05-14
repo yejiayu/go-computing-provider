@@ -1,3 +1,4 @@
+
 package main
 
 import (
@@ -36,14 +37,12 @@ var taskList = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-
 		fullFlag := cctx.Bool("verbose")
-
-		cpPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		cpRepoPath, ok := os.LookupEnv("CP_PATH")
+		if !ok {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
-		if err := conf.InitConfig(cpPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
@@ -132,11 +131,11 @@ var taskDetail = &cli.Command{
 			return fmt.Errorf("incorrect number of arguments, got %d, missing args: space_uuid", cctx.NArg())
 		}
 
-		cpPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		cpRepoPath, ok := os.LookupEnv("CP_PATH")
+		if !ok {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
-		if err := conf.InitConfig(cpPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 		computing.GetRedisClient()
@@ -192,11 +191,11 @@ var taskDelete = &cli.Command{
 			return fmt.Errorf("incorrect number of arguments, got %d, missing args: space_uuid", cctx.NArg())
 		}
 
-		cpPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		cpRepoPath, ok := os.LookupEnv("CP_PATH")
+		if !ok {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 		}
-		if err := conf.InitConfig(cpPath); err != nil {
+		if err := conf.InitConfig(cpRepoPath, false); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 		computing.GetRedisClient()

@@ -32,21 +32,21 @@ type JobData struct {
 	Duration int    `json:"duration"`
 	//Hardware      string `json:"hardware"`
 	JobSourceURI                string `json:"job_source_uri"`
-	JobResultURI                string `json:"job_result_uri"`
-	StorageSource               string `json:"storage_source"`
+	JobResultURI                string `json:"job_result_uri,omitempty"`
+	StorageSource               string `json:"storage_source,omitempty"`
 	TaskUUID                    string `json:"task_uuid"`
 	CreatedAt                   string `json:"created_at"`
-	UpdatedAt                   string `json:"updated_at"`
-	BuildLog                    string `json:"build_log"`
+	UpdatedAt                   string `json:"updated_at,omitempty"`
+	BuildLog                    string `json:"build_log,omitempty"`
 	ContainerLog                string `json:"container_log"`
 	NodeIdJobSourceUriSignature string `json:"node_id_job_source_uri_signature"`
+	JobRealUri                  string `json:"job_real_uri,omitempty"`
 }
 
 type Job struct {
 	Uuid   string
 	Status JobStatus
 	Url    string
-	Count  int
 }
 
 type JobStatus string
@@ -119,6 +119,7 @@ type CacheSpaceDetail struct {
 	Hardware      string
 	Url           string
 	TaskUuid      string
+	SpaceType     string
 }
 
 type UBITaskReq struct {
@@ -129,6 +130,14 @@ type UBITaskReq struct {
 	InputParam string        `json:"input_param"`
 	Signature  string        `json:"signature"`
 	Resource   *TaskResource `json:"resource"`
+}
+
+type UbiC2Proof struct {
+	TaskId    string `json:"task_id"`
+	TaskType  string `json:"task_type"`
+	Proof     string `json:"proof"`
+	ZkType    string `json:"zk_type"`
+	NameSpace string `json:"name_space"`
 }
 
 type TaskResource struct {

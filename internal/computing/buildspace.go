@@ -18,17 +18,17 @@ import (
 
 var NotFoundError = errors.New("not found resource")
 
-func BuildSpaceTaskImage(spaceUuid string, files []models.SpaceFile) (bool, string, string, string, error) {
+func BuildSpaceTaskImage(spaceUuid string, files []models.SpaceFile) (bool, string, string, string, string, error) {
 	var err error
 	buildFolder := "build/"
 	if len(files) > 0 {
 		for _, file := range files {
 			dirPath := filepath.Dir(file.Name)
 			if err = os.MkdirAll(filepath.Join(buildFolder, dirPath), os.ModePerm); err != nil {
-				return false, "", "", "", err
+				return false, "", "", "", "", err
 			}
 			if err = downloadFile(filepath.Join(buildFolder, file.Name), file.URL); err != nil {
-				return false, "", "", "", fmt.Errorf("error downloading file: %w", err)
+				return false, "", "", "", "", fmt.Errorf("error downloading file: %w", err)
 			}
 		}
 
@@ -38,7 +38,7 @@ func BuildSpaceTaskImage(spaceUuid string, files []models.SpaceFile) (bool, stri
 		var modelsSetting string
 
 		err = filepath.WalkDir(imagePath, func(path string, d fs.DirEntry, err error) error {
-			if strings.HasSuffix(d.Name(), "deploy.yaml") || strings.HasSuffix(d.Name(), "deploy.yml") {
+			if strings.HasSuffix(strings.ToLower(d.Name()), "deploy.yaml") || strings.HasSuffix(strings.ToLower(d.Name()), "deploy.yml") {
 				containsYaml = true
 				yamlPath = path
 			}
@@ -48,13 +48,13 @@ func BuildSpaceTaskImage(spaceUuid string, files []models.SpaceFile) (bool, stri
 			return nil
 		})
 		if err != nil {
-			return containsYaml, yamlPath, imagePath, modelsSetting, err
+			return containsYaml, yamlPath, imagePath, modelsSetting, "", err
 		}
-		return containsYaml, yamlPath, imagePath, modelsSetting, nil
+		return containsYaml, yamlPath, imagePath, modelsSetting, "", nil
 	} else {
 		logs.GetLogger().Warnf("Space %s is not found.", spaceUuid)
 	}
-	return false, "", "", "", NotFoundError
+	return false, "", "", "", "", NotFoundError
 }
 
 func getDownloadPath(fileName string) string {
@@ -72,6 +72,9 @@ func BuildImagesByDockerfile(jobUuid, spaceUuid, spaceName, imagePath string) (s
 	}
 	imageName = strings.ToLower(imageName)
 	dockerfilePath := filepath.Join(imagePath, "Dockerfile")
+	if dockerfilePath == "" {
+		dockerfilePath = filepath.Join(imagePath, "dockerfile")
+	}
 	log.Printf("Image path: %s", imagePath)
 
 	dockerService := NewDockerService()

@@ -1,32 +1,39 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
+	"github.com/gin-contrib/pprof"
+	"github.com/gin-gonic/gin"
 	"github.com/gomodule/redigo/redis"
+	cors "github.com/itsjamie/gin-cors"
 	"github.com/olekukonko/tablewriter"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
 	"github.com/swanchain/go-computing-provider/internal/computing"
 	"github.com/swanchain/go-computing-provider/internal/models"
+	"github.com/swanchain/go-computing-provider/util"
 	"github.com/urfave/cli/v2"
 	"io"
 	"net/http"
 	"os"
 	"sort"
 	"strconv"
+	"time"
 )
 
 var ubiTaskCmd = &cli.Command{
-	Name:  "ubi-task",
+	Name:  "ubi",
 	Usage: "Manage ubi tasks",
 	Subcommands: []*cli.Command{
-		ubiTaskList,
+		ubiTaskListCmd,
+		daemonCmd,
 	},
 }
 
-var ubiTaskList = &cli.Command{
+var ubiTaskListCmd = &cli.Command{
 	Name:  "list",
 	Usage: "List ubi task",
 	Flags: []cli.Flag{
@@ -36,18 +43,14 @@ var ubiTaskList = &cli.Command{
 		},
 	},
 	Action: func(cctx *cli.Context) error {
-
-		cpPath, exit := os.LookupEnv("CP_PATH")
-		if !exit {
-			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
-		}
-		if err := conf.InitConfig(cpPath); err != nil {
+		cpRepoPath, _ := os.LookupEnv("CP_PATH")
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
 		}
 
 		showFailed := cctx.Bool("show-failed")
 
-		nodeID := computing.GetNodeId(cpPath)
+		nodeID := computing.GetNodeId(cpRepoPath)
 
 		conn := computing.GetRedisClient()
 		prefix := constants.REDIS_UBI_C2_PERFIX + "*"
@@ -115,6 +118,78 @@ var ubiTaskList = &cli.Command{
 
 		return nil
 
+	},
+}
+
+//go:embed docker-compose.yml
+var dockerComposeContent string
+
+var daemonCmd = &cli.Command{
+	Name:  "daemon",
+	Usage: "Start a cp process",
+
+	Action: func(cctx *cli.Context) error {
+		logs.GetLogger().Info("Start a computing-provider client that only accepts ubi-task mode.")
+		cpRepoPath, _ := os.LookupEnv("CP_PATH")
+
+		err := computing.StopPreviousServices(dockerComposeContent, cpRepoPath)
+		if err != nil {
+			return fmt.Errorf("stop pre-dependency-env failed, error: %v", err)
+		}
+
+		redisContainerName := "ubi-redis"
+		resourceExporterContainerName := "resource-exporter"
+		err = computing.NewDockerService().RemoveImageByName(redisContainerName)
+		if err != nil {
+			return fmt.Errorf("remove %s container failed, error: %v", redisContainerName, err)
+		}
+		err = computing.NewDockerService().RemoveImageByName(resourceExporterContainerName)
+		if err != nil {
+			return fmt.Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
+		}
+
+		err = computing.RunDockerCompose(dockerComposeContent, cpRepoPath)
+		if err != nil {
+			return fmt.Errorf("start pre-dependency-env failed, error: %v", err)
+		}
+
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
+			logs.GetLogger().Fatal(err)
+		}
+
+		computing.CleanDockerResource()
+
+		r := gin.Default()
+		r.Use(cors.Middleware(cors.Config{
+			Origins:         "*",
+			Methods:         "GET, PUT, POST, DELETE",
+			RequestHeaders:  "Origin, Authorization, Content-Type",
+			ExposedHeaders:  "",
+			MaxAge:          50 * time.Second,
+			ValidateHeaders: false,
+		}))
+		pprof.Register(r)
+
+		v1 := r.Group("/api/v1")
+		router := v1.Group("/computing")
+
+		router.GET("/cp", computing.GetCpResource)
+		router.GET("/cp/info", computing.GetCpInfo)
+		router.POST("/cp/ubi", computing.DoUbiTaskForDocker)
+		router.POST("/cp/docker/receive/ubi", computing.ReceiveUbiProofForDocker)
+
+		shutdownChan := make(chan struct{})
+		httpStopper, err := util.ServeHttp(r, "cp-api", ":"+strconv.Itoa(conf.GetConfig().API.Port), false)
+		if err != nil {
+			logs.GetLogger().Fatal("failed to start cp-api endpoint: %s", err)
+		}
+
+		finishCh := util.MonitorShutdown(shutdownChan,
+			util.ShutdownHandler{Component: "cp-api", StopFunc: httpStopper},
+		)
+		<-finishCh
+
+		return nil
 	},
 }
 

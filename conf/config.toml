@@ -1,16 +1,15 @@
 [API]
-Port = 8085                                     # The port number that the web server listens on
+Port = 9085                                     # The port number that the web server listens on
 MultiAddress = "/ip4/<PUBLIC_IP>/tcp/<PORT>"    # The multiAddress for libp2p
-Domain = ""                                     # The domain name
+Domain = "<YOUR_CP_Domain>"                     # The domain name
 NodeName = "<YOUR_CP_Node_Name>"                 # The computing-provider node name
 
-RedisUrl = "redis://127.0.0.1:6379"             # The redis server address
-RedisPassword = ""                              # The redis server access password
-
-WalletWhiteList=""                              # CP only accepts user addresses from this whitelist for space deployment
+RedisUrl = "redis://127.0.0.1:16379"             # The redis server address
+RedisPassword = "rootadmin!213"                  # The redis server access password, default password
+WalletWhiteList = ""                             #
 
 [UBI]
-UbiTask = true                                               # Accept the UBI task (Default: true)
+UbiTask = false                                               # Accept the UBI task (Default: true)
 UbiEnginePk = "0xB5aeb540B4895cd024c1625E146684940A849ED9"   # UBI Engine's public key, CP only accept the task from this UBI engine
 UbiUrl ="https://ubi-task.swanchain.io/v1"                   # UBI Engine's API address
 
@@ -27,8 +26,8 @@ OrchestratorPk = "0x29eD49c8E973696D07E7927f748F6E5Eacd5516D" # Orchestrator's p
 VerifySign = true                                             # Verify that the task signature is from Orchestrator
 
 [MCS]
-ApiKey = ""                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key
-BucketName = ""                               # Acquired from "https://www.multichain.storage" -> bucket -> Add Bucket
+ApiKey = "<YOUR_Api_Key>"                                   # Acquired from "https://www.multichain.storage" -> setting -> Create API Key
+BucketName = "<YOUR_Bucket_Name>"                               # Acquired from "https://www.multichain.storage" -> bucket -> Add Bucket
 Network = "polygon.mainnet"                   # polygon.mainnet for mainnet, polygon.mumbai for testnet
 FileCachePath = "/tmp"                        # Cache directory of job data
 

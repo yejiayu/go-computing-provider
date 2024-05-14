@@ -29,7 +29,7 @@ fi
 
 # Check if the environment variable is set
 if [ -z "$CP_PATH" ]; then
-    echo "Error: CP_PATH is not set. Please set it using: export CP_PATH=xxx"
+    echo "Error: CP_PATH is not set. Please set it using: export CP_PATH=<YOUR CP_PATH>"
     exit 1
 else
     echo "CP_PATH is set to $CP_PATH"

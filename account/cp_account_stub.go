@@ -39,7 +39,7 @@ func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, err
 
 	cpPath, exit := os.LookupEnv("CP_PATH")
 	if !exit {
-		return nil, fmt.Errorf("missing CP_PATH env, please set export CP_PATH=xxx")
+		return nil, fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
 	}
 
 	accountFileName := filepath.Join(cpPath, "account")

@@ -42,10 +42,17 @@ type Deploy struct {
 	hardwareDesc      string
 	taskUuid          string
 	gpuProductName    string
+
+	spaceType string
 }
 
-func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration int64, taskUuid string) *Deploy {
-	taskType, hardwareDetail := getHardwareDetail(hardwareDesc)
+func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration int64, taskUuid string, spaceType string) *Deploy {
+
+	var taskType string
+	var hardwareDetail models.Resource
+	if hardwareDesc != "" {
+		taskType, hardwareDetail = getHardwareDetail(hardwareDesc)
+	}
 	return &Deploy{
 		jobUuid:          jobUuid,
 		hostName:         hostName,
@@ -56,7 +63,20 @@ func NewDeploy(jobUuid, hostName, walletAddress, hardwareDesc string, duration i
 		k8sNameSpace:     constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(walletAddress),
 		hardwareDesc:     hardwareDesc,
 		taskUuid:         taskUuid,
+		spaceType:        spaceType,
 	}
+}
+
+func (d *Deploy) WithHardware(cpu, memory, storage int, gpuModel string, gpuNum int) *Deploy {
+	taskType, hardwareDetail := getHardwareDetailForPrivate(cpu, memory, storage, gpuModel, gpuNum)
+	d.hardwareResource = hardwareDetail
+	d.TaskType = taskType
+	return d
+}
+
+func (d *Deploy) WithImage(images string) *Deploy {
+	d.image = images
+	return d
 }
 
 func (d *Deploy) WithSpaceInfo(spaceUuid, spaceName string) *Deploy {
@@ -306,7 +326,6 @@ func (d *Deploy) YamlToK8s() {
 		}
 		d.DeployName = createDeployment.GetName()
 		updateJobStatus(d.jobUuid, models.JobPullImage)
-		logs.GetLogger().Infof("Created deployment: %s", createDeployment.GetObjectMeta().GetName())
 
 		serviceHost, err := d.deployK8sResource(cr.Ports[0].ContainerPort)
 		if err != nil {
@@ -445,7 +464,6 @@ func (d *Deploy) ModelInferenceToK8s() error {
 
 func (d *Deploy) deployNamespace() error {
 	k8sService := NewK8sService()
-	// create namespace
 	if _, err := k8sService.GetNameSpace(context.TODO(), d.k8sNameSpace, metaV1.GetOptions{}); err != nil {
 		if errors.IsNotFound(err) {
 			namespace := &coreV1.Namespace{
@@ -456,11 +474,10 @@ func (d *Deploy) deployNamespace() error {
 					},
 				},
 			}
-			createdNamespace, err := k8sService.CreateNameSpace(context.TODO(), namespace, metaV1.CreateOptions{})
+			_, err = k8sService.CreateNameSpace(context.TODO(), namespace, metaV1.CreateOptions{})
 			if err != nil {
 				return fmt.Errorf("failed create namespace, error: %w", err)
 			}
-			logs.GetLogger().Infof("create namespace successfully, namespace: %s", createdNamespace.Name)
 
 			//networkPolicy, err := k8sService.CreateNetworkPolicy(context.TODO(), k8sNameSpace)
 			//if err != nil {
@@ -535,15 +552,13 @@ func (d *Deploy) deployK8sResource(containerPort int32) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed creata service, error: %w", err)
 	}
-	logs.GetLogger().Infof("Created service successfully: %s", createService.GetObjectMeta().GetName())
 
 	serviceHost := fmt.Sprintf("http://%s:%d", createService.Spec.ClusterIP, createService.Spec.Ports[0].Port)
 
-	createIngress, err := k8sService.CreateIngress(context.TODO(), d.k8sNameSpace, d.spaceUuid, d.hostName, containerPort)
+	_, err = k8sService.CreateIngress(context.TODO(), d.k8sNameSpace, d.spaceUuid, d.hostName, containerPort)
 	if err != nil {
 		return "", fmt.Errorf("failed creata ingress, error: %w", err)
 	}
-	logs.GetLogger().Infof("Created Ingress successfully: %s", createIngress.GetObjectMeta().GetName())
 	return serviceHost, nil
 }
 
@@ -570,6 +585,7 @@ func (d *Deploy) watchContainerRunningTime() {
 		"hardware":       d.hardwareDesc,
 		"url":            fmt.Sprintf("https://%s", d.hostName),
 		"task_uuid":      d.taskUuid,
+		"space_type":     d.spaceType,
 	}
 
 	for key, val := range fields {
@@ -607,6 +623,30 @@ func getHardwareDetail(description string) (string, models.Resource) {
 	mem, _ := strconv.ParseInt(memSplits[1], 10, 64)
 	hardwareResource.Memory.Quantity = mem
 	hardwareResource.Memory.Unit = strings.ReplaceAll(memSplits[2], "B", "")
+
+	return taskType, hardwareResource
+}
+
+func getHardwareDetailForPrivate(cpu, memory, storage int, gpuModel string, gpuNum int) (string, models.Resource) {
+	var taskType string
+	var hardwareResource models.Resource
+
+	hardwareResource.Cpu.Quantity = int64(cpu)
+	hardwareResource.Cpu.Unit = "vCPU"
+
+	hardwareResource.Memory.Quantity = int64(memory)
+	hardwareResource.Memory.Unit = "Gi"
+
+	hardwareResource.Storage.Quantity = int64(storage)
+	hardwareResource.Storage.Unit = "Gi"
+
+	hardwareResource.Gpu.Quantity = int64(gpuNum)
+	hardwareResource.Gpu.Unit = strings.ReplaceAll(gpuModel, "Nvidia", "NVIDIA")
+	if len(strings.TrimSpace(gpuModel)) == 0 {
+		taskType = "CPU"
+	} else {
+		taskType = "GPU"
+	}
 
 	return taskType, hardwareResource
 }

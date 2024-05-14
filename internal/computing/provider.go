@@ -39,7 +39,6 @@ func updateProviderInfo(nodeID, peerID, address string, status string) {
 		Name:          cpName,
 		NodeId:        nodeID,
 		MultiAddress:  conf.GetConfig().API.MultiAddress,
-		Autobid:       1,
 		Status:        status,
 	}
 

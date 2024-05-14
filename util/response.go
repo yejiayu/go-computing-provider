@@ -53,6 +53,7 @@ const (
 	JsonError   = 400
 	ServerError = 500
 
+	BadParamError           = 5001
 	SpaceSignatureError     = 6001
 	ProofParamError         = 7001
 	ProofReadLogError       = 7002
@@ -62,9 +63,11 @@ const (
 	UbiTaskError            = 8003
 	CheckResourcesError     = 9001
 	CheckAvailableResources = 9002
+	CheckWhiteListError     = 9003
 )
 
 var codeMsg = map[int]string{
+	BadParamError:       "The request parameter is not valid",
 	JsonError:           "An error occurred while converting to json",
 	ServerError:         "Service failed",
 	SpaceSignatureError: "Verify signature failed",
@@ -74,4 +77,5 @@ var codeMsg = map[int]string{
 
 	CheckResourcesError:     "An error occurred while check resources available",
 	CheckAvailableResources: "No resources available",
+	CheckWhiteListError:     "This cp does not accept tasks from wallet addresses outside the whitelist",
 }

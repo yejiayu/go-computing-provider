@@ -3,37 +3,49 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/swan_chain)](https://twitter.com/swan_chain)
 [![standard-readme compliant](https://img.shields.io/badge/readme%20style-standard-brightgreen.svg)](https://github.com/RichardLitt/standard-readme)
 
-A computing provider is an individual or organization that participates in the decentralized computing network by offering computational resources such as processing power (CPU and GPU), memory, storage, and bandwidth. Their primary role is to execute tasks assigned by [Orchestrator](https://orchestrator.swanchain.io) on the [Swan chain](https://swanchain.io).
+A computing provider is an individual or organization that participates in the decentralized computing network by offering computational resources such as processing power (CPU and GPU), memory, storage, and bandwidth.
+
+As a resource provider, you can run a **ECP**(Edge Computing Provider) and **FCP**(Fog Computing Provider) to contribute yourcomputing resource.
+
+
+ - **ECP (Edge Computing Provider)** specializes in processing data at the source of data generation, using minimal latency setups ideal for real-time applications. This provider handles specific, localized tasks directly on devices at the network’s edge, such as IoT devices. At the current stage, ECP supports the generation of **ZK-Snark proof of Filecoin network**, and more ZK proof types will be gradually supported, such as Aleo, Scroll, starkNet, etc. [Install Guideline](ubi/README.md)
+
+
+ - **FCP (Fog Computing Provider)** Offers a layered network that extends cloud capabilities to the edge of the network, providing services such as AI model training and deployment. This provider utilizes infrastructure like Kubernetes (K8S) to support scalable, distributed computing tasks.  **FCP** will execute tasks assigned by Market Provider, like [Orchestrator](https://orchestrator.swanchain.io) on the [Swan chain](https://swanchain.io).
 
 
 # Table of Content
 
- - [Prerequisites](#Prerequisites)
- - [Install the Kubernetes](#Install-the-Kubernetes)
- 	- [Install Container Runtime Environment](#install-Container-Runtime-Environment)
- 	- [Optional-Setup a docker registry server](#Optional-setup-a-Docker-Registry-Server)
-	- [Create a Kubernetes Cluster](#Create-a-Kubernetes-Cluster)
- 	- [Install the Network Plugin](#Install-the-Network-Plugin)
-	- [Install the NVIDIA Plugin](#Install-the-NVIDIA-Plugin)
-	- [Install the Ingress-nginx Controller](#Install-the-Ingress-nginx-Controller)
- - [Install and config the Nginx](#Install-the-Ingress-nginx-Controller)
- - [Install the Hardware resource-exporter](#Install-the-Hardware-resource-exporter)
- - [Install the Redis service](#Install-the-Redis-service)
- - [Build and config the Computing Provider](#Build-and-config-the-Computing-Provider)
- - [Install AI Inference Dependency(Optional)](#Install-AI-Inference-Dependency)
- - **[Config and Receive UBI Tasks(optional)](#Config-and-Receive-UBI-Tasks)**
- - [Start the Computing Provider](#Start-the-Computing-Provider)
- - [CLI of Computing Provider](#CLI-of-Computing-Provider)
+-  As a ECP
+	- [Run Edge Computing Provider](ubi/README.md)
 
+- As a FCP
+ 	- [Prerequisites](#Prerequisites)
+ 	- [Install the Kubernetes](#Install-the-Kubernetes)
+ 		- [Install Container Runtime Environment](#install-Container-Runtime-Environment)
+ 		- [Optional-Setup a docker registry server](#Optional-setup-a-Docker-Registry-Server)
+		- [Create a Kubernetes Cluster](#Create-a-Kubernetes-Cluster)
+ 		- [Install the Network Plugin](#Install-the-Network-Plugin)
+		- [Install the NVIDIA Plugin](#Install-the-NVIDIA-Plugin)
+		- [Install the Ingress-nginx Controller](#Install-the-Ingress-nginx-Controller)
+ 	- [Install and config the Nginx](#Install-the-Ingress-nginx-Controller)
+ 	- [Install the Hardware resource-exporter](#Install-the-Hardware-resource-exporter)
+ 	- [Install the Redis service](#Install-Redis-service)
+ 	- [Build and config the Computing Provider](#Build-and-config-the-Computing-Provider)
+ 	- [Install AI Inference Dependency(Optional)](#Install-AI-Inference-Dependency)
+ 	- [Config and Receive UBI Tasks(optional)](#Config-and-Receive-UBI-Tasks)
+	 - [Start the Computing Provider](#Start-the-Computing-Provider)
+	 - [CLI of Computing Provider](#CLI-of-Computing-Provider)
+ 
 ## Prerequisites
 Before you install the Computing Provider, you need to know there are some resources required:
  - Possess a public IP
  - Have a domain name (*.example.com)
  - Have an SSL certificate
- - `Go` version must 1.19+, you can refer here:
+ - `Go` version must 1.21+, you can refer here:
 
 ```bash
-wget -c https://golang.org/dl/go1.19.7.linux-amd64.tar.gz -O - | sudo tar -xz -C /usr/local
+wget -c https://golang.org/dl/go1.21.7.linux-amd64.tar.gz -O - | sudo tar -xz -C /usr/local
 
 echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc && source ~/.bashrc
 ```
@@ -51,8 +63,11 @@ To install the `Docker Container Runtime` and the `cri-dockerd`, follow the step
 * Install `cri-dockerd`:
     - `cri-dockerd` is a CRI (Container Runtime Interface) implementation for Docker. You can install it refer to [here](https://github.com/Mirantis/cri-dockerd).
 
-#### Option 2: Install the `Containerd`
-`Containerd` is an industry-standard container runtime that can be used as an alternative to Docker. To install `containerd` on your system, follow the instructions on [getting started with containerd](https://github.com/containerd/containerd/blob/main/docs/getting-started.md).
+#### Option 2: Install the `Docker` and the`Containerd`
+* Install the `Docker`:
+    - Please refer to the official documentation from [here](https://docs.docker.com/engine/install/).
+* To install `Containerd` on your system:
+  - `Containerd` is an industry-standard container runtime that can be used as an alternative to Docker. To install `containerd` on your system, follow the instructions on [getting started with containerd](https://github.com/containerd/containerd/blob/main/docs/getting-started.md).
 
 ### Optional-Setup a docker registry server
 **If you are using the docker and you have only one node, the step can be skipped**.
@@ -249,7 +264,7 @@ server {
 
 
 
-### Install Hardware resource-exporter
+### Install the Hardware resource-exporter
  The `resource-exporter` plugin is developed to collect the node resource constantly, computing provider will report the resource to the Lagrange Auction Engine to match the space requirement. To get the computing task, every node in the cluster must install the plugin. You just need to run the following command:
 
 ```bash
@@ -322,30 +337,31 @@ Edit the necessary configuration files according to your deployment requirements
 
 ```toml
 [API]
-Port = 8085                                     # The port number that the web server listens on
-MultiAddress = "/ip4/<public_ip>/tcp/<port>"    # The multiAddress for libp2p
-Domain = ""                                     # The domain name
-NodeName = ""                                   # The computing-provider node name
+Port = 8085                                    # The port number that the web server listens on
+MultiAddress = "/ip4/<public_ip>/tcp/<port>"   # The multiAddress for libp2p
+Domain = ""                                    # The domain name
+NodeName = ""                                  # The computing-provider node name
 
-RedisUrl = "redis://127.0.0.1:6379"           # The redis server address
-RedisPassword = ""                            # The redis server access password
+RedisUrl = "redis://127.0.0.1:6379"            # The redis server address
+RedisPassword = ""                             # The redis server access password
+WalletWhiteList = ""                           # CP only accepts user addresses from this whitelist for space deployment
 
 [UBI]
-UbiTask = true                                 # Accept the UBI task (Default: true)
-UbiEnginePk = "0xB5aeb540B4895cd024c1625E146684940A849ED9"  # UBI Engine's public key, CP only accept the task from this UBI engine 
-UbiUrl ="https://ubi-task.swanchain.io/v1"     # UBI Engine's API address
+UbiTask = true                                                # Accept the UBI task (Default: true)
+UbiEnginePk = "0xB5aeb540B4895cd024c1625E146684940A849ED9"    # UBI Engine's public key, CP only accept the task from this UBI engine 
+UbiUrl ="https://ubi-task.swanchain.io/v1"                    # UBI Engine's API address
 
 [LOG]
-CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"   # Your domain name SSL .crt file path
-KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"   # Your domain name SSL .key file path
+CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"             # Your domain name SSL .crt file path
+KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"             # Your domain name SSL .key file path
 
 [HUB]
-ServerUrl = "https://orchestrator-api.swanchain.io"     # The Orchestrator's API address
-AccessToken = ""                                    # The Orchestrator's access token, Acquired from "https://orchestrator.swanchain.io" 
-WalletAddress = ""                                  # The cp‘s wallet address
-BalanceThreshold= 1                                # The cp’s collateral balance threshold
+ServerUrl = "https://orchestrator-api.swanchain.io"           # The Orchestrator's API address
+AccessToken = ""                                              # The Orchestrator's access token, Acquired from "https://orchestrator.swanchain.io" 
+WalletAddress = ""                                            # The cp‘s wallet address
+BalanceThreshold= 1                                            # The cp’s collateral balance threshold
 OrchestratorPk = "0x29eD49c8E973696D07E7927f748F6E5Eacd5516D"  # Orchestrator's public key, CP only accept the task from this Orchestrator
-VerifySign = true                                  # Verify that the task signature is from Orchestrator
+VerifySign = true                                              # Verify that the task signature is from Orchestrator
 
 
 [MCS]
@@ -360,17 +376,19 @@ UserName = ""                                 # The login username, if only a si
 Password = ""                                 # The login password, if only a single node, you can ignore
 
 [RPC]
-SWAN_TESTNET ="https://saturn-rpc.swanchain.io"  # Swan testnet RPC
+SWAN_TESTNET ="https://rpc-proxima.swanchain.io"  # Swan testnet RPC
 SWAN_MAINNET= ""								   # Swan mainnet RPC
 
 [CONTRACT]
-SWAN_CONTRACT="0x91B25A65b295F0405552A4bbB77879ab5e38166c"   # Swan token's contract address
-SWAN_COLLATERAL_CONTRACT="0xdc200f89258e72aC3602dD23BD3642C4bd4eE34e"   # Swan's collateral address
+SWAN_CONTRACT="0x91B25A65b295F0405552A4bbB77879ab5e38166c"              # Swan token's contract address
+SWAN_COLLATERAL_CONTRACT="0xfD9190027cd42Fc4f653Dfd9c4c45aeBAf0ae063"   # Swan's collateral address
 ```
+*Note:*  Example WalletWhiteList hosted on GitHub can be found [here](https://raw.githubusercontent.com/swanchain/market-providers/main/clients/whitelist.txt).
+
 ## Install AI Inference Dependency
 It is necessary for Computing Provider to deploy the  AI inference endpoint. But if you do not want to support the feature, you can skip it.
 ```bash
-export CP_PATH=xxx
+export CP_PATH=<YOUR CP_PATH>
 ./install.sh
 ```
 
@@ -440,7 +458,7 @@ Note: Follow [this guide](https://docs.swanchain.io/swan-testnet/swan-saturn-tes
 1.  Deploy a contract with CP's basic info:
 
     ```bash
-    computing-provider init --ownerAddress 0xFbc1d38a2127D81BFe3EA347bec7310a1cfa2373
+    computing-provider account create --ownerAddress 0xFbc1d38a2127D81BFe3EA347bec7310a1cfa2373
     ```
 
     _Output:_
@@ -464,6 +482,7 @@ USAGE:
    computing-provider account command [command options] [arguments...]
 
 COMMANDS:
+   create                    Create a cp account to chain
    changeMultiAddress        Update MultiAddress of CP
    changeOwnerAddress        Update OwnerAddress of CP
    changeBeneficiaryAddress  Update BeneficiaryAddress of CP
@@ -479,7 +498,7 @@ OPTIONS:
 To check the UBI task list, use the following command:
 
 ```
-computing-provider ubi-task list
+computing-provider ubi list
 ```
 
 Example output:
@@ -498,7 +517,7 @@ TASK ID TASK TYPE       ZK TYPE         TRANSACTION HASH                        
 ## Start the Computing Provider
 You can run `computing-provider` using the following command
 ```bash
-export CP_PATH=xxx
+export CP_PATH=<YOUR CP_PATH>
 nohup computing-provider run >> cp.log 2>&1 & 
 ```
 

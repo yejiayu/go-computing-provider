@@ -58,7 +58,6 @@ func NewK8sService() *K8sService {
 			flag.Parse()
 			config, err = clientcmd.BuildConfigFromFlags("", *kubeConfig)
 			if err != nil {
-				logs.GetLogger().Errorf("Failed create k8s config, error: %v", err)
 				return
 			}
 		}
@@ -157,6 +156,32 @@ func (s *K8sService) CreateService(ctx context.Context, nameSpace, spaceUuid str
 			},
 			Selector: map[string]string{
 				"lad_app": spaceUuid,
+			},
+		},
+	}
+	return s.k8sClient.CoreV1().Services(nameSpace).Create(ctx, service, metaV1.CreateOptions{})
+}
+
+func (s *K8sService) CreateServiceByNodePort(ctx context.Context, nameSpace, taskUuid string, containerPort int32) (result *coreV1.Service, err error) {
+	service := &coreV1.Service{
+		TypeMeta: metaV1.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metaV1.ObjectMeta{
+			Name:      constants.K8S_SERVICE_NAME_PREFIX + taskUuid,
+			Namespace: nameSpace,
+		},
+		Spec: coreV1.ServiceSpec{
+			Type: coreV1.ServiceTypeNodePort,
+			Ports: []coreV1.ServicePort{
+				{
+					Name: "tcp",
+					Port: containerPort,
+				},
+			},
+			Selector: map[string]string{
+				"hub-private": taskUuid,
 			},
 		},
 	}
@@ -458,7 +483,7 @@ func (s *K8sService) AddNodeLabel(nodeName, key string) error {
 	return nil
 }
 
-func (s *K8sService) WaitForPodRunning(namespace, spaceUuid, serviceIp string) (string, error) {
+func (s *K8sService) WaitForPodRunningByHttp(namespace, spaceUuid, serviceIp string) (string, error) {
 	var podName string
 	var podErr = errors.New("get pod status failed")
 
@@ -489,6 +514,35 @@ func (s *K8sService) WaitForPodRunning(namespace, spaceUuid, serviceIp string) (
 	return podName, nil
 }
 
+func (s *K8sService) WaitForPodRunningByTcp(namespace, taskUuid string) (string, error) {
+	var podName string
+	err := wait.PollImmediate(time.Second*5, time.Minute*10, func() (done bool, err error) {
+		podList, err := s.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
+			LabelSelector: fmt.Sprintf("hub-private==%s", taskUuid),
+		})
+		if err != nil {
+			logs.GetLogger().Error(err)
+			return false, err
+		}
+		for _, pod := range podList.Items {
+			if pod.Status.Phase != coreV1.PodRunning {
+				return false, nil
+			}
+		}
+		if len(podList.Items) == 0 {
+			return false, nil
+		}
+		podName = podList.Items[0].Name
+		return true, nil
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("get pod status failed, error: %v", err)
+	}
+
+	return podName, nil
+}
+
 func (s *K8sService) PodDoCommand(namespace, podName, containerName string, podCmd []string) error {
 	reader, writer := io.Pipe()
 	req := s.k8sClient.CoreV1().RESTClient().
@@ -503,7 +557,7 @@ func (s *K8sService) PodDoCommand(namespace, podName, containerName string, podC
 			Stdin:     true,
 			Stdout:    true,
 			Stderr:    true,
-			TTY:       false,
+			TTY:       true,
 		}, scheme.ParameterCodec)
 
 	executor, err := remotecommand.NewSPDYExecutor(s.config, "POST", req.URL())
@@ -515,7 +569,7 @@ func (s *K8sService) PodDoCommand(namespace, podName, containerName string, podC
 		Stdin:  reader,
 		Stdout: writer,
 		Stderr: writer,
-		Tty:    false,
+		Tty:    true,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create stream: %w", err)
