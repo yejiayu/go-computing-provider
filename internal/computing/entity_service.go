@@ -35,12 +35,10 @@ func (taskServ TaskService) SaveTaskEntity(task *models.TaskEntity) (err error) 
 	return taskServ.Save(task).Error
 }
 
-func (taskServ TaskService) GetTaskEntity(taskId int64) (task *models.TaskEntity, err error) {
-	err = taskServ.Where(&models.TaskEntity{Id: taskId}).First(task).Error
-	if err != nil {
-		return nil, err
-	}
-	return
+func (taskServ TaskService) GetTaskEntity(taskId int64) (*models.TaskEntity, error) {
+	var taskEntity models.TaskEntity
+	err := taskServ.First(&taskEntity, taskId).Error
+	return &taskEntity, err
 }
 
 func (taskServ TaskService) GetTaskListNoReward() (list []*models.TaskEntity, err error) {
