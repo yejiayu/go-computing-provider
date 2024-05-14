@@ -75,11 +75,8 @@ func ProjectInit(cpRepoPath string) {
 	nodeID := computing.InitComputingProvider(cpRepoPath)
 	// Start sending heartbeats
 	go SendHeartbeats(nodeID)
+	computing.NewCronTask(nodeID).RunTask()
 
-	go computing.NewScheduleTask().Run()
-
-	computing.NewCronTask().RunTask()
-	computing.RunSyncTask(nodeID)
 	celeryService := computing.NewCeleryService()
 	celeryService.RegisterTask(constants.TASK_DEPLOY, computing.DeploySpaceTask)
 	celeryService.Start()

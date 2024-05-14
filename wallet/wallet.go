@@ -470,7 +470,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string, coll
 	return tw.Flush(os.Stdout)
 }
 
-func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, to string, amount string) (string, error) {
+func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, to string, amount string, collateralType string) (string, error) {
 	defer w.keystore.Close()
 	withDrawAmount, err := convertToWei(amount)
 	if err != nil {
@@ -496,16 +496,19 @@ func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, 
 	}
 	defer client.Close()
 
-	collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPrivateKey(ki.PrivateKey))
-	if err != nil {
-		return "", err
+	if collateralType == "fcp" {
+		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPrivateKey(ki.PrivateKey))
+		if err != nil {
+			return "", err
+		}
+		return collateralStub.Withdraw(withDrawAmount)
+	} else {
+		zkCollateral, err := account.NewCollateralStub(client, account.WithPrivateKey(ki.PrivateKey))
+		if err != nil {
+			return "", err
+		}
+		return zkCollateral.Withdraw(withDrawAmount)
 	}
-	withdrawHash, err := collateralStub.Withdraw(withDrawAmount)
-	if err != nil {
-		return "", err
-	}
-
-	return withdrawHash, nil
 }
 
 func (w *LocalWallet) CollateralSend(ctx context.Context, chainName, from, to string, amount string) (string, error) {

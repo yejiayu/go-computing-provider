@@ -429,6 +429,19 @@ var collateralWithdrawCmd = &cli.Command{
 			return fmt.Errorf("chain field cannot be empty")
 		}
 
+		fcpCollateral := cctx.Bool("fcp")
+		ecpCollateral := cctx.Bool("ecp")
+		if !fcpCollateral && !ecpCollateral {
+			return fmt.Errorf("must specify one of fcp or ecp")
+		}
+		var collateralType string
+		if fcpCollateral {
+			collateralType = "fcp"
+		}
+		if ecpCollateral {
+			collateralType = "ecp"
+		}
+
 		to := cctx.Args().Get(0)
 		if strings.TrimSpace(to) == "" {
 			return fmt.Errorf("the to address param cannot be empty")
@@ -443,7 +456,7 @@ var collateralWithdrawCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		txHash, err := localWallet.CollateralWithdraw(ctx, chain, to, amount)
+		txHash, err := localWallet.CollateralWithdraw(ctx, chain, to, amount, collateralType)
 		if err != nil {
 			return err
 		}

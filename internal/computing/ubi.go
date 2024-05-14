@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-swan-lib/logs"
 	"github.com/gin-gonic/gin"
-	"github.com/gomodule/redigo/redis"
 	"github.com/joho/godotenv"
 	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/build"
@@ -50,8 +49,8 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		return
 	}
 
-	if ubiTask.Type != 0 && ubiTask.Type != 1 {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of task_type is 0 or 1"))
+	if ubiTask.SourceType != 0 && ubiTask.SourceType != 1 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of source_type is 0 or 1"))
 		return
 	}
 	if strings.TrimSpace(ubiTask.ZkType) == "" {
@@ -86,18 +85,24 @@ func DoUbiTaskForK8s(c *gin.Context) {
 	}
 
 	var gpuFlag = "0"
-	var ubiTaskToRedis = new(models.CacheUbiTaskDetail)
-	ubiTaskToRedis.TaskId = strconv.Itoa(ubiTask.ID)
-	ubiTaskToRedis.TaskType = "CPU"
-	if ubiTask.Type == 1 {
-		ubiTaskToRedis.TaskType = "GPU"
+	if ubiTask.SourceType == 1 {
 		gpuFlag = "1"
 	}
-	ubiTaskToRedis.Status = constants.UBI_TASK_RECEIVED_STATUS
-	ubiTaskToRedis.ZkType = ubiTask.ZkType
-	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
-	ubiTaskToRedis.Contract = ubiTask.Contract
-	SaveUbiTaskMetadata(ubiTaskToRedis)
+
+	var taskEntity = new(models.TaskEntity)
+	taskEntity.Id = int64(ubiTask.ID)
+	taskEntity.ZkType = ubiTask.ZkType
+	taskEntity.Name = ubiTask.Name
+	taskEntity.Contract = ubiTask.Contract
+	taskEntity.ResourceType = ubiTask.SourceType
+	taskEntity.InputParam = ubiTask.InputParam
+	taskEntity.Status = models.TASK_RECEIVED_STATUS
+	taskEntity.CreateTime = time.Now().Unix()
+	err = NewTaskService().SaveTaskEntity(taskEntity)
+	if err != nil {
+		logs.GetLogger().Errorf("save task entity failed, error: %v", err)
+		return
+	}
 
 	var envFilePath string
 	envFilePath = filepath.Join(os.Getenv("CP_PATH"), "fil-c2.env")
@@ -109,19 +114,19 @@ func DoUbiTaskForK8s(c *gin.Context) {
 
 	c2GpuConfig := envVars["RUST_GPU_TOOLS_CUSTOM_GPU"]
 	c2GpuName := convertGpuName(strings.TrimSpace(c2GpuConfig))
-	nodeName, architecture, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.Type, c2GpuName, ubiTask.Resource)
+	nodeName, architecture, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.SourceType, c2GpuName, ubiTask.Resource)
 	if err != nil {
-		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
-		SaveUbiTaskMetadata(ubiTaskToRedis)
+		taskEntity.Status = models.TASK_FAILED_STATUS
+		NewTaskService().SaveTaskEntity(taskEntity)
 		logs.GetLogger().Errorf("check resource failed, error: %v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
 		return
 	}
 
 	if nodeName == "" {
-		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
-		SaveUbiTaskMetadata(ubiTaskToRedis)
-		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, ubiTaskToRedis.TaskType)
+		taskEntity.Status = models.TASK_FAILED_STATUS
+		NewTaskService().SaveTaskEntity(taskEntity)
+		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.SourceType))
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
 		return
 	}
@@ -145,32 +150,32 @@ func DoUbiTaskForK8s(c *gin.Context) {
 	diskUnit := strings.ReplaceAll(disk, "B", "")
 	memQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needMemory, memUnit))
 	if err != nil {
-		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
-		SaveUbiTaskMetadata(ubiTaskToRedis)
+		taskEntity.Status = models.TASK_FAILED_STATUS
+		NewTaskService().SaveTaskEntity(taskEntity)
 		logs.GetLogger().Error("get memory failed, error: %+v", err)
 		return
 	}
 
 	storageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needStorage, diskUnit))
 	if err != nil {
-		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
-		SaveUbiTaskMetadata(ubiTaskToRedis)
+		taskEntity.Status = models.TASK_FAILED_STATUS
+		NewTaskService().SaveTaskEntity(taskEntity)
 		logs.GetLogger().Error("get storage failed, error: %+v", err)
 		return
 	}
 
 	maxMemQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needMemory*2, memUnit))
 	if err != nil {
-		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
-		SaveUbiTaskMetadata(ubiTaskToRedis)
+		taskEntity.Status = models.TASK_FAILED_STATUS
+		NewTaskService().SaveTaskEntity(taskEntity)
 		logs.GetLogger().Error("get memory failed, error: %+v", err)
 		return
 	}
 
 	maxStorageQuantity, err := resource.ParseQuantity(fmt.Sprintf("%d%s", needStorage*2, diskUnit))
 	if err != nil {
-		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
-		SaveUbiTaskMetadata(ubiTaskToRedis)
+		taskEntity.Status = models.TASK_FAILED_STATUS
+		NewTaskService().SaveTaskEntity(taskEntity)
 		logs.GetLogger().Error("get storage failed, error: %+v", err)
 		return
 	}
@@ -194,29 +199,31 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		var namespace = "ubi-task-" + strconv.Itoa(ubiTask.ID)
 		var err error
 		defer func() {
-			key := constants.REDIS_UBI_C2_PERFIX + strconv.Itoa(ubiTask.ID)
-			ubiTaskRun, err := RetrieveUbiTaskMetadata(key)
+			ubiTaskRun, err := NewTaskService().GetTaskEntity(int64(ubiTask.ID))
 			if err != nil {
-				logs.GetLogger().Errorf("get ubi task detail from db failed, ubiTaskId: %s, error: %+v", key, err)
+				logs.GetLogger().Errorf("get ubi task detail from db failed, ubiTaskId: %d, error: %+v", ubiTask.ID, err)
 				return
 			}
-			if ubiTaskRun.TaskId == "" {
-				ubiTaskRun = new(models.CacheUbiTaskDetail)
-				ubiTaskRun.TaskId = ubiTaskToRedis.TaskId
-				ubiTaskRun.TaskType = ubiTaskToRedis.TaskType
+			if ubiTaskRun.Id == 0 {
+				ubiTaskRun = new(models.TaskEntity)
+				ubiTaskRun.Id = int64(ubiTask.ID)
 				ubiTaskRun.ZkType = ubiTask.ZkType
-				ubiTaskRun.CreateTime = ubiTaskToRedis.CreateTime
+				ubiTaskRun.Name = ubiTask.Name
+				ubiTaskRun.Contract = ubiTask.Contract
+				ubiTaskRun.ResourceType = ubiTask.SourceType
+				ubiTaskRun.InputParam = ubiTask.InputParam
+				ubiTaskRun.CreateTime = time.Now().Unix()
 				ubiTaskRun.Contract = ubiTask.Contract
 			}
 
 			if err == nil {
-				ubiTaskRun.Status = constants.UBI_TASK_RUNNING_STATUS
+				ubiTaskRun.Status = models.TASK_RUNNING_STATUS
 			} else {
-				ubiTaskRun.Status = constants.UBI_TASK_FAILED_STATUS
+				ubiTaskRun.Status = models.TASK_FAILED_STATUS
 				k8sService := NewK8sService()
 				k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metaV1.DeleteOptions{})
 			}
-			SaveUbiTaskMetadata(ubiTaskRun)
+			err = NewTaskService().SaveTaskEntity(ubiTaskRun)
 		}()
 
 		k8sService := NewK8sService()
@@ -263,7 +270,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			},
 			v1.EnvVar{
 				Name:  "TASK_TYPE",
-				Value: strconv.Itoa(ubiTask.Type),
+				Value: strconv.Itoa(ubiTask.SourceType),
 			},
 			v1.EnvVar{
 				Name:  "ZK_TYPE",
@@ -382,29 +389,39 @@ func ReceiveUbiProofForK8s(c *gin.Context) {
 		NameSpace string `json:"name_space"`
 	}
 
-	var submitUBIProofTx string
-	var err error
-	defer func() {
-		key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
-		ubiTask, _ := RetrieveUbiTaskMetadata(key)
-		if err == nil {
-			ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
-		} else {
-			ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
-		}
-		ubiTask.Tx = submitUBIProofTx
-		SaveUbiTaskMetadata(ubiTask)
-		if strings.TrimSpace(c2Proof.NameSpace) != "" {
-			k8sService := NewK8sService()
-			k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), c2Proof.NameSpace, metaV1.DeleteOptions{})
-		}
-	}()
-
 	if err := c.ShouldBindJSON(&c2Proof); err != nil {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
 	logs.GetLogger().Infof("task_id: %s, C2 proof out received: %+v", c2Proof.TaskId, c2Proof)
+
+	taskId, err := strconv.Atoi(c2Proof.TaskId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
+	}
+
+	var submitUBIProofTx string
+	ubiTask, err := NewTaskService().GetTaskEntity(int64(taskId))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
+	}
+
+	defer func() {
+		if err == nil {
+			ubiTask.Status = models.TASK_SUCCESS_STATUS
+		} else {
+			ubiTask.Status = models.TASK_FAILED_STATUS
+		}
+		ubiTask.TxHash = submitUBIProofTx
+		NewTaskService().SaveTaskEntity(ubiTask)
+
+		if strings.TrimSpace(c2Proof.NameSpace) != "" {
+			k8sService := NewK8sService()
+			k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), c2Proof.NameSpace, metaV1.DeleteOptions{})
+		}
+	}()
 
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
@@ -454,20 +471,13 @@ func ReceiveUbiProofForK8s(c *gin.Context) {
 		return
 	}
 
-	key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
-	ubiTask, _ := RetrieveUbiTaskMetadata(key)
-	if err != nil {
-		logs.GetLogger().Errorf("get task contract error: %v", err)
-		return
-	}
-
 	submitUBIProofTx, err = accountStub.SubmitUBIProof(ubiTask.Contract, c2Proof.TaskId, uint8(taskType), uint8(taskType), c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return
 	}
 
-	fmt.Printf("submitUBIProofTx: %s", submitUBIProofTx)
+	logs.GetLogger().Infof("submitUBIProofTx: %s", submitUBIProofTx)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
@@ -489,8 +499,8 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		return
 	}
 
-	if ubiTask.Type != 0 && ubiTask.Type != 1 {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of task_type is 0 or 1"))
+	if ubiTask.SourceType != 0 && ubiTask.SourceType != 1 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of source_type is 0 or 1"))
 		return
 	}
 	if strings.TrimSpace(ubiTask.ZkType) == "" {
@@ -529,32 +539,38 @@ func DoUbiTaskForDocker(c *gin.Context) {
 	}
 
 	var gpuFlag = "0"
-	var ubiTaskToRedis = new(models.CacheUbiTaskDetail)
-	ubiTaskToRedis.TaskId = strconv.Itoa(ubiTask.ID)
-	ubiTaskToRedis.TaskType = "CPU"
-	if ubiTask.Type == 1 {
-		ubiTaskToRedis.TaskType = "GPU"
+	if ubiTask.SourceType == 1 {
 		gpuFlag = "1"
 	}
-	ubiTaskToRedis.Status = constants.UBI_TASK_RECEIVED_STATUS
-	ubiTaskToRedis.ZkType = ubiTask.ZkType
-	ubiTaskToRedis.CreateTime = time.Now().Format("2006-01-02 15:04:05")
-	ubiTaskToRedis.Contract = ubiTask.Contract
-	SaveUbiTaskMetadata(ubiTaskToRedis)
+
+	var taskEntity = new(models.TaskEntity)
+	taskEntity.Id = int64(ubiTask.ID)
+	taskEntity.ZkType = ubiTask.ZkType
+	taskEntity.Name = ubiTask.Name
+	taskEntity.Contract = ubiTask.Contract
+	taskEntity.ResourceType = ubiTask.SourceType
+	taskEntity.InputParam = ubiTask.InputParam
+	taskEntity.Status = models.TASK_RECEIVED_STATUS
+	taskEntity.CreateTime = time.Now().Unix()
+	err = NewTaskService().SaveTaskEntity(taskEntity)
+	if err != nil {
+		logs.GetLogger().Errorf("save task entity failed, error: %v", err)
+		return
+	}
 
 	suffice, architecture, _, needMemory, err := checkResourceForUbi(ubiTask.Resource)
 	if err != nil {
-		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
-		SaveUbiTaskMetadata(ubiTaskToRedis)
+		taskEntity.Status = models.TASK_FAILED_STATUS
+		NewTaskService().SaveTaskEntity(taskEntity)
 		logs.GetLogger().Errorf("check resource failed, error: %v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
 		return
 	}
 
 	if !suffice {
-		ubiTaskToRedis.Status = constants.UBI_TASK_FAILED_STATUS
-		SaveUbiTaskMetadata(ubiTaskToRedis)
-		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, ubiTaskToRedis.TaskType)
+		taskEntity.Status = models.TASK_FAILED_STATUS
+		NewTaskService().SaveTaskEntity(taskEntity)
+		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.SourceType))
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
 		return
 	}
@@ -579,27 +595,28 @@ func DoUbiTaskForDocker(c *gin.Context) {
 
 	go func() {
 		defer func() {
-			key := constants.REDIS_UBI_C2_PERFIX + strconv.Itoa(ubiTask.ID)
-			ubiTaskRun, err := RetrieveUbiTaskMetadata(key)
+			ubiTaskRun, err := NewTaskService().GetTaskEntity(int64(ubiTask.ID))
 			if err != nil {
-				logs.GetLogger().Errorf("get ubi task detail from db failed, ubiTaskId: %s, error: %+v", key, err)
+				logs.GetLogger().Errorf("get ubi task detail from db failed, ubiTaskId: %d, error: %+v", ubiTask.ID, err)
 				return
 			}
-			if ubiTaskRun.TaskId == "" {
-				ubiTaskRun = new(models.CacheUbiTaskDetail)
-				ubiTaskRun.TaskId = ubiTaskToRedis.TaskId
-				ubiTaskRun.TaskType = ubiTaskToRedis.TaskType
+			if ubiTaskRun.Id == 0 {
+				ubiTaskRun = new(models.TaskEntity)
+				ubiTaskRun.Id = int64(ubiTask.ID)
 				ubiTaskRun.ZkType = ubiTask.ZkType
+				ubiTaskRun.Name = ubiTask.Name
 				ubiTaskRun.Contract = ubiTask.Contract
-				ubiTaskRun.CreateTime = ubiTaskToRedis.CreateTime
+				ubiTaskRun.ResourceType = ubiTask.SourceType
+				ubiTaskRun.InputParam = ubiTask.InputParam
+				ubiTaskRun.CreateTime = time.Now().Unix()
+				ubiTaskRun.Contract = ubiTask.Contract
 			}
-
 			if err == nil {
-				ubiTaskRun.Status = constants.UBI_TASK_RUNNING_STATUS
+				ubiTaskRun.Status = models.TASK_RUNNING_STATUS
 			} else {
-				ubiTaskRun.Status = constants.UBI_TASK_FAILED_STATUS
+				ubiTaskRun.Status = models.TASK_FAILED_STATUS
 			}
-			SaveUbiTaskMetadata(ubiTaskRun)
+			NewTaskService().SaveTaskEntity(ubiTaskRun)
 		}()
 
 		multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
@@ -609,7 +626,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 
 		var env = []string{"RECEIVE_PROOF_URL=" + receiveUrl}
 		env = append(env, "TASKID="+strconv.Itoa(ubiTask.ID))
-		env = append(env, "TASK_TYPE="+strconv.Itoa(ubiTask.Type))
+		env = append(env, "TASK_TYPE="+strconv.Itoa(ubiTask.SourceType))
 		env = append(env, "ZK_TYPE="+ubiTask.ZkType)
 		env = append(env, "NAME_SPACE=docker-ubi-task")
 		env = append(env, "PARAM_URL="+ubiTask.InputParam)
@@ -720,17 +737,6 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 	var submitUBIProofTx string
 	var err error
 	var c2Proof models.UbiC2Proof
-	defer func() {
-		key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
-		ubiTask, _ := RetrieveUbiTaskMetadata(key)
-		if err == nil {
-			ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
-		} else {
-			ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
-		}
-		ubiTask.Tx = submitUBIProofTx
-		SaveUbiTaskMetadata(ubiTask)
-	}()
 
 	if err := c.ShouldBindJSON(&c2Proof); err != nil {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
@@ -738,9 +744,30 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("task_id: %s, c2 proof out received: %+v", c2Proof.TaskId, c2Proof)
 
+	taskId, err := strconv.Atoi(c2Proof.TaskId)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
+	}
+	ubiTask, err := NewTaskService().GetTaskEntity(int64(taskId))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
+	}
+
+	defer func() {
+		if err == nil {
+			ubiTask.Status = models.TASK_SUCCESS_STATUS
+		} else {
+			ubiTask.Status = models.TASK_FAILED_STATUS
+		}
+		ubiTask.TxHash = submitUBIProofTx
+		NewTaskService().SaveTaskEntity(ubiTask)
+	}()
+
 	retries := 3
 	for i := 0; i < retries; i++ {
-		submitUBIProofTx, err = submitUBIProof(c2Proof)
+		submitUBIProofTx, err = submitUBIProof(c2Proof, ubiTask.Contract)
 		if err == nil {
 			break
 		}
@@ -780,7 +807,7 @@ func GetCpResource(c *gin.Context) {
 	})
 }
 
-func submitUBIProof(c2Proof models.UbiC2Proof) (string, error) {
+func submitUBIProof(c2Proof models.UbiC2Proof, contract string) (string, error) {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
 		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
@@ -828,14 +855,7 @@ func submitUBIProof(c2Proof models.UbiC2Proof) (string, error) {
 		return "", err
 	}
 
-	key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
-	ubiTask, _ := RetrieveUbiTaskMetadata(key)
-	if err != nil {
-		logs.GetLogger().Errorf("get task contract error: %v", err)
-		return "", err
-	}
-
-	submitUBIProofTx, err := accountStub.SubmitUBIProof(ubiTask.Contract, c2Proof.TaskId, uint8(taskType), uint8(taskType), c2Proof.Proof)
+	submitUBIProofTx, err := accountStub.SubmitUBIProof(contract, c2Proof.TaskId, uint8(taskType), uint8(taskType), c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return "", err
@@ -887,30 +907,91 @@ func CleanDockerResource() {
 	go func() {
 		ticker := time.NewTicker(3 * time.Minute)
 		for range ticker.C {
-			conn := GetRedisClient()
-			prefix := constants.REDIS_UBI_C2_PERFIX + "*"
-			keys, err := redis.Strings(conn.Do("KEYS", prefix))
+			var taskList []models.TaskEntity
+			err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and status !=?", models.TASK_SUCCESS_STATUS, models.TASK_FAILED_STATUS).Or("tx_hash==''").Find(&taskList).Error
 			if err != nil {
-				logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
+				logs.GetLogger().Errorf("Failed get task list, error: %+v", err)
 				return
 			}
-			for _, key := range keys {
-				ubiTask, err := RetrieveUbiTaskMetadata(key)
-				if err != nil {
-					logs.GetLogger().Errorf("Failed get ubi task from redis, key: %s, error: %+v", key, err)
-					return
-				}
 
-				if ubiTask.Status != constants.UBI_TASK_SUCCESS_STATUS && ubiTask.Status != constants.UBI_TASK_FAILED_STATUS {
-					ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
-				}
-
-				if ubiTask.Tx != "" {
-					ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
-				}
-
-				SaveUbiTaskMetadata(ubiTask)
+			for _, entity := range taskList {
+				ubiTask := entity
+				ubiTask.Status = models.TASK_FAILED_STATUS
+				NewTaskService().SaveTaskEntity(&ubiTask)
 			}
 		}
 	}()
+
+	go func() {
+		cpRepoPath, _ := os.LookupEnv("CP_PATH")
+		nodeId := GetNodeId(cpRepoPath)
+		ticker := time.NewTicker(10 * time.Minute)
+		for range ticker.C {
+			taskList, err := NewTaskService().GetTaskListNoReward()
+			if err != nil {
+				logs.GetLogger().Errorf("Failed get task list, error: %+v", err)
+				return
+			}
+
+			for _, entity := range taskList {
+				ubiTask := entity
+				reward, err := getReward(nodeId, strconv.Itoa(int(ubiTask.Id)))
+				if err != nil {
+					logs.GetLogger().Errorf("get ubi task reward failed, taskId: %d, error: %v", ubiTask.Id, err)
+					continue
+				}
+				ubiTask.Reward = reward
+				NewTaskService().SaveTaskEntity(ubiTask)
+			}
+		}
+	}()
+}
+
+func getReward(nodeId, taskId string) (float64, error) {
+	var taskInfo TaskInfo
+
+	url := fmt.Sprintf("%s/rewards?node_id=%s&task_id=%s", conf.GetConfig().UBI.UbiUrl, nodeId, taskId)
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("get ubi task reward failed")
+	}
+
+	bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	err = json.Unmarshal(bytes, &taskInfo)
+	if err != nil {
+		return 0, err
+	}
+	if len(taskInfo.Data.List) > 0 {
+		task := taskInfo.Data.List[0]
+		floatVal, _ := strconv.ParseFloat(task.Amount, 64)
+		return floatVal, nil
+	} else {
+		return 0, nil
+	}
+}
+
+type TaskInfo struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data struct {
+		Total int `json:"total"`
+		List  []struct {
+			TaskId          int    `json:"task_id"`
+			BeneficiaryAddr string `json:"beneficiary_addr"`
+			Amount          string `json:"amount"`
+			From            string `json:"from"`
+			TxHash          string `json:"tx_hash"`
+			ChainId         int    `json:"chain_id"`
+			CreatedAt       int    `json:"created_at"`
+		} `json:"list"`
+	} `json:"data"`
 }

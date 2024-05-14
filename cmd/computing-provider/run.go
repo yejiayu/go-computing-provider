@@ -131,7 +131,7 @@ var infoCmd = &cli.Command{
 			for _, taskType := range cpAccount.TaskTypes {
 				switch taskType {
 				case 1:
-					taskTypes += "Filecoin-C2,"
+					taskTypes += "Fil-C2,"
 
 				case 2:
 					taskTypes += "Aleo,"
@@ -365,7 +365,7 @@ var createAccountCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "task-types",
-			Usage: "Task types of CP (1:Filecoin-C2, 2:Aleo), separated by commas",
+			Usage: "Task types of CP (1:Fil-C2, 2:Aleo), separated by commas",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -707,7 +707,7 @@ var changeWorkerAddressCmd = &cli.Command{
 
 var changeTaskTypesCmd = &cli.Command{
 	Name:      "changeTaskTypes",
-	Usage:     "Update taskTypes of CP (1:Filecoin, 2:Aleo), separated by commas",
+	Usage:     "Update taskTypes of CP (1:Fil-C2, 2:Aleo), separated by commas",
 	ArgsUsage: "[TaskTypes]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
