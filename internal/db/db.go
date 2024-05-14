@@ -6,7 +6,6 @@ import (
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"os"
 	"path"
 )
 
@@ -15,14 +14,9 @@ const cpDBName = "provider.db"
 var DB *gorm.DB
 var dblog = logging.Logger("db")
 
-func init() {
+func InitDb(cpRepoPath string) {
 	var err error
-	cpRepo, ok := os.LookupEnv("CP_PATH")
-	if !ok {
-		dblog.Panicf("not found cp-repo, need to required")
-		return
-	}
-	DB, err = gorm.Open(sqlite.Open(path.Join(cpRepo, cpDBName)), &gorm.Config{})
+	DB, err = gorm.Open(sqlite.Open(path.Join(cpRepoPath, cpDBName)), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
