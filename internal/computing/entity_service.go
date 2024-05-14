@@ -36,7 +36,7 @@ func (taskServ TaskService) SaveTaskEntity(task *models.TaskEntity) (err error) 
 }
 
 func (taskServ TaskService) GetTaskEntity(taskId int64) (task *models.TaskEntity, err error) {
-	err = taskServ.Limit(1).Where(&models.TaskEntity{Id: taskId}).Find(task).Error
+	err = taskServ.Where(&models.TaskEntity{Id: taskId}).First(task).Error
 	if err != nil {
 		return nil, err
 	}
