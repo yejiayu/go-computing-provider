@@ -522,21 +522,21 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		return
 	}
 
-	cpRepoPath, _ := os.LookupEnv("CP_PATH")
-	nodeID := GetNodeId(cpRepoPath)
-
-	signature, err := verifySignature(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
-	if err != nil {
-		logs.GetLogger().Errorf("verifySignature for ubi task failed, error: %+v", err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "sign data failed"))
-		return
-	}
-
-	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
-	if !signature {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
-		return
-	}
+	//cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	//nodeID := GetNodeId(cpRepoPath)
+	//
+	//signature, err := verifySignature(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%d", nodeID, ubiTask.Contract), ubiTask.Signature)
+	//if err != nil {
+	//	logs.GetLogger().Errorf("verifySignature for ubi task failed, error: %+v", err)
+	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "sign data failed"))
+	//	return
+	//}
+	//
+	//logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
+	//if !signature {
+	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
+	//	return
+	//}
 
 	var gpuFlag = "0"
 	if ubiTask.SourceType == 1 {
@@ -552,7 +552,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 	taskEntity.InputParam = ubiTask.InputParam
 	taskEntity.Status = models.TASK_RECEIVED_STATUS
 	taskEntity.CreateTime = time.Now().Unix()
-	err = NewTaskService().SaveTaskEntity(taskEntity)
+	err := NewTaskService().SaveTaskEntity(taskEntity)
 	if err != nil {
 		logs.GetLogger().Errorf("save task entity failed, error: %v", err)
 		return
