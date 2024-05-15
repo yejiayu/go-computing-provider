@@ -382,6 +382,7 @@ func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 	defer logReader.Close()
 	all, err := io.ReadAll(logReader)
 	result := string(all)
+	println(result)
 	index := strings.Index(result, "{")
 	if index > 0 {
 		return result[index:], nil
