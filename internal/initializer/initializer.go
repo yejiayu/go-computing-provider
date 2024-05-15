@@ -35,7 +35,7 @@ func sendHeartbeat(nodeId, ownerAddress string) {
 	resp, err := client.Do(req)
 	if err != nil {
 		logs.GetLogger().Errorf("Error sending heartbeat, retrying to connect to the Swan Hub server: %v", err)
-		computing.Reconnect(nodeId)
+		computing.Reconnect(nodeId, ownerAddress)
 	} else {
 		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -52,16 +52,12 @@ func sendHeartbeat(nodeId, ownerAddress string) {
 			} else {
 				logs.GetLogger().Warningln("resp status:", resp.StatusCode, "error:", string(data), "retrying to connect to the Swan Hub server")
 			}
-			computing.Reconnect(nodeId)
+			computing.Reconnect(nodeId, ownerAddress)
 		}
 	}
 }
 
-func SendHeartbeats(nodeId string) {
-	ownerAddress, err := computing.GetOwnerAddress()
-	if err != nil {
-		return
-	}
+func SendHeartbeats(nodeId, ownerAddress string) {
 	ticker := time.NewTicker(15 * time.Second)
 	for range ticker.C {
 		sendHeartbeat(nodeId, ownerAddress)
@@ -72,9 +68,15 @@ func ProjectInit(cpRepoPath string) {
 	if err := conf.InitConfig(cpRepoPath, false); err != nil {
 		logs.GetLogger().Fatal(err)
 	}
-	nodeID := computing.InitComputingProvider(cpRepoPath)
-	// Start sending heartbeats
-	go SendHeartbeats(nodeID)
+
+	ownerAddress, _, err := computing.GetOwnerAddressAndWorkerAddress()
+	if err != nil {
+		logs.GetLogger().Fatalf("get owner address failed, error: %v", err)
+		return
+	}
+
+	nodeID := computing.InitComputingProvider(cpRepoPath, ownerAddress)
+	go SendHeartbeats(nodeID, ownerAddress)
 	computing.NewCronTask(nodeID).RunTask()
 
 	celeryService := computing.NewCeleryService()

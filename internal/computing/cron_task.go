@@ -27,16 +27,22 @@ var deployingChan = make(chan models.Job)
 var TaskMap sync.Map
 
 type CronTask struct {
-	nodeId string
+	nodeId       string
+	ownerAddress string
 }
 
 func NewCronTask(nodeId string) *CronTask {
-	return &CronTask{nodeId: nodeId}
+	ownerAddress, _, err := GetOwnerAddressAndWorkerAddress()
+	if err != nil {
+		logs.GetLogger().Errorf("get owner address failed, error: %v", err)
+		return nil
+	}
+	return &CronTask{nodeId: nodeId, ownerAddress: ownerAddress}
 }
 
 func (task *CronTask) RunTask() {
 	addNodeLabel()
-	checkJobStatus()
+	checkJobStatus(task.ownerAddress)
 	task.checkCollateralBalance()
 	task.cleanAbnormalDeployment()
 	task.setFailedUbiTaskStatus()
@@ -45,7 +51,7 @@ func (task *CronTask) RunTask() {
 	task.updateUbiTaskReward()
 }
 
-func checkJobStatus() {
+func checkJobStatus(ownerAddress string) {
 	go func() {
 		for {
 			select {
@@ -55,7 +61,7 @@ func checkJobStatus() {
 				TaskMap.Range(func(key, value any) bool {
 					jobUuid := key.(string)
 					job := value.(*models.Job)
-					if reportJobStatus(jobUuid, job.Status) && job.Status == models.JobDeployToK8s {
+					if reportJobStatus(jobUuid, job.Status, ownerAddress) && job.Status == models.JobDeployToK8s {
 						TaskMap.Delete(jobUuid)
 					}
 					return true
@@ -66,11 +72,6 @@ func checkJobStatus() {
 }
 
 func (task *CronTask) reportClusterResourceToHub() {
-	ownerAddress, err := GetOwnerAddress()
-	if err != nil {
-		return
-	}
-
 	location, err := getLocation()
 	if err != nil {
 		logs.GetLogger().Error(err)
@@ -87,7 +88,7 @@ func (task *CronTask) reportClusterResourceToHub() {
 		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
-			reportClusterResource(location, task.nodeId, ownerAddress)
+			reportClusterResource(location, task.nodeId, task.ownerAddress)
 			checkClusterProviderStatus()
 		}
 	})
@@ -200,11 +201,6 @@ func (task *CronTask) watchExpiredTask() {
 }
 
 func (task *CronTask) checkCollateralBalance() {
-	ownerAddress, err := GetOwnerAddress()
-	if err != nil {
-		return
-	}
-
 	c := cron.New(cron.WithSeconds())
 	c.AddFunc("0/15 * * * * ?", func() {
 		defer func() {
@@ -213,7 +209,7 @@ func (task *CronTask) checkCollateralBalance() {
 			}
 		}()
 
-		url := fmt.Sprintf("%s/cp/collateral/%s", conf.GetConfig().HUB.ServerUrl, ownerAddress)
+		url := fmt.Sprintf("%s/cp/collateral/%s", conf.GetConfig().HUB.ServerUrl, task.ownerAddress)
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
 			logs.GetLogger().Errorf("create req failed: %+v", err)
@@ -376,7 +372,6 @@ func (task *CronTask) updateUbiTaskReward() {
 			ubiTask.Reward = reward
 			NewTaskService().SaveTaskEntity(ubiTask)
 		}
-
 	})
 	c.Start()
 }
@@ -499,12 +494,7 @@ func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
 	return taskStatus.Status, nil
 }
 
-func reportJobStatus(jobUuid string, jobStatus models.JobStatus) bool {
-	ownerAddress, err := GetOwnerAddress()
-	if err != nil {
-		return false
-	}
-
+func reportJobStatus(jobUuid string, jobStatus models.JobStatus, ownerAddress string) bool {
 	reqParam := map[string]interface{}{
 		"job_uuid":       jobUuid,
 		"status":         jobStatus,

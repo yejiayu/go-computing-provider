@@ -22,12 +22,12 @@ import (
 	"github.com/swanchain/go-computing-provider/conf"
 )
 
-func Reconnect(nodeID string) string {
-	updateProviderInfo(nodeID, "", "", models.ActiveStatus)
+func Reconnect(nodeID, ownerAddress string) string {
+	updateProviderInfo(nodeID, "", "", models.ActiveStatus, ownerAddress)
 	return nodeID
 }
 
-func updateProviderInfo(nodeID, peerID, address string, status string) {
+func updateProviderInfo(nodeID, peerID, address string, status string, ownerAddress string) {
 	updateURL := conf.GetConfig().HUB.ServerUrl + "/cp"
 
 	var cpName string
@@ -35,11 +35,6 @@ func updateProviderInfo(nodeID, peerID, address string, status string) {
 		cpName = conf.GetConfig().API.NodeName
 	} else {
 		cpName, _ = os.Hostname()
-	}
-
-	ownerAddress, err := GetOwnerAddress()
-	if err != nil {
-		return
 	}
 
 	provider := models.ComputingProvider{
@@ -84,13 +79,12 @@ func updateProviderInfo(nodeID, peerID, address string, status string) {
 	}
 }
 
-func InitComputingProvider(cpRepoPath string) string {
+func InitComputingProvider(cpRepoPath, ownerAddress string) string {
 	nodeID, peerID, address := GenerateNodeID(cpRepoPath)
 
 	logs.GetLogger().Infof("Node ID :%s Peer ID:%s address:%s",
-		nodeID,
-		peerID, address)
-	updateProviderInfo(nodeID, peerID, address, models.ActiveStatus)
+		nodeID, peerID, address)
+	updateProviderInfo(nodeID, peerID, address, models.ActiveStatus, ownerAddress)
 	return nodeID
 }
 
@@ -142,29 +136,30 @@ func hashPublicKey(publicKey *ecdsa.PublicKey) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func GetOwnerAddress() (string, error) {
+func GetOwnerAddressAndWorkerAddress() (string, string, error) {
 	chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
 		logs.GetLogger().Errorf("get rpc link failed, error: %v", err)
-		return "", err
+		return "", "", err
 	}
 	client, err := ethclient.Dial(chainRpc)
 	if err != nil {
 		logs.GetLogger().Errorf("connect to rpc failed, error: %v", err)
-		return "", err
+		return "", "", err
 	}
 	defer client.Close()
 
 	cpStub, err := account.NewAccountStub(client)
 	if err != nil {
 		logs.GetLogger().Errorf("create account stub failed, error: %v", err)
-		return "", err
+		return "", "", err
 	}
 	cpAccount, err := cpStub.GetCpAccountInfo()
 	if err != nil {
 		err = fmt.Errorf("get cpAccount failed, error: %v", err)
-		return "", err
+		return "", "", err
 	}
 	ownerAddress := cpAccount.OwnerAddress
-	return ownerAddress, nil
+	workerAddress := cpAccount.WorkerAddress
+	return ownerAddress, workerAddress, nil
 }

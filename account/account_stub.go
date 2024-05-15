@@ -72,25 +72,6 @@ func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, err
 	return stub, nil
 }
 
-func (s *CpStub) SubmitUBIProof(taskContractAddress string, taskId string, taskType uint8, resourceType uint8, proof string) (string, error) {
-	publicAddress, err := s.privateKeyToPublicKey()
-	if err != nil {
-		return "", err
-	}
-
-	txOptions, err := s.createTransactOpts()
-	if err != nil {
-		return "", fmt.Errorf("address: %s, cpAccount client create transaction, error: %+v", publicAddress, err)
-	}
-
-	taskContract := common.HexToAddress(taskContractAddress)
-	transaction, err := s.account.SubmitUBIProof(txOptions, taskContract, taskId, taskType, resourceType, proof)
-	if err != nil {
-		return "", fmt.Errorf("address: %s, cpAccount client create SubmitUBIProof tx error: %+v", publicAddress, err)
-	}
-	return transaction.Hash().String(), nil
-}
-
 func (s *CpStub) ChangeMultiAddress(newMultiAddress []string) (string, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {

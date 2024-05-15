@@ -122,14 +122,14 @@ type CacheSpaceDetail struct {
 }
 
 type UBITaskReq struct {
-	ID         int           `json:"id"`
-	Name       string        `json:"name,omitempty"`
-	SourceType int           `json:"source_type"`
-	ZkType     string        `json:"zk_type"`
-	InputParam string        `json:"input_param"`
-	Signature  string        `json:"signature"`
-	Resource   *TaskResource `json:"resource"`
-	Contract   string        `json:"contract"`
+	ID           int           `json:"id"`
+	Name         string        `json:"name,omitempty"`
+	ZkType       string        `json:"zk_type"`
+	InputParam   string        `json:"input_param"`
+	Signature    string        `json:"signature"`
+	Resource     *TaskResource `json:"resource"`
+	ResourceType int           `json:"resource_type"`
+	ContractAddr string        `json:"contract_addr"`
 }
 
 type UbiC2Proof struct {
@@ -162,7 +162,7 @@ type Account struct {
 	OwnerAddress   string
 	NodeId         string
 	MultiAddresses []string
-	TaskTypes      []uint8 // 1: Filecoin 2: Aleo
+	TaskTypes      []uint8 // 1: Fil-C2 2: Aleo
 	Beneficiary    string
 	WorkerAddress  string
 	Version        string

@@ -49,8 +49,8 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		return
 	}
 
-	if ubiTask.SourceType != 0 && ubiTask.SourceType != 1 {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of source_type is 0 or 1"))
+	if ubiTask.ResourceType != 0 && ubiTask.ResourceType != 1 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of resource_type is 0 or 1"))
 		return
 	}
 	if strings.TrimSpace(ubiTask.ZkType) == "" {
@@ -67,11 +67,15 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
 		return
 	}
+	if strings.TrimSpace(ubiTask.ContractAddr) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: contract_addr"))
+		return
+	}
 
 	cpRepoPath, _ := os.LookupEnv("CP_PATH")
 	nodeID := GetNodeId(cpRepoPath)
 
-	signature, err := verifySignature(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%d", nodeID, ubiTask.ID), ubiTask.Signature)
+	signature, err := verifySignature(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%s", nodeID, ubiTask.ContractAddr), ubiTask.Signature)
 	if err != nil {
 		logs.GetLogger().Errorf("verifySignature for ubi task failed, error: %+v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "sign data failed"))
@@ -85,7 +89,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 	}
 
 	var gpuFlag = "0"
-	if ubiTask.SourceType == 1 {
+	if ubiTask.ResourceType == 1 {
 		gpuFlag = "1"
 	}
 
@@ -93,8 +97,8 @@ func DoUbiTaskForK8s(c *gin.Context) {
 	taskEntity.Id = int64(ubiTask.ID)
 	taskEntity.ZkType = ubiTask.ZkType
 	taskEntity.Name = ubiTask.Name
-	taskEntity.Contract = ubiTask.Contract
-	taskEntity.ResourceType = ubiTask.SourceType
+	taskEntity.Contract = ubiTask.ContractAddr
+	taskEntity.ResourceType = ubiTask.ResourceType
 	taskEntity.InputParam = ubiTask.InputParam
 	taskEntity.Status = models.TASK_RECEIVED_STATUS
 	taskEntity.CreateTime = time.Now().Unix()
@@ -114,7 +118,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 
 	c2GpuConfig := envVars["RUST_GPU_TOOLS_CUSTOM_GPU"]
 	c2GpuName := convertGpuName(strings.TrimSpace(c2GpuConfig))
-	nodeName, architecture, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.SourceType, c2GpuName, ubiTask.Resource)
+	nodeName, architecture, needCpu, needMemory, needStorage, err := checkResourceAvailableForUbi(ubiTask.ResourceType, c2GpuName, ubiTask.Resource)
 	if err != nil {
 		taskEntity.Status = models.TASK_FAILED_STATUS
 		NewTaskService().SaveTaskEntity(taskEntity)
@@ -126,7 +130,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 	if nodeName == "" {
 		taskEntity.Status = models.TASK_FAILED_STATUS
 		NewTaskService().SaveTaskEntity(taskEntity)
-		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.SourceType))
+		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.ResourceType))
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
 		return
 	}
@@ -209,11 +213,11 @@ func DoUbiTaskForK8s(c *gin.Context) {
 				ubiTaskRun.Id = int64(ubiTask.ID)
 				ubiTaskRun.ZkType = ubiTask.ZkType
 				ubiTaskRun.Name = ubiTask.Name
-				ubiTaskRun.Contract = ubiTask.Contract
-				ubiTaskRun.ResourceType = ubiTask.SourceType
+				ubiTaskRun.Contract = ubiTask.ContractAddr
+				ubiTaskRun.ResourceType = ubiTask.ResourceType
 				ubiTaskRun.InputParam = ubiTask.InputParam
 				ubiTaskRun.CreateTime = time.Now().Unix()
-				ubiTaskRun.Contract = ubiTask.Contract
+				ubiTaskRun.Contract = ubiTask.ContractAddr
 			}
 
 			if err == nil {
@@ -267,14 +271,6 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			v1.EnvVar{
 				Name:  "TASKID",
 				Value: strconv.Itoa(ubiTask.ID),
-			},
-			v1.EnvVar{
-				Name:  "TASK_TYPE",
-				Value: strconv.Itoa(ubiTask.SourceType),
-			},
-			v1.EnvVar{
-				Name:  "ZK_TYPE",
-				Value: ubiTask.ZkType,
 			},
 			v1.EnvVar{
 				Name:  "NAME_SPACE",
@@ -383,9 +379,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 func ReceiveUbiProofForK8s(c *gin.Context) {
 	var c2Proof struct {
 		TaskId    string `json:"task_id"`
-		TaskType  string `json:"task_type"`
 		Proof     string `json:"proof"`
-		ZkType    string `json:"zk_type"`
 		NameSpace string `json:"name_space"`
 	}
 
@@ -453,25 +447,25 @@ func ReceiveUbiProofForK8s(c *gin.Context) {
 		return
 	}
 
-	ki, err := localWallet.FindKey(cpAccount.OwnerAddress)
+	_, workerAddress, err := GetOwnerAddressAndWorkerAddress()
+	if err != nil {
+		logs.GetLogger().Errorf("get worker address failed, error: %v", err)
+		return
+	}
+
+	ki, err := localWallet.FindKey(workerAddress)
 	if err != nil || ki == nil {
 		logs.GetLogger().Errorf("the address: %s, private key %v,", cpAccount.OwnerAddress, wallet.ErrKeyInfoNotFound)
 		return
 	}
 
-	accountStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
+	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(ubiTask.Contract), account.WithTaskPrivateKey(ki.PrivateKey))
 	if err != nil {
 		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
 		return
 	}
 
-	taskType, err := strconv.ParseUint(c2Proof.TaskType, 10, 8)
-	if err != nil {
-		logs.GetLogger().Errorf("conversion to uint8 error: %v", err)
-		return
-	}
-
-	submitUBIProofTx, err = accountStub.SubmitUBIProof(ubiTask.Contract, c2Proof.TaskId, uint8(taskType), uint8(taskType), c2Proof.Proof)
+	submitUBIProofTx, err = taskStub.SubmitUBIProof(c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return
@@ -499,8 +493,8 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		return
 	}
 
-	if ubiTask.SourceType != 0 && ubiTask.SourceType != 1 {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of source_type is 0 or 1"))
+	if ubiTask.ResourceType != 0 && ubiTask.ResourceType != 1 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of resource_type is 0 or 1"))
 		return
 	}
 	if strings.TrimSpace(ubiTask.ZkType) == "" {
@@ -517,29 +511,29 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: signature"))
 		return
 	}
-	if strings.TrimSpace(ubiTask.Contract) == "" {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: contract"))
+	if strings.TrimSpace(ubiTask.ContractAddr) == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: contract_addr"))
 		return
 	}
 
-	//cpRepoPath, _ := os.LookupEnv("CP_PATH")
-	//nodeID := GetNodeId(cpRepoPath)
-	//
-	//signature, err := verifySignature(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%d", nodeID, ubiTask.Contract), ubiTask.Signature)
-	//if err != nil {
-	//	logs.GetLogger().Errorf("verifySignature for ubi task failed, error: %+v", err)
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "sign data failed"))
-	//	return
-	//}
-	//
-	//logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
-	//if !signature {
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
-	//	return
-	//}
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	nodeID := GetNodeId(cpRepoPath)
+
+	signature, err := verifySignature(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%s", nodeID, ubiTask.ContractAddr), ubiTask.Signature)
+	if err != nil {
+		logs.GetLogger().Errorf("verifySignature for ubi task failed, error: %+v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "sign data failed"))
+		return
+	}
+
+	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
+	if !signature {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
+		return
+	}
 
 	var gpuFlag = "0"
-	if ubiTask.SourceType == 1 {
+	if ubiTask.ResourceType == 1 {
 		gpuFlag = "1"
 	}
 
@@ -547,18 +541,24 @@ func DoUbiTaskForDocker(c *gin.Context) {
 	taskEntity.Id = int64(ubiTask.ID)
 	taskEntity.ZkType = ubiTask.ZkType
 	taskEntity.Name = ubiTask.Name
-	taskEntity.Contract = ubiTask.Contract
-	taskEntity.ResourceType = ubiTask.SourceType
+	taskEntity.Contract = ubiTask.ContractAddr
+	taskEntity.ResourceType = ubiTask.ResourceType
 	taskEntity.InputParam = ubiTask.InputParam
 	taskEntity.Status = models.TASK_RECEIVED_STATUS
 	taskEntity.CreateTime = time.Now().Unix()
-	err := NewTaskService().SaveTaskEntity(taskEntity)
+	err = NewTaskService().SaveTaskEntity(taskEntity)
 	if err != nil {
 		logs.GetLogger().Errorf("save task entity failed, error: %v", err)
 		return
 	}
 
-	suffice, architecture, _, needMemory, err := checkResourceForUbi(ubiTask.Resource)
+	var gpuName string
+	gpuConfig, ok := os.LookupEnv("RUST_GPU_TOOLS_CUSTOM_GPU")
+	if ok {
+		gpuName = convertGpuName(strings.TrimSpace(gpuConfig))
+	}
+
+	suffice, architecture, _, needMemory, err := checkResourceForUbi(ubiTask.Resource, gpuName, ubiTask.ResourceType)
 	if err != nil {
 		taskEntity.Status = models.TASK_FAILED_STATUS
 		NewTaskService().SaveTaskEntity(taskEntity)
@@ -570,7 +570,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 	if !suffice {
 		taskEntity.Status = models.TASK_FAILED_STATUS
 		NewTaskService().SaveTaskEntity(taskEntity)
-		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.SourceType))
+		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.ResourceType))
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
 		return
 	}
@@ -605,11 +605,11 @@ func DoUbiTaskForDocker(c *gin.Context) {
 				ubiTaskRun.Id = int64(ubiTask.ID)
 				ubiTaskRun.ZkType = ubiTask.ZkType
 				ubiTaskRun.Name = ubiTask.Name
-				ubiTaskRun.Contract = ubiTask.Contract
-				ubiTaskRun.ResourceType = ubiTask.SourceType
+				ubiTaskRun.Contract = ubiTask.ContractAddr
+				ubiTaskRun.ResourceType = ubiTask.ResourceType
 				ubiTaskRun.InputParam = ubiTask.InputParam
 				ubiTaskRun.CreateTime = time.Now().Unix()
-				ubiTaskRun.Contract = ubiTask.Contract
+				ubiTaskRun.Contract = ubiTask.ContractAddr
 			}
 			if err == nil {
 				ubiTaskRun.Status = models.TASK_RUNNING_STATUS
@@ -626,19 +626,14 @@ func DoUbiTaskForDocker(c *gin.Context) {
 
 		var env = []string{"RECEIVE_PROOF_URL=" + receiveUrl}
 		env = append(env, "TASKID="+strconv.Itoa(ubiTask.ID))
-		env = append(env, "TASK_TYPE="+strconv.Itoa(ubiTask.SourceType))
-		env = append(env, "ZK_TYPE="+ubiTask.ZkType)
-		env = append(env, "NAME_SPACE=docker-ubi-task")
 		env = append(env, "PARAM_URL="+ubiTask.InputParam)
 
 		var needResource container.Resources
 		if gpuFlag == "0" {
 			env = append(env, "BELLMAN_NO_GPU=1")
-
 			needResource = container.Resources{
 				Memory: needMemory * 1024 * 1024 * 1024,
 			}
-
 		} else {
 			gpuEnv, ok := os.LookupEnv("RUST_GPU_TOOLS_CUSTOM_GPU")
 			if ok {
@@ -683,7 +678,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
-func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, int64, error) {
+func checkResourceForUbi(resource *models.TaskResource, gpuName string, resourceType int) (bool, string, int64, int64, error) {
 	dockerService := NewDockerService()
 	containerLogStr, err := dockerService.ContainerLogs("resource-exporter")
 	if err != nil {
@@ -728,6 +723,22 @@ func checkResourceForUbi(resource *models.TaskResource) (bool, string, int64, in
 	logs.GetLogger().Infof("checkResourceForUbi: needCpu: %d, needMemory: %.2f, needStorage: %.2f", needCpu, needMemory, needStorage)
 	logs.GetLogger().Infof("checkResourceForUbi: remainingCpu: %d, remainingMemory: %.2f, remainingStorage: %.2f, remainingGpu: %+v", remainderCpu, remainderMemory, remainderStorage, gpuMap)
 	if needCpu <= remainderCpu && needMemory <= remainderMemory && needStorage <= remainderStorage {
+		if resourceType == 1 {
+			if gpuName != "" {
+				var flag bool
+				for k, num := range gpuMap {
+					if strings.ToUpper(k) == gpuName && num > 0 {
+						flag = true
+						break
+					}
+				}
+				if flag {
+					return true, nodeResource.CpuName, needCpu, int64(needMemory), nil
+				} else {
+					return false, nodeResource.CpuName, needCpu, int64(needMemory), nil
+				}
+			}
+		}
 		return true, nodeResource.CpuName, needCpu, int64(needMemory), nil
 	}
 	return false, nodeResource.CpuName, needCpu, int64(needMemory), nil
@@ -807,7 +818,7 @@ func GetCpResource(c *gin.Context) {
 	})
 }
 
-func submitUBIProof(c2Proof models.UbiC2Proof, contract string) (string, error) {
+func submitUBIProof(c2Proof models.UbiC2Proof, contractAddress string) (string, error) {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
 		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
@@ -837,25 +848,25 @@ func submitUBIProof(c2Proof models.UbiC2Proof, contract string) (string, error) 
 		return "", err
 	}
 
-	ki, err := localWallet.FindKey(cpAccount.OwnerAddress)
+	_, workerAddress, err := GetOwnerAddressAndWorkerAddress()
+	if err != nil {
+		logs.GetLogger().Errorf("get worker address failed, error: %v", err)
+		return "", err
+	}
+
+	ki, err := localWallet.FindKey(workerAddress)
 	if err != nil || ki == nil {
 		logs.GetLogger().Errorf("the address: %s, private key %v,", cpAccount.OwnerAddress, wallet.ErrKeyInfoNotFound)
 		return "", err
 	}
 
-	accountStub, err := account.NewAccountStub(client, account.WithCpPrivateKey(ki.PrivateKey))
+	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(contractAddress), account.WithTaskPrivateKey(ki.PrivateKey))
 	if err != nil {
 		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
 		return "", err
 	}
 
-	taskType, err := strconv.ParseUint(c2Proof.TaskType, 10, 8)
-	if err != nil {
-		logs.GetLogger().Errorf("conversion to uint8 error: %v", err)
-		return "", err
-	}
-
-	submitUBIProofTx, err := accountStub.SubmitUBIProof(contract, c2Proof.TaskId, uint8(taskType), uint8(taskType), c2Proof.Proof)
+	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.Proof)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
 		return "", err

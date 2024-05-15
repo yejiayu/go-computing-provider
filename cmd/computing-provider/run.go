@@ -261,7 +261,7 @@ var stateInfoCmd = &cli.Command{
 			for _, taskType := range cpAccount.TaskTypes {
 				switch taskType {
 				case 1:
-					taskTypes += "Filecoin-C2,"
+					taskTypes += "Fil-C2,"
 
 				case 2:
 					taskTypes += "Aleo,"

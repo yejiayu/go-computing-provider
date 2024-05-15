@@ -1005,7 +1005,7 @@ func checkResourceAvailableForUbi(taskType int, gpuName string, resource *models
 					continue
 				}
 				gpuName = strings.ReplaceAll(gpuName, " ", "-")
-				logs.GetLogger().Infof("gpuName: %s, nodeGpu: %+v, nodeGpuSummary: %+v", gpuName, nodeGpu, nodeGpuSummary)
+				logs.GetLogger().Infof("needGpuName: %s, nodeGpu: %+v, nodeGpuSummary: %+v", gpuName, nodeGpu, nodeGpuSummary)
 				usedCount, ok := nodeGpu[gpuName]
 				if !ok {
 					usedCount = 0
@@ -1343,7 +1343,7 @@ func convertGpuName(name string) string {
 			return strings.Replace(cpName, "RTX", "", 1)
 		}
 	}
-	return name
+	return strings.ToUpper(name)
 }
 
 func CheckWalletWhiteList(jobSourceURI string) bool {
