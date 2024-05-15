@@ -302,44 +302,31 @@ func (task *CronTask) cleanAbnormalDeployment() {
 
 func (task *CronTask) setFailedUbiTaskStatus() {
 	c := cron.New(cron.WithSeconds())
-	c.AddFunc("0 0/8 * * * ?", func() {
+	c.AddFunc("0 0/10 * * * ?", func() {
 		defer func() {
 			if err := recover(); err != nil {
 				logs.GetLogger().Errorf("task job: [cleanAbnormalDeployment], error: %+v", err)
 			}
 		}()
 
-		conn := redisPool.Get()
-		prefix := constants.REDIS_UBI_C2_PERFIX + "*"
-		keys, err := redis.Strings(conn.Do("KEYS", prefix))
+		var taskList []models.TaskEntity
+		oneHourAgo := time.Now().Add(-1 * time.Hour).Unix()
+		err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and status !=? and create_time <?", models.TASK_SUCCESS_STATUS, models.TASK_FAILED_STATUS, oneHourAgo).Or("tx_hash==''").Find(&taskList).Error
 		if err != nil {
-			logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
+			logs.GetLogger().Errorf("Failed get task list, error: %+v", err)
 			return
 		}
-		for _, key := range keys {
-			ubiTask, err := RetrieveUbiTaskMetadata(key)
-			if err != nil {
-				logs.GetLogger().Errorf("Failed get ubi task from redis, key: %s, error: %+v", key, err)
-				return
-			}
 
-			JobName := strings.ToLower(ubiTask.ZkType) + "-" + ubiTask.TaskId
-			k8sNameSpace := "ubi-task-" + ubiTask.TaskId
+		for _, entity := range taskList {
+			ubiTask := entity
 
+			JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(int(ubiTask.Id))
+			k8sNameSpace := "ubi-task-" + strconv.Itoa(int(ubiTask.Id))
 			service := NewK8sService()
-			if _, err = service.k8sClient.BatchV1().Jobs(k8sNameSpace).Get(context.TODO(), JobName, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
-				if ubiTask.Status != constants.UBI_TASK_SUCCESS_STATUS && ubiTask.Status != constants.UBI_TASK_FAILED_STATUS {
-					ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
-				}
-			}
-
-			if ubiTask.Tx != "" {
-				ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
-			}
-			SaveUbiTaskMetadata(ubiTask)
-
+			service.k8sClient.BatchV1().Jobs(k8sNameSpace).Delete(context.TODO(), JobName, metav1.DeleteOptions{})
+			ubiTask.Status = models.TASK_FAILED_STATUS
+			NewTaskService().SaveTaskEntity(&ubiTask)
 		}
-
 	})
 	c.Start()
 }

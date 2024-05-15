@@ -53,5 +53,9 @@ type JobService struct {
 	*gorm.DB
 }
 
+func (jobServ JobService) SaveJobEntity(job *models.JobEntity) (err error) {
+	return jobServ.Save(job).Error
+}
+
 var taskSet = wire.NewSet(db.NewDbService, wire.Struct(new(TaskService), "*"))
 var jobSet = wire.NewSet(db.NewDbService, wire.Struct(new(JobService), "*"))

@@ -149,6 +149,18 @@ func ReceiveJob(c *gin.Context) {
 	if err = submitJob(&jobData); err != nil {
 		jobData.JobResultURI = ""
 	}
+
+	var jobEntity = new(models.JobEntity)
+	jobEntity.Source = jobData.StorageSource
+	jobEntity.SpaceUuid = spaceUuid
+	jobEntity.SourceUrl = jobSourceUri
+	jobEntity.ResultUrl = jobData.JobResultURI
+	jobEntity.RealUrl = jobData.JobRealUri
+	jobEntity.BuildLog = jobData.BuildLog
+	jobEntity.ContainerLog = jobData.ContainerLog
+	jobEntity.CreateTime = time.Now().Unix()
+	NewJobService().SaveJobEntity(jobEntity)
+
 	logs.GetLogger().Infof("submit job detail: %+v", jobData)
 	c.JSON(http.StatusOK, jobData)
 }
@@ -1202,87 +1214,87 @@ func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
 	}, nil
 }
 
-func SaveUbiTaskMetadata(ubiTask *models.CacheUbiTaskDetail) {
-	redisConn := GetRedisClient()
-	defer redisConn.Close()
-
-	key := constants.REDIS_UBI_C2_PERFIX + ubiTask.TaskId
-	redisConn.Do("DEL", redis.Args{}.AddFlat(key)...)
-
-	fullArgs := []interface{}{key}
-	fields := map[string]string{
-		"task_id":     ubiTask.TaskId,
-		"task_type":   ubiTask.TaskType,
-		"zk_type":     ubiTask.ZkType,
-		"tx":          ubiTask.Tx,
-		"status":      ubiTask.Status,
-		"create_time": ubiTask.CreateTime,
-		"contract":    ubiTask.Contract,
-	}
-
-	for k, val := range fields {
-		fullArgs = append(fullArgs, k, val)
-	}
-	_, _ = redisConn.Do("HSET", fullArgs...)
-}
-
-func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
-	redisConn := GetRedisClient()
-	defer redisConn.Close()
-
-	exist, err := redis.Int(redisConn.Do("EXISTS", key))
-	if err != nil {
-		return nil, err
-	}
-	if exist == 0 {
-		return nil, NotFoundRedisKey
-	}
-
-	type CacheUbiTaskDetail struct {
-		TaskId     string `json:"task_id"`
-		TaskType   string `json:"task_type"`
-		ZkType     string `json:"zk_type"`
-		Tx         string `json:"tx"`
-		Status     string `json:"status"`
-		Reward     string `json:"reward"`
-		CreateTime string `json:"create_time"`
-		contract   string
-	}
-
-	args := append([]interface{}{key}, "task_id", "task_type", "zk_type", "tx", "status", "create_time", "contract")
-	valuesStr, err := redis.Strings(redisConn.Do("HMGET", args...))
-	if err != nil {
-		logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
-		return nil, err
-	}
-
-	var (
-		taskId     string
-		taskType   string
-		zkType     string
-		tx         string
-		status     string
-		createTime string
-	)
-
-	if len(valuesStr) >= 6 {
-		taskId = valuesStr[0]
-		taskType = valuesStr[1]
-		zkType = valuesStr[2]
-		tx = valuesStr[3]
-		status = valuesStr[4]
-		createTime = valuesStr[5]
-	}
-
-	return &models.CacheUbiTaskDetail{
-		TaskId:     taskId,
-		TaskType:   taskType,
-		ZkType:     zkType,
-		Tx:         tx,
-		Status:     status,
-		CreateTime: createTime,
-	}, nil
-}
+//func SaveUbiTaskMetadata(ubiTask *models.CacheUbiTaskDetail) {
+//	redisConn := GetRedisClient()
+//	defer redisConn.Close()
+//
+//	key := constants.REDIS_UBI_C2_PERFIX + ubiTask.TaskId
+//	redisConn.Do("DEL", redis.Args{}.AddFlat(key)...)
+//
+//	fullArgs := []interface{}{key}
+//	fields := map[string]string{
+//		"task_id":     ubiTask.TaskId,
+//		"task_type":   ubiTask.TaskType,
+//		"zk_type":     ubiTask.ZkType,
+//		"tx":          ubiTask.Tx,
+//		"status":      ubiTask.Status,
+//		"create_time": ubiTask.CreateTime,
+//		"contract":    ubiTask.Contract,
+//	}
+//
+//	for k, val := range fields {
+//		fullArgs = append(fullArgs, k, val)
+//	}
+//	_, _ = redisConn.Do("HSET", fullArgs...)
+//}
+//
+//func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
+//	redisConn := GetRedisClient()
+//	defer redisConn.Close()
+//
+//	exist, err := redis.Int(redisConn.Do("EXISTS", key))
+//	if err != nil {
+//		return nil, err
+//	}
+//	if exist == 0 {
+//		return nil, NotFoundRedisKey
+//	}
+//
+//	type CacheUbiTaskDetail struct {
+//		TaskId     string `json:"task_id"`
+//		TaskType   string `json:"task_type"`
+//		ZkType     string `json:"zk_type"`
+//		Tx         string `json:"tx"`
+//		Status     string `json:"status"`
+//		Reward     string `json:"reward"`
+//		CreateTime string `json:"create_time"`
+//		contract   string
+//	}
+//
+//	args := append([]interface{}{key}, "task_id", "task_type", "zk_type", "tx", "status", "create_time", "contract")
+//	valuesStr, err := redis.Strings(redisConn.Do("HMGET", args...))
+//	if err != nil {
+//		logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
+//		return nil, err
+//	}
+//
+//	var (
+//		taskId     string
+//		taskType   string
+//		zkType     string
+//		tx         string
+//		status     string
+//		createTime string
+//	)
+//
+//	if len(valuesStr) >= 6 {
+//		taskId = valuesStr[0]
+//		taskType = valuesStr[1]
+//		zkType = valuesStr[2]
+//		tx = valuesStr[3]
+//		status = valuesStr[4]
+//		createTime = valuesStr[5]
+//	}
+//
+//	return &models.CacheUbiTaskDetail{
+//		TaskId:     taskId,
+//		TaskType:   taskType,
+//		ZkType:     zkType,
+//		Tx:         tx,
+//		Status:     status,
+//		CreateTime: createTime,
+//	}, nil
+//}
 
 func verifySignature(pubKStr, data, signature string) (bool, error) {
 	sb, err := hexutil.Decode(signature)

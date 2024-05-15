@@ -63,15 +63,18 @@ func (task *TaskEntity) TableName() string {
 }
 
 type JobEntity struct {
-	Id              uint   `json:"id" gorm:"primaryKey;id"`
+	Id              uint   `json:"id" gorm:"primaryKey;autoIncrement"`
 	Source          string `json:"source" gorm:"source"`
 	Name            string `json:"name" gorm:"name"`
+	SpaceUuid       string `json:"space_uuid"`
 	Type            int    `json:"type" gorm:"type"`
 	SourceUrl       string `json:"source_url" gorm:"source_url"`
 	Hardware        string `json:"hardware" gorm:"hardware"`
+	Duration        int    `json:"duration"`
 	DeployStatus    int    `json:"deploy_status" gorm:"deploy_status"`
 	Status          int    `json:"status" gorm:"status"`
-	ResultUrl       string `json:"result_url" gorm:"source_url"`
+	ResultUrl       string `json:"result_url" gorm:"result_url"`
+	RealUrl         string `json:"real_url"`
 	K8sDeployName   string `json:"k8s_deploy_name" gorm:"k8s_deploy_name"`
 	K8sResourceType string `json:"k8s_resource_type" gorm:"k8s_resource_type"`
 	NameSpace       string `json:"name_space" gorm:"name_space"`

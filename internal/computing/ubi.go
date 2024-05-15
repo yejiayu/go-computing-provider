@@ -918,10 +918,11 @@ func CleanDockerResource() {
 	}()
 
 	go func() {
-		ticker := time.NewTicker(3 * time.Minute)
+		ticker := time.NewTicker(10 * time.Minute)
 		for range ticker.C {
 			var taskList []models.TaskEntity
-			err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and status !=?", models.TASK_SUCCESS_STATUS, models.TASK_FAILED_STATUS).Or("tx_hash==''").Find(&taskList).Error
+			oneHourAgo := time.Now().Add(-1 * time.Hour).Unix()
+			err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and status !=? and create_time <?", models.TASK_SUCCESS_STATUS, models.TASK_FAILED_STATUS, oneHourAgo).Or("tx_hash==''").Find(&taskList).Error
 			if err != nil {
 				logs.GetLogger().Errorf("Failed get task list, error: %+v", err)
 				return
