@@ -4,13 +4,11 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	stErr "errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gin-gonic/gin"
-	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/swanchain/go-computing-provider/build"
@@ -132,10 +130,9 @@ func ReceiveJob(c *gin.Context) {
 		logHost = "log." + conf.GetConfig().API.Domain
 	}
 
-	if _, err = celeryService.DelayTask(constants.TASK_DEPLOY, jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName); err != nil {
-		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
-		return
-	}
+	go func() {
+		DeploySpaceTask(jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName)
+	}()
 
 	jobData.JobResultURI = fmt.Sprintf("https://%s", hostName)
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
@@ -153,11 +150,14 @@ func ReceiveJob(c *gin.Context) {
 	var jobEntity = new(models.JobEntity)
 	jobEntity.Source = jobData.StorageSource
 	jobEntity.SpaceUuid = spaceUuid
+	jobEntity.TaskUuid = jobData.TaskUUID
 	jobEntity.SourceUrl = jobSourceUri
 	jobEntity.ResultUrl = jobData.JobResultURI
 	jobEntity.RealUrl = jobData.JobRealUri
 	jobEntity.BuildLog = jobData.BuildLog
 	jobEntity.ContainerLog = jobData.ContainerLog
+	jobEntity.Duration = jobData.Duration
+	jobEntity.Status = 1
 	jobEntity.CreateTime = time.Now().Unix()
 	NewJobService().SaveJobEntity(jobEntity)
 
@@ -267,26 +267,29 @@ func RedeployJob(c *gin.Context) {
 		hostName = generateString(10) + conf.GetConfig().API.Domain
 	}
 
-	delayTask, err := celeryService.DelayTask(constants.TASK_DEPLOY, jobData.JobResultURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed sync delpoy task, error: %v", err)
-		return
-	}
-	logs.GetLogger().Infof("delayTask detail info: %+v", delayTask)
-
 	go func() {
-		result, err := delayTask.Get(180 * time.Second)
-		if err != nil {
-			logs.GetLogger().Errorf("Failed get sync task result, error: %v", err)
-			return
-		}
-		logs.GetLogger().Infof("Job: %s, service running successfully, job_result_url: %s", jobData.JobResultURI, result.(string))
+		DeploySpaceTask(jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName)
 	}()
 
 	jobData.JobResultURI = fmt.Sprintf("https://%s", hostName)
 	if err = submitJob(&jobData); err != nil {
 		jobData.JobResultURI = ""
 	}
+	spaceUuid := jobData.JobSourceURI[strings.LastIndex(jobData.JobSourceURI, "/")+1:]
+	var jobEntity = new(models.JobEntity)
+	jobEntity.Source = jobData.StorageSource
+	jobEntity.SpaceUuid = spaceUuid
+	jobEntity.TaskUuid = jobData.TaskUUID
+	jobEntity.SourceUrl = jobData.JobSourceURI
+	jobEntity.ResultUrl = jobData.JobResultURI
+	jobEntity.RealUrl = jobData.JobRealUri
+	jobEntity.BuildLog = jobData.BuildLog
+	jobEntity.ContainerLog = jobData.ContainerLog
+	jobEntity.Duration = jobData.Duration
+	jobEntity.Status = 1
+	jobEntity.CreateTime = time.Now().Unix()
+	NewJobService().SaveJobEntity(jobEntity)
+
 	c.JSON(http.StatusOK, jobData)
 }
 
@@ -312,30 +315,14 @@ func ReNewJob(c *gin.Context) {
 		return
 	}
 
-	conn := redisPool.Get()
-	prefix := constants.REDIS_SPACE_PREFIX + "*"
-	keys, err := redis.Strings(conn.Do("KEYS", prefix))
+	jobEntity, err := NewJobService().GetJobEntityByTaskUuid(jobData.TaskUuid)
 	if err != nil {
-		logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
+		logs.GetLogger().Errorf("Failed get job from db, taskUuid: %s, error: %+v", jobData.TaskUuid, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
 		return
 	}
 
-	var spaceDetail models.CacheSpaceDetail
-	for _, key := range keys {
-		jobMetadata, err := RetrieveJobMetadata(key)
-		if err != nil {
-			logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
-			return
-		}
-		if strings.EqualFold(jobMetadata.TaskUuid, jobData.TaskUuid) {
-			spaceDetail = jobMetadata
-			break
-		}
-	}
-
-	redisKey := constants.REDIS_SPACE_PREFIX + spaceDetail.SpaceUuid
-	leftTime := spaceDetail.ExpireTime - time.Now().Unix()
+	leftTime := jobEntity.ExpireTime - time.Now().Unix()
 	if leftTime < 0 {
 		c.JSON(http.StatusOK, map[string]string{
 			"status":  "failed",
@@ -343,29 +330,13 @@ func ReNewJob(c *gin.Context) {
 		})
 		return
 	} else {
-		fullArgs := []interface{}{redisKey}
-		fields := map[string]string{
-			"wallet_address": spaceDetail.WalletAddress,
-			"space_name":     spaceDetail.SpaceName,
-			"expire_time":    strconv.Itoa(int(time.Now().Unix()) + int(leftTime) + jobData.Duration),
-			"space_uuid":     spaceDetail.SpaceUuid,
-			"job_uuid":       spaceDetail.JobUuid,
-			"task_type":      spaceDetail.TaskType,
-			"deploy_name":    spaceDetail.DeployName,
-			"hardware":       spaceDetail.Hardware,
-			"url":            spaceDetail.Url,
-			"task_uuid":      spaceDetail.TaskUuid,
-			"space_type":     spaceDetail.SpaceType,
+		jobEntity.ExpireTime = time.Now().Unix() + leftTime + int64(jobData.Duration)
+		err = NewJobService().SaveJobEntity(&jobEntity)
+		if err != nil {
+			logs.GetLogger().Errorf("update job expireTime failed, taskUuid: %s, error: %+v", jobData.TaskUuid, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
+			return
 		}
-
-		for key, val := range fields {
-			fullArgs = append(fullArgs, key, val)
-		}
-		redisConn := redisPool.Get()
-		defer redisConn.Close()
-
-		redisConn.Do("HSET", fullArgs...)
-		redisConn.Do("SET", spaceDetail.SpaceUuid, "wait-delete", "EX", int(leftTime)+jobData.Duration)
 	}
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
@@ -402,29 +373,14 @@ func CancelJob(c *gin.Context) {
 		}
 	}
 
-	conn := redisPool.Get()
-	prefix := constants.REDIS_SPACE_PREFIX + "*"
-	keys, err := redis.Strings(conn.Do("KEYS", prefix))
+	jobEntity, err := NewJobService().GetJobEntityByTaskUuid(taskUuid)
 	if err != nil {
-		logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
+		logs.GetLogger().Errorf("Failed get job from db, taskUuid: %s, error: %+v", taskUuid, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
 		return
 	}
 
-	var jobDetail models.CacheSpaceDetail
-	for _, key := range keys {
-		jobMetadata, err := RetrieveJobMetadata(key)
-		if err != nil {
-			logs.GetLogger().Errorf("Failed get redis key data for , key: %s, error: %+v", key, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
-			return
-		}
-		if strings.EqualFold(jobMetadata.TaskUuid, taskUuid) {
-			jobDetail = jobMetadata
-			break
-		}
-	}
-
-	if jobDetail.WalletAddress == "" {
+	if jobEntity.WalletAddress == "" {
 		c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
 		return
 	}
@@ -435,8 +391,8 @@ func CancelJob(c *gin.Context) {
 				return
 			}
 		}()
-		k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobDetail.WalletAddress)
-		deleteJob(k8sNameSpace, jobDetail.SpaceUuid)
+		k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobEntity.WalletAddress)
+		deleteJob(k8sNameSpace, jobEntity.SpaceUuid)
 	}()
 
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
@@ -489,8 +445,7 @@ func GetSpaceLog(c *gin.Context) {
 		return
 	}
 
-	redisKey := constants.REDIS_SPACE_PREFIX + spaceUuid
-	spaceDetail, err := RetrieveJobMetadata(redisKey)
+	jobEntity, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
 	if err != nil {
 		logs.GetLogger().Error(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
@@ -505,9 +460,9 @@ func GetSpaceLog(c *gin.Context) {
 	}
 
 	if orderType == "private" {
-		handlePodEvent(conn, spaceDetail.SpaceUuid, spaceDetail.WalletAddress)
+		handlePodEvent(conn, jobEntity.SpaceUuid, jobEntity.WalletAddress)
 	} else {
-		handleConnection(conn, spaceDetail, logType)
+		handleConnection(conn, jobEntity, logType)
 	}
 }
 
@@ -656,11 +611,11 @@ func handlePodEvent(conn *websocket.Conn, spaceUuid string, walletAddress string
 
 }
 
-func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail, logType string) {
+func handleConnection(conn *websocket.Conn, jobDetail models.JobEntity, logType string) {
 	client := NewWsClient(conn)
 
 	if logType == "build" {
-		buildLogPath := filepath.Join("build", spaceDetail.WalletAddress, "spaces", spaceDetail.SpaceName, BuildFileName)
+		buildLogPath := filepath.Join("build", jobDetail.WalletAddress, "spaces", jobDetail.Name, BuildFileName)
 		if _, err := os.Stat(buildLogPath); err != nil {
 			client.HandleLogs(strings.NewReader("This space is deployed starting from a image."))
 		} else {
@@ -669,11 +624,11 @@ func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail,
 			client.HandleLogs(logFile)
 		}
 	} else if logType == "container" {
-		k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(spaceDetail.WalletAddress)
+		k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobDetail.WalletAddress)
 
 		k8sService := NewK8sService()
 		pods, err := k8sService.k8sClient.CoreV1().Pods(k8sNameSpace).List(context.TODO(), metaV1.ListOptions{
-			LabelSelector: fmt.Sprintf("lad_app=%s", spaceDetail.SpaceUuid),
+			LabelSelector: fmt.Sprintf("lad_app=%s", jobDetail.SpaceUuid),
 		})
 		if err != nil {
 			logs.GetLogger().Errorf("Error listing Pods: %v", err)
@@ -704,7 +659,7 @@ func handleConnection(conn *websocket.Conn, spaceDetail models.CacheSpaceDetail,
 }
 
 func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string, taskUuid string, gpuProductName string) string {
-	updateJobStatus(jobUuid, models.JobUploadResult)
+	updateJobStatus(jobUuid, models.DEPLOY_UPLOAD_RESULT)
 
 	var success bool
 	var spaceUuid string
@@ -732,23 +687,19 @@ func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string
 	spaceUuid = strings.ToLower(spaceDetail.Data.Space.Uuid)
 	spaceHardware := spaceDetail.Data.Space.ActiveOrder.Config
 
-	conn := redisPool.Get()
-	fullArgs := []interface{}{constants.REDIS_SPACE_PREFIX + spaceUuid}
-	fields := map[string]string{
-		"wallet_address": walletAddress,
-		"space_name":     spaceName,
-		"expire_time":    strconv.Itoa(int(time.Now().Unix()) + duration),
-		"space_uuid":     spaceUuid,
-		"task_uuid":      taskUuid,
-	}
-
-	for key, val := range fields {
-		fullArgs = append(fullArgs, key, val)
-	}
-	_, _ = conn.Do("HSET", fullArgs...)
-
 	logs.GetLogger().Infof("uuid: %s, spaceName: %s, hardwareName: %s", spaceUuid, spaceName, spaceHardware.Description)
 	if len(spaceHardware.Description) == 0 {
+		return ""
+	}
+
+	var job = new(models.JobEntity)
+	job.WalletAddress = walletAddress
+	job.Name = spaceName
+	job.SpaceUuid = spaceDetail.Data.Space.Uuid
+	job.Hardware = spaceHardware.Description
+	job.SpaceType = 0
+	if err = NewJobService().UpdateJobEntityBySpaceUuid(job); err != nil {
+		logs.GetLogger().Errorf("update job info failed, error: %v", err)
 		return ""
 	}
 
@@ -758,7 +709,7 @@ func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string
 
 	spacePath := filepath.Join("build", walletAddress, "spaces", spaceName)
 	os.RemoveAll(spacePath)
-	updateJobStatus(jobUuid, models.JobDownloadSource)
+	updateJobStatus(jobUuid, models.DEPLOY_DOWNLOAD_SOURCE)
 	containsYaml, yamlPath, imagePath, modelsSettingFile, _, err := BuildSpaceTaskImage(spaceUuid, spaceDetail.Data.Files)
 	if err != nil {
 		logs.GetLogger().Error(err)
@@ -866,7 +817,7 @@ func downloadModelUrl(namespace, spaceUuid, serviceIp string, podCmd []string) {
 	}
 }
 
-func updateJobStatus(jobUuid string, jobStatus models.JobStatus, url ...string) {
+func updateJobStatus(jobUuid string, jobStatus int, url ...string) {
 	go func() {
 		if len(url) > 0 {
 			deployingChan <- models.Job{
@@ -1046,26 +997,19 @@ func generateString(length int) string {
 	return string(result)
 }
 
-func getLocation() (string, error) {
-	conn := GetRedisClient()
-	fullArgs := []interface{}{constants.REDIS_REGION_PERFIX}
+var regionCache string
 
-	region, err := redis.String(conn.Do("GET", fullArgs...))
+func getLocation() (string, error) {
+	var err error
+	regionCache, err = getRegionByIpInfo()
 	if err != nil {
-		region, err = getRegionByIpInfo()
+		regionCache, err = getRegionByIpApi()
 		if err != nil {
-			region, err = getRegionByIpApi()
-			if err != nil {
-				logs.GetLogger().Errorf("get region info failed, error: %+v", err)
-				return "", err
-			}
+			logs.GetLogger().Errorf("get region info failed, error: %+v", err)
+			return "", err
 		}
-		fullArgs = append(fullArgs, region)
-		_, _ = conn.Do("SET", fullArgs...)
-		return region, nil
-	} else {
-		return region, nil
 	}
+	return regionCache, nil
 }
 
 func getRegionByIpApi() (string, error) {
@@ -1143,158 +1087,6 @@ func getRegionByIpInfo() (string, error) {
 	region := strings.TrimSpace(ipInfo.Region) + "-" + ipInfo.Country
 	return region, nil
 }
-
-var NotFoundRedisKey = stErr.New("not found redis key")
-
-func RetrieveJobMetadata(key string) (models.CacheSpaceDetail, error) {
-	redisConn := redisPool.Get()
-	defer redisConn.Close()
-
-	exist, err := redis.Int(redisConn.Do("EXISTS", key))
-	if err != nil {
-		return models.CacheSpaceDetail{}, err
-	}
-	if exist == 0 {
-		return models.CacheSpaceDetail{}, NotFoundRedisKey
-	}
-
-	args := append([]interface{}{key}, "wallet_address", "space_name", "expire_time", "space_uuid", "job_uuid",
-		"task_type", "deploy_name", "hardware", "url", "task_uuid", "space_type")
-	valuesStr, err := redis.Strings(redisConn.Do("HMGET", args...))
-	if err != nil {
-		logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
-		return models.CacheSpaceDetail{}, err
-	}
-
-	var (
-		walletAddress string
-		spaceName     string
-		expireTime    int64
-		spaceUuid     string
-		jobUuid       string
-		taskType      string
-		deployName    string
-		hardware      string
-		url           string
-		taskUuid      string
-		spaceType     string
-	)
-
-	if len(valuesStr) >= 3 {
-		walletAddress = valuesStr[0]
-		spaceName = valuesStr[1]
-		expireTimeStr := valuesStr[2]
-		spaceUuid = valuesStr[3]
-		jobUuid = valuesStr[4]
-		taskType = valuesStr[5]
-		deployName = valuesStr[6]
-		hardware = valuesStr[7]
-		url = valuesStr[8]
-		taskUuid = valuesStr[9]
-		spaceType = valuesStr[10]
-		expireTime, err = strconv.ParseInt(strings.TrimSpace(expireTimeStr), 10, 64)
-		if err != nil {
-			logs.GetLogger().Errorf("Failed convert time str: [%s], error: %+v", expireTimeStr, err)
-			return models.CacheSpaceDetail{}, err
-		}
-	}
-
-	return models.CacheSpaceDetail{
-		WalletAddress: walletAddress,
-		SpaceName:     spaceName,
-		SpaceUuid:     spaceUuid,
-		ExpireTime:    expireTime,
-		JobUuid:       jobUuid,
-		TaskType:      taskType,
-		DeployName:    deployName,
-		Hardware:      hardware,
-		Url:           url,
-		TaskUuid:      taskUuid,
-		SpaceType:     spaceType,
-	}, nil
-}
-
-//func SaveUbiTaskMetadata(ubiTask *models.CacheUbiTaskDetail) {
-//	redisConn := GetRedisClient()
-//	defer redisConn.Close()
-//
-//	key := constants.REDIS_UBI_C2_PERFIX + ubiTask.TaskId
-//	redisConn.Do("DEL", redis.Args{}.AddFlat(key)...)
-//
-//	fullArgs := []interface{}{key}
-//	fields := map[string]string{
-//		"task_id":     ubiTask.TaskId,
-//		"task_type":   ubiTask.TaskType,
-//		"zk_type":     ubiTask.ZkType,
-//		"tx":          ubiTask.Tx,
-//		"status":      ubiTask.Status,
-//		"create_time": ubiTask.CreateTime,
-//		"contract":    ubiTask.Contract,
-//	}
-//
-//	for k, val := range fields {
-//		fullArgs = append(fullArgs, k, val)
-//	}
-//	_, _ = redisConn.Do("HSET", fullArgs...)
-//}
-//
-//func RetrieveUbiTaskMetadata(key string) (*models.CacheUbiTaskDetail, error) {
-//	redisConn := GetRedisClient()
-//	defer redisConn.Close()
-//
-//	exist, err := redis.Int(redisConn.Do("EXISTS", key))
-//	if err != nil {
-//		return nil, err
-//	}
-//	if exist == 0 {
-//		return nil, NotFoundRedisKey
-//	}
-//
-//	type CacheUbiTaskDetail struct {
-//		TaskId     string `json:"task_id"`
-//		TaskType   string `json:"task_type"`
-//		ZkType     string `json:"zk_type"`
-//		Tx         string `json:"tx"`
-//		Status     string `json:"status"`
-//		Reward     string `json:"reward"`
-//		CreateTime string `json:"create_time"`
-//		contract   string
-//	}
-//
-//	args := append([]interface{}{key}, "task_id", "task_type", "zk_type", "tx", "status", "create_time", "contract")
-//	valuesStr, err := redis.Strings(redisConn.Do("HMGET", args...))
-//	if err != nil {
-//		logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
-//		return nil, err
-//	}
-//
-//	var (
-//		taskId     string
-//		taskType   string
-//		zkType     string
-//		tx         string
-//		status     string
-//		createTime string
-//	)
-//
-//	if len(valuesStr) >= 6 {
-//		taskId = valuesStr[0]
-//		taskType = valuesStr[1]
-//		zkType = valuesStr[2]
-//		tx = valuesStr[3]
-//		status = valuesStr[4]
-//		createTime = valuesStr[5]
-//	}
-//
-//	return &models.CacheUbiTaskDetail{
-//		TaskId:     taskId,
-//		TaskType:   taskType,
-//		ZkType:     zkType,
-//		Tx:         tx,
-//		Status:     status,
-//		CreateTime: createTime,
-//	}, nil
-//}
 
 func verifySignature(pubKStr, data, signature string) (bool, error) {
 	sb, err := hexutil.Decode(signature)

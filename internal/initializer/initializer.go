@@ -11,7 +11,6 @@ import (
 
 	"github.com/filswan/go-swan-lib/logs"
 	"github.com/swanchain/go-computing-provider/conf"
-	"github.com/swanchain/go-computing-provider/constants"
 )
 
 func sendHeartbeat(nodeId, ownerAddress string) {
@@ -78,9 +77,5 @@ func ProjectInit(cpRepoPath string) {
 	nodeID := computing.InitComputingProvider(cpRepoPath, ownerAddress)
 	go SendHeartbeats(nodeID, ownerAddress)
 	computing.NewCronTask(nodeID).RunTask()
-
-	celeryService := computing.NewCeleryService()
-	celeryService.RegisterTask(constants.TASK_DEPLOY, computing.DeploySpaceTask)
-	celeryService.Start()
 
 }

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
-	"github.com/gomodule/redigo/redis"
 	"github.com/robfig/cron/v3"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
@@ -61,7 +60,7 @@ func checkJobStatus(ownerAddress string) {
 				TaskMap.Range(func(key, value any) bool {
 					jobUuid := key.(string)
 					job := value.(*models.Job)
-					if reportJobStatus(jobUuid, job.Status, ownerAddress) && job.Status == models.JobDeployToK8s {
+					if reportJobStatus(jobUuid, job.Status, ownerAddress) && job.Status == models.DEPLOY_TO_K8S {
 						TaskMap.Delete(jobUuid)
 					}
 					return true
@@ -135,66 +134,59 @@ func (task *CronTask) watchExpiredTask() {
 				logs.GetLogger().Errorf("watchExpiredTask catch panic error: %+v", err)
 			}
 		}()
-		conn := redisPool.Get()
-		prefix := constants.REDIS_SPACE_PREFIX + "*"
-		keys, err := redis.Strings(conn.Do("KEYS", prefix))
+
+		jobList, err := NewJobService().GetJobList()
 		if err != nil {
-			logs.GetLogger().Errorf("Failed get redis %s prefix, error: %+v", prefix, err)
+			logs.GetLogger().Errorf("Failed watchExpiredTask get job data, error: %+v", err)
 			return
 		}
 
-		var deleteKey []string
-		for _, key := range keys {
-			jobMetadata, err := RetrieveJobMetadata(key)
-			if err != nil {
-				logs.GetLogger().Errorf("Failed get redis key data, key: %s, error: %+v", key, err)
-				return
-			}
-
-			namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobMetadata.WalletAddress)
-			if len(strings.TrimSpace(jobMetadata.TaskUuid)) == 0 {
-				taskStatus, err := checkTaskStatusByHub(jobMetadata.TaskUuid, task.nodeId)
+		var deleteSpaceIds []string
+		for _, job := range jobList {
+			namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(job.WalletAddress)
+			if len(strings.TrimSpace(job.TaskUuid)) == 0 {
+				taskStatus, err := checkTaskStatusByHub(job.TaskUuid, task.nodeId)
 				if err != nil {
 					logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
 					return
 				}
 				if strings.Contains(taskStatus, "Task not found") {
-					logs.GetLogger().Infof("task_uuid: %s, task not found on the orchestrator service, starting to delete it.", jobMetadata.TaskUuid)
-					deleteJob(namespace, jobMetadata.SpaceUuid)
-					deleteKey = append(deleteKey, key)
+					logs.GetLogger().Infof("task_uuid: %s, task not found on the orchestrator service, starting to delete it.", job.TaskUuid)
+					deleteJob(namespace, job.SpaceUuid)
+					deleteSpaceIds = append(deleteSpaceIds, job.SpaceUuid)
 					continue
 				}
 				if strings.Contains(taskStatus, "Terminated") || strings.Contains(taskStatus, "Terminated") ||
 					strings.Contains(taskStatus, "Cancelled") || strings.Contains(taskStatus, "Failed") {
-					logs.GetLogger().Infof("task_uuid: %s, current status is %s, starting to delete it.", jobMetadata.TaskUuid, taskStatus)
-					if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
-						deleteKey = append(deleteKey, key)
+					logs.GetLogger().Infof("task_uuid: %s, current status is %s, starting to delete it.", job.TaskUuid, taskStatus)
+					if err = deleteJob(namespace, job.SpaceUuid); err == nil {
+						deleteSpaceIds = append(deleteSpaceIds, job.SpaceUuid)
 						continue
 					}
 				}
 			}
 
-			if time.Now().Unix() > jobMetadata.ExpireTime {
-				expireTimeStr := time.Unix(jobMetadata.ExpireTime, 0).Format("2006-01-02 15:04:05")
-				logs.GetLogger().Infof("<timer-task> redis-key: %s,expireTime: %s. the job starting terminated", key, expireTimeStr)
-				if err = deleteJob(namespace, jobMetadata.SpaceUuid); err == nil {
-					deleteKey = append(deleteKey, key)
+			if time.Now().Unix() > job.ExpireTime {
+				expireTimeStr := time.Unix(job.ExpireTime, 0).Format("2006-01-02 15:04:05")
+				logs.GetLogger().Infof("<timer-task> spaceUuid: %s, expireTime: %s. the job starting terminated", job.SpaceUuid, expireTimeStr)
+				if err = deleteJob(namespace, job.SpaceUuid); err == nil {
+					deleteSpaceIds = append(deleteSpaceIds, job.SpaceUuid)
 					continue
 				}
 			}
 
-			k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobMetadata.WalletAddress)
-			deployName := constants.K8S_DEPLOY_NAME_PREFIX + jobMetadata.SpaceUuid
+			k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(job.WalletAddress)
+			deployName := constants.K8S_DEPLOY_NAME_PREFIX + job.SpaceUuid
 			service := NewK8sService()
 			if _, err = service.k8sClient.AppsV1().Deployments(k8sNameSpace).Get(context.TODO(), deployName, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
-				deleteKey = append(deleteKey, key)
+				deleteSpaceIds = append(deleteSpaceIds, job.SpaceUuid)
 				continue
 			}
 		}
-		conn.Do("DEL", redis.Args{}.AddFlat(deleteKey)...)
-		if len(deleteKey) > 0 {
-			logs.GetLogger().Infof("Delete redis keys finished, keys: %+v", deleteKey)
-			deleteKey = nil
+
+		err = NewJobService().DeleteJobs(deleteSpaceIds)
+		if err != nil {
+			logs.GetLogger().Errorf("delete spaces failed, error: %v", err)
 		}
 	})
 	c.Start()
@@ -481,10 +473,17 @@ func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
 	return taskStatus.Status, nil
 }
 
-func reportJobStatus(jobUuid string, jobStatus models.JobStatus, ownerAddress string) bool {
+func reportJobStatus(jobUuid string, deployStatus int, ownerAddress string) bool {
+	var job = new(models.JobEntity)
+	job.JobUuid = jobUuid
+	job.Status = deployStatus
+	if err := NewJobService().UpdateJobEntityByJobUuid(job); err != nil {
+		logs.GetLogger().Errorf("update job info by jobUuid failed, error: %v", err)
+	}
+
 	reqParam := map[string]interface{}{
 		"job_uuid":       jobUuid,
-		"status":         jobStatus,
+		"status":         models.GetDeployStatusStr(deployStatus),
 		"public_address": ownerAddress,
 	}
 
@@ -515,6 +514,6 @@ func reportJobStatus(jobUuid string, jobStatus models.JobStatus, ownerAddress st
 		return false
 	}
 
-	logs.GetLogger().Debugf("report job status successfully. uuid: %s, status: %s", jobUuid, jobStatus)
+	logs.GetLogger().Debugf("report job status successfully. uuid: %s, status: %s", jobUuid, models.GetDeployStatusStr(deployStatus))
 	return true
 }

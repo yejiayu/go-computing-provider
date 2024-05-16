@@ -63,7 +63,7 @@ func getDownloadPath(fileName string) string {
 }
 
 func BuildImagesByDockerfile(jobUuid, spaceUuid, spaceName, imagePath string) (string, string) {
-	updateJobStatus(jobUuid, models.JobBuildImage)
+	updateJobStatus(jobUuid, models.DEPLOY_BUILD_IMAGE)
 	spaceFlag := spaceName + spaceUuid[strings.LastIndex(spaceUuid, "-"):]
 	imageName := fmt.Sprintf("lagrange/%s:%d", spaceFlag, time.Now().Unix())
 	if conf.GetConfig().Registry.ServerAddress != "" {
@@ -84,7 +84,7 @@ func BuildImagesByDockerfile(jobUuid, spaceUuid, spaceName, imagePath string) (s
 	}
 
 	if conf.GetConfig().Registry.ServerAddress != "" {
-		updateJobStatus(jobUuid, models.JobPushImage)
+		updateJobStatus(jobUuid, models.DEPLOY_PUSH_IMAGE)
 		if err := dockerService.PushImage(imageName); err != nil {
 			logs.GetLogger().Errorf("Error Docker push image: %v", err)
 			return "", ""

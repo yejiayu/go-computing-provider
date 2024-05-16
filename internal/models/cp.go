@@ -44,20 +44,11 @@ type JobData struct {
 
 type Job struct {
 	Uuid   string
-	Status JobStatus
+	Status int
 	Url    string
 }
 
 type JobStatus string
-
-const (
-	JobDownloadSource JobStatus = "downloadSource" // download file form job_resource_uri
-	JobUploadResult   JobStatus = "uploadResult"   // upload task result to mcs
-	JobBuildImage     JobStatus = "buildImage"     // build images
-	JobPushImage      JobStatus = "pushImage"      // push image to registry
-	JobPullImage      JobStatus = "pullImage"      // download file form job_resource_uri
-	JobDeployToK8s    JobStatus = "deployToK8s"    // deploy image to k8s
-)
 
 type DeleteJobReq struct {
 	CreatorWallet string `json:"creator_wallet"`

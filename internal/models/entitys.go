@@ -62,16 +62,48 @@ func (task *TaskEntity) TableName() string {
 	return "t_task"
 }
 
+const (
+	DEPLOY_DOWNLOAD_SOURCE = iota + 1
+	DEPLOY_UPLOAD_RESULT
+	DEPLOY_BUILD_IMAGE
+	DEPLOY_PUSH_IMAGE
+	DEPLOY_PULL_IMAGE
+	DEPLOY_TO_K8S
+)
+
+func GetDeployStatusStr(deployStatus int) string {
+	var statusStr string
+	switch deployStatus {
+	case DEPLOY_DOWNLOAD_SOURCE:
+		statusStr = "downloadSource"
+	case DEPLOY_UPLOAD_RESULT:
+		statusStr = "uploadResult"
+	case DEPLOY_BUILD_IMAGE:
+		statusStr = "buildImage"
+	case DEPLOY_PUSH_IMAGE:
+		statusStr = "pushImage"
+	case DEPLOY_PULL_IMAGE:
+		statusStr = "pullImage"
+	case DEPLOY_TO_K8S:
+		statusStr = "deployToK8s"
+	}
+	return statusStr
+}
+
 type JobEntity struct {
 	Id              uint   `json:"id" gorm:"primaryKey;autoIncrement"`
 	Source          string `json:"source" gorm:"source"`
 	Name            string `json:"name" gorm:"name"`
 	SpaceUuid       string `json:"space_uuid"`
-	Type            int    `json:"type" gorm:"type"`
+	JobUuid         string `json:"job_uuid"`
+	TaskUuid        string `json:"task_uuid"`
+	ResourceType    string `json:"resource_type"`
+	SpaceType       int    `json:"space_type"` // 0: public; 1: private
 	SourceUrl       string `json:"source_url" gorm:"source_url"`
 	Hardware        string `json:"hardware" gorm:"hardware"`
 	Duration        int    `json:"duration"`
 	DeployStatus    int    `json:"deploy_status" gorm:"deploy_status"`
+	WalletAddress   string `json:"wallet_address"`
 	Status          int    `json:"status" gorm:"status"`
 	ResultUrl       string `json:"result_url" gorm:"result_url"`
 	RealUrl         string `json:"real_url"`
