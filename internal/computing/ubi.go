@@ -784,6 +784,7 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 		}
 		time.Sleep(time.Second * 2)
 	}
+	logs.GetLogger().Infof("submitUBIProofTx: %s", submitUBIProofTx)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
