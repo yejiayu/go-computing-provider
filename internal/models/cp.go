@@ -153,7 +153,7 @@ type Account struct {
 	OwnerAddress   string
 	NodeId         string
 	MultiAddresses []string
-	TaskTypes      []uint8 // 1: Fil-C2 2: Aleo
+	TaskTypes      []uint8 // 1: Fil-C2 2: Aleo 3: AI (Space)
 	Beneficiary    string
 	WorkerAddress  string
 	Version        string
