@@ -1,19 +1,14 @@
 package computing
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/swanchain/go-computing-provider/account"
-	"github.com/swanchain/go-computing-provider/internal/models"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 
@@ -22,69 +17,11 @@ import (
 	"github.com/swanchain/go-computing-provider/conf"
 )
 
-func Reconnect(nodeID, ownerAddress string) string {
-	updateProviderInfo(nodeID, "", "", models.ActiveStatus, ownerAddress)
-	return nodeID
-}
-
-func updateProviderInfo(nodeID, peerID, address string, status string, ownerAddress string) {
-	updateURL := conf.GetConfig().HUB.ServerUrl + "/cp"
-
-	var cpName string
-	if conf.GetConfig().API.NodeName != "" {
-		cpName = conf.GetConfig().API.NodeName
-	} else {
-		cpName, _ = os.Hostname()
-	}
-
-	provider := models.ComputingProvider{
-		PublicAddress: ownerAddress,
-		Name:          cpName,
-		NodeId:        nodeID,
-		MultiAddress:  conf.GetConfig().API.MultiAddress,
-		Status:        status,
-	}
-
-	jsonData, err := json.Marshal(provider)
-	if err != nil {
-		logs.GetLogger().Errorf("Error marshaling provider data: %v", err)
-		return
-	}
-
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", updateURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		logs.GetLogger().Errorf("Error creating request: %v", err)
-		return
-	}
-
-	// Set the content type and API token in the request header
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		logs.GetLogger().Errorf("Error updating provider info: %v", err)
-	} else {
-		if resp.StatusCode == 400 {
-			respData, _ := io.ReadAll(resp.Body)
-			logs.GetLogger().Info(string(respData))
-		}
-
-		err := resp.Body.Close()
-		if err != nil {
-			logs.GetLogger().Errorf(err.Error())
-			return
-		}
-	}
-}
-
-func InitComputingProvider(cpRepoPath, ownerAddress string) string {
+func InitComputingProvider(cpRepoPath string) string {
 	nodeID, peerID, address := GenerateNodeID(cpRepoPath)
 
 	logs.GetLogger().Infof("Node ID :%s Peer ID:%s address:%s",
 		nodeID, peerID, address)
-	updateProviderInfo(nodeID, peerID, address, models.ActiveStatus, ownerAddress)
 	return nodeID
 }
 
