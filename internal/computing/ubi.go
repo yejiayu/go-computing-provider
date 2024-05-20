@@ -856,7 +856,21 @@ func reportClusterResourceForDocker() {
 
 	var nodeResource models.NodeResource
 	if err := json.Unmarshal([]byte(containerLogStr), &nodeResource); err != nil {
-		logs.GetLogger().Error("hardware info parse to json failed, error: %+v", err)
+		logs.GetLogger().Warnf("hardware info parse to json failed, restarting resource-exporter")
+		resourceExporterContainerName := "resource-exporter"
+		err = NewDockerService().RemoveImageByName(resourceExporterContainerName)
+		if err != nil {
+			logs.GetLogger().Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
+			return
+		}
+		if err = dockerService.ContainerCreateAndStart(&container.Config{
+			Image:        "filswan/hardware-exporter:v1.0",
+			AttachStdout: true,
+			AttachStderr: true,
+			Tty:          true,
+		}, nil, resourceExporterContainerName); err != nil {
+			logs.GetLogger().Errorf("create resource-exporter container failed, error: %v", err)
+		}
 		return
 	}
 
