@@ -413,6 +413,7 @@ func CancelJob(c *gin.Context) {
 		}()
 		k8sNameSpace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobEntity.WalletAddress)
 		deleteJob(k8sNameSpace, jobEntity.SpaceUuid)
+		NewJobService().DeleteJobEntityBySpaceUuId(jobEntity.SpaceUuid)
 	}()
 
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("deleted success"))
@@ -846,8 +847,6 @@ func deleteJob(namespace, spaceUuid string) error {
 			break
 		}
 	}
-
-	logs.GetLogger().Infof("Deleted space service finished, space_uuid: %s", spaceUuid)
 	return nil
 }
 
