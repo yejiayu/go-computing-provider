@@ -337,7 +337,7 @@ var changeOwnerAddressCmd = &cli.Command{
 
 		ownerAddress := cctx.String("ownerAddress")
 		if strings.TrimSpace(ownerAddress) == "" {
-			return fmt.Errorf("ownerAddress is not empty")
+			return fmt.Errorf("ownerAddress is required")
 		}
 
 		if cctx.NArg() != 1 {
