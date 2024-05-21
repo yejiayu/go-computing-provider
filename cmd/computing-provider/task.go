@@ -62,9 +62,11 @@ var taskList = &cli.Command{
 				fullSpaceUuid = job.K8sDeployName[7:]
 			}
 
+			expireTime := time.Unix(job.ExpireTime, 0).Format("2006-01-02 15:04:05")
+
 			if fullFlag {
 				taskData = append(taskData,
-					[]string{job.TaskUuid, job.ResourceType, job.WalletAddress, fullSpaceUuid, job.Name, status})
+					[]string{job.TaskUuid, job.ResourceType, job.WalletAddress, fullSpaceUuid, job.Name, status, expireTime})
 			} else {
 				var walletAddress string
 				if len(job.WalletAddress) > 0 {
@@ -82,7 +84,7 @@ var taskList = &cli.Command{
 				}
 
 				taskData = append(taskData,
-					[]string{taskUuid, job.ResourceType, walletAddress, spaceUuid, job.Name, status})
+					[]string{taskUuid, job.ResourceType, walletAddress, spaceUuid, job.Name, status, expireTime})
 			}
 
 			var rowColor []tablewriter.Colors
@@ -101,7 +103,7 @@ var taskList = &cli.Command{
 			})
 		}
 
-		header := []string{"TASK UUID", "TASK TYPE", "WALLET ADDRESS", "SPACE UUID", "SPACE NAME", "STATUS"}
+		header := []string{"TASK UUID", "TASK TYPE", "WALLET ADDRESS", "SPACE UUID", "SPACE NAME", "STATUS", "EXPIRE TIME"}
 		NewVisualTable(header, taskData, rowColorList).Generate(true)
 		return nil
 	},
