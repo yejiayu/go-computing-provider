@@ -852,13 +852,16 @@ func reportClusterResourceForDocker() {
 	if err != nil {
 		logs.GetLogger().Errorf("collect host hardware resource failed, error: %v", err)
 		resourceExporterContainerName := "resource-exporter"
-		err = NewDockerService().RemoveImageByName(resourceExporterContainerName)
+		err = dockerService.RemoveImageByName(resourceExporterContainerName)
 		if err != nil {
 			logs.GetLogger().Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
 			return
 		}
+
+		imageName := "filswan/hardware-exporter:v1.0"
+		dockerService.PullImage(imageName)
 		if err = dockerService.ContainerCreateAndStart(&container.Config{
-			Image:        "filswan/hardware-exporter:v1.0",
+			Image:        imageName,
 			AttachStdout: true,
 			AttachStderr: true,
 			Tty:          true,
@@ -877,8 +880,10 @@ func reportClusterResourceForDocker() {
 			logs.GetLogger().Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
 			return
 		}
+		imageName := "filswan/hardware-exporter:v1.0"
+		dockerService.PullImage(imageName)
 		if err = dockerService.ContainerCreateAndStart(&container.Config{
-			Image:        "filswan/hardware-exporter:v1.0",
+			Image:        imageName,
 			AttachStdout: true,
 			AttachStderr: true,
 			Tty:          true,
