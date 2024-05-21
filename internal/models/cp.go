@@ -124,11 +124,11 @@ type UBITaskReq struct {
 }
 
 type UbiC2Proof struct {
-	TaskId    string `json:"task_id"`
-	TaskType  string `json:"task_type"`
-	Proof     string `json:"proof"`
-	ZkType    string `json:"zk_type"`
-	NameSpace string `json:"name_space"`
+	TaskId    string `json:"task_id,omitempty"`
+	TaskType  string `json:"task_type,omitempty"`
+	Proof     string `json:"proof,omitempty"`
+	ZkType    string `json:"zk_type,omitempty"`
+	NameSpace string `json:"name_space,omitempty"`
 }
 
 type TaskResource struct {

@@ -93,7 +93,7 @@ func GetDeployStatusStr(deployStatus int) string {
 
 type JobEntity struct {
 	Id              uint   `json:"id" gorm:"primaryKey;autoIncrement"`
-	Source          string `json:"source" gorm:"source"`
+	Source          string `json:"source" gorm:"source"` // market name
 	Name            string `json:"name" gorm:"name"`
 	SpaceUuid       string `json:"space_uuid"`
 	JobUuid         string `json:"job_uuid"`
@@ -105,7 +105,6 @@ type JobEntity struct {
 	Duration        int    `json:"duration"`
 	DeployStatus    int    `json:"deploy_status" gorm:"deploy_status"`
 	WalletAddress   string `json:"wallet_address"`
-	Status          int    `json:"status" gorm:"status"`
 	ResultUrl       string `json:"result_url" gorm:"result_url"`
 	RealUrl         string `json:"real_url"`
 	K8sDeployName   string `json:"k8s_deploy_name" gorm:"k8s_deploy_name"`

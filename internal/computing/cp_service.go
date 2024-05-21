@@ -143,31 +143,31 @@ func ReceiveJob(c *gin.Context) {
 		jobData.JobResultURI = ""
 	}
 
-	job, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
-	if err != nil {
-		logs.GetLogger().Errorf("get job failed, error: %+v", err)
-		return
-	}
-	if job.SpaceUuid != "" {
-		NewJobService().DeleteJobEntityBySpaceUuId(spaceUuid)
-	}
-
-	var jobEntity = new(models.JobEntity)
-	jobEntity.Source = jobData.StorageSource
-	jobEntity.SpaceUuid = spaceUuid
-	jobEntity.TaskUuid = jobData.TaskUUID
-	jobEntity.SourceUrl = jobSourceUri
-	jobEntity.ResultUrl = jobData.JobResultURI
-	jobEntity.RealUrl = jobData.JobRealUri
-	jobEntity.BuildLog = jobData.BuildLog
-	jobEntity.ContainerLog = jobData.ContainerLog
-	jobEntity.Duration = jobData.Duration
-	jobEntity.JobUuid = jobData.UUID
-	jobEntity.DeployStatus = models.DEPLOY_RECEIVE_JOB
-	jobEntity.CreateTime = time.Now().Unix()
-	NewJobService().SaveJobEntity(jobEntity)
-
 	go func() {
+		job, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
+		if err != nil {
+			logs.GetLogger().Errorf("get job failed, error: %+v", err)
+			return
+		}
+		if job.SpaceUuid != "" {
+			NewJobService().DeleteJobEntityBySpaceUuId(spaceUuid)
+		}
+
+		var jobEntity = new(models.JobEntity)
+		jobEntity.Source = jobData.StorageSource
+		jobEntity.SpaceUuid = spaceUuid
+		jobEntity.TaskUuid = jobData.TaskUUID
+		jobEntity.SourceUrl = jobSourceUri
+		jobEntity.ResultUrl = jobData.JobResultURI
+		jobEntity.RealUrl = jobData.JobRealUri
+		jobEntity.BuildLog = jobData.BuildLog
+		jobEntity.ContainerLog = jobData.ContainerLog
+		jobEntity.Duration = jobData.Duration
+		jobEntity.JobUuid = jobData.UUID
+		jobEntity.DeployStatus = models.DEPLOY_RECEIVE_JOB
+		jobEntity.CreateTime = time.Now().Unix()
+		NewJobService().SaveJobEntity(jobEntity)
+
 		DeploySpaceTask(jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName)
 	}()
 
