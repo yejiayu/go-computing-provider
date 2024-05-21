@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -20,8 +18,6 @@ import (
 	"github.com/swanchain/go-computing-provider/wallet"
 	"github.com/swanchain/go-computing-provider/wallet/contract/collateral"
 	"github.com/urfave/cli/v2"
-	"io"
-	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -131,9 +127,10 @@ var infoCmd = &cli.Command{
 				switch taskType {
 				case 1:
 					taskTypes += "Fil-C2,"
-
 				case 2:
 					taskTypes += "Aleo,"
+				case 3:
+					taskTypes += "Ai,"
 				}
 			}
 			if taskTypes != "" {
@@ -156,7 +153,10 @@ var infoCmd = &cli.Command{
 
 		ecpCollateral, err := account.NewCollateralStub(client, account.WithPublicKey(ownerAddress))
 		if err == nil {
-			ecpCollateralBalance, err = ecpCollateral.Balances()
+			cpCollateralInfo, err := ecpCollateral.CpInfo()
+			if err == nil {
+				ecpCollateralBalance = cpCollateralInfo.CollateralBalance
+			}
 		}
 
 		var domain = conf.GetConfig().API.Domain
@@ -166,12 +166,12 @@ var infoCmd = &cli.Command{
 		var taskData [][]string
 
 		taskData = append(taskData, []string{"Owner:", ownerAddress})
+		taskData = append(taskData, []string{"Contract Address:", contractAddress})
+		taskData = append(taskData, []string{"Contract Version:", version})
 		taskData = append(taskData, []string{"Multi-Address:", conf.GetConfig().API.MultiAddress})
 		taskData = append(taskData, []string{"Node ID:", localNodeId})
+		taskData = append(taskData, []string{"Task Types:", taskTypes})
 		taskData = append(taskData, []string{"ECP:"})
-		taskData = append(taskData, []string{"   Contract Address:", contractAddress})
-		taskData = append(taskData, []string{"   Contract Version:", version})
-		taskData = append(taskData, []string{"   Task Types:", taskTypes})
 		taskData = append(taskData, []string{"   Worker Address:", workerAddress})
 		taskData = append(taskData, []string{"   Beneficiary Address:", beneficiaryAddress})
 		taskData = append(taskData, []string{"   Available(SWAN-ETH):", ownerBalance})
@@ -187,7 +187,7 @@ var infoCmd = &cli.Command{
 			var rowColor []tablewriter.Colors
 			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
 			rowColorList = append(rowColorList, RowColor{
-				row:    6,
+				row:    5,
 				column: []int{1},
 				color:  rowColor,
 			})
@@ -364,7 +364,7 @@ var createAccountCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "task-types",
-			Usage: "Task types of CP (1:Fil-C2, 2:Aleo), separated by commas",
+			Usage: "Task types of CP (1:Fil-C2, 2:Aleo, 3:Ai), separated by commas",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -392,15 +392,15 @@ var createAccountCmd = &cli.Command{
 		if strings.Index(taskTypes, ",") > 0 {
 			for _, taskT := range strings.Split(taskTypes, ",") {
 				tt, _ := strconv.ParseUint(taskT, 10, 64)
-				if tt != 1 && tt != 2 {
-					return fmt.Errorf("TaskTypes supports 1, 2")
+				if tt != 1 && tt != 2 && tt != 3 {
+					return fmt.Errorf("TaskTypes supports 1, 2, 3")
 				}
 				taskTypesUint = append(taskTypesUint, uint8(tt))
 			}
 		} else {
 			tt, _ := strconv.ParseUint(taskTypes, 10, 64)
-			if tt != 1 && tt != 2 {
-				return fmt.Errorf("TaskTypes supports 1, 2")
+			if tt != 1 && tt != 2 && tt != 3 {
+				return fmt.Errorf("TaskTypes supports 1, 2, 3")
 			}
 		}
 
@@ -466,9 +466,9 @@ var changeOwnerAddressCmd = &cli.Command{
 	},
 	Action: func(cctx *cli.Context) error {
 
-		ownerAddress := cctx.String("oldOwnerAddress")
+		ownerAddress := cctx.String("ownerAddress")
 		if strings.TrimSpace(ownerAddress) == "" {
-			return fmt.Errorf("ownerAddress is not empty")
+			return fmt.Errorf("ownerAddress is required")
 		}
 
 		if cctx.NArg() != 1 {
@@ -521,18 +521,18 @@ var changeOwnerAddressCmd = &cli.Command{
 
 		cpAccount, err := cpStub.GetCpAccountInfo()
 		if err != nil {
-			return fmt.Errorf("get cpAccount faile, error: %v", err)
+			return fmt.Errorf("get cpAccount failed, error: %v", err)
 		}
 		if !strings.EqualFold(cpAccount.OwnerAddress, ownerAddress) {
-			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
+			return fmt.Errorf("Only the owner can change CP account owner address, the CP account is: %s, the owner should be %s", cpAccount.Contract, cpAccount.OwnerAddress)
 		}
 
-		submitUBIProofTx, err := cpStub.ChangeOwnerAddress(common.HexToAddress(newOwnerAddr))
+		changeOwnerAddressTx, err := cpStub.ChangeOwnerAddress(common.HexToAddress(newOwnerAddr))
 		if err != nil {
-			logs.GetLogger().Errorf("change owner address tx failed, error: %v,", err)
+			logs.GetLogger().Errorf("change owner address tx failed, error: %v", err)
 			return err
 		}
-		fmt.Printf("ChangeOwnerAddress: %s \n", submitUBIProofTx)
+		fmt.Printf("ChangeOwnerAddress: %s \n", changeOwnerAddressTx)
 
 		return nil
 	},
@@ -609,7 +609,7 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 			return fmt.Errorf("get cpAccount faile, error: %v", err)
 		}
 		if !strings.EqualFold(cpAccount.OwnerAddress, ownerAddress) {
-			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
+			return fmt.Errorf("Only the owner can change CP account owner address, the CP account is: %s, the owner should be %s", cpAccount.Contract, cpAccount.OwnerAddress)
 		}
 		changeBeneficiaryAddressTx, err := cpStub.ChangeBeneficiary(common.HexToAddress(beneficiaryAddress))
 		if err != nil {
@@ -692,7 +692,7 @@ var changeWorkerAddressCmd = &cli.Command{
 			return fmt.Errorf("get cpAccount faile, error: %v", err)
 		}
 		if !strings.EqualFold(cpAccount.OwnerAddress, ownerAddress) {
-			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
+			return fmt.Errorf("Only the owner can change CP account owner address, the CP account is: %s, the owner should be %s", cpAccount.Contract, cpAccount.OwnerAddress)
 		}
 		changeBeneficiaryAddressTx, err := cpStub.ChangeWorkerAddress(common.HexToAddress(workerAddress))
 		if err != nil {
@@ -706,7 +706,7 @@ var changeWorkerAddressCmd = &cli.Command{
 
 var changeTaskTypesCmd = &cli.Command{
 	Name:      "changeTaskTypes",
-	Usage:     "Update taskTypes of CP (1:Fil-C2, 2:Aleo), separated by commas",
+	Usage:     "Update taskTypes of CP (1:Fil-C2, 2:Aleo, 3: Ai), separated by commas",
 	ArgsUsage: "[TaskTypes]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -735,15 +735,15 @@ var changeTaskTypesCmd = &cli.Command{
 		if strings.Index(taskTypes, ",") > 0 {
 			for _, taskT := range strings.Split(taskTypes, ",") {
 				tt, _ := strconv.ParseUint(taskT, 10, 64)
-				if tt != 1 && tt != 2 {
-					return fmt.Errorf("TaskTypes supports 1, 2")
+				if tt != 1 && tt != 2 && tt != 3 {
+					return fmt.Errorf("TaskTypes supports 1, 2, 3")
 				}
 				taskTypesUint = append(taskTypesUint, uint8(tt))
 			}
 		} else {
 			tt, _ := strconv.ParseUint(taskTypes, 10, 64)
-			if tt != 1 && tt != 2 {
-				return fmt.Errorf("TaskTypes supports 1, 2")
+			if tt != 1 && tt != 2 && tt != 3 {
+				return fmt.Errorf("TaskTypes supports 1, 2, 3")
 			}
 		}
 
@@ -791,7 +791,7 @@ var changeTaskTypesCmd = &cli.Command{
 			return fmt.Errorf("get cpAccount faile, error: %v", err)
 		}
 		if !strings.EqualFold(cpAccount.OwnerAddress, ownerAddress) {
-			return fmt.Errorf("the owner address is incorrect. The owner on the chain is %s, and the current address is %s", cpAccount.OwnerAddress, ownerAddress)
+			return fmt.Errorf("Only the owner can change CP account owner address, the CP account is: %s, the owner should be %s", cpAccount.Contract, cpAccount.OwnerAddress)
 		}
 
 		changeTaskTypesTx, err := cpStub.ChangeTaskTypes(taskTypesUint)
@@ -802,49 +802,4 @@ var changeTaskTypesCmd = &cli.Command{
 		fmt.Printf("ChangeTaskTypes Transaction hash: %s \n", changeTaskTypesTx)
 		return nil
 	},
-}
-
-func DoSend(contractAddr, height string) error {
-	type ContractReq struct {
-		Addr   string `json:"addr"`
-		Height int    `json:"height"`
-	}
-	h, _ := strconv.ParseInt(height, 10, 64)
-	var contractReq ContractReq
-	contractReq.Addr = contractAddr
-	contractReq.Height = int(h)
-
-	jsonData, err := json.Marshal(contractReq)
-	if err != nil {
-		logs.GetLogger().Errorf("JSON encoding failed: %v", err)
-		return err
-	}
-
-	resp, err := http.Post(conf.GetConfig().UBI.UbiUrl+"/contracts", "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		logs.GetLogger().Errorf("POST request failed: %v", err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	var resultResp struct {
-		Code int    `json:"code"`
-		Msg  string `json:"msg"`
-		Data any    `json:"data,omitempty"`
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logs.GetLogger().Errorf("read response failed: %v", err)
-		return err
-	}
-	err = json.Unmarshal(body, &resultResp)
-	if err != nil {
-		logs.GetLogger().Errorf("response convert to json failed: %v", err)
-		return err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("register cp to ubi hub failed, error: %s", resultResp.Msg)
-	}
-	return nil
 }

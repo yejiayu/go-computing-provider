@@ -315,14 +315,6 @@ var collateralCmd = &cli.Command{
 			Usage: "Specify which rpc connection chain to use",
 			Value: conf.DefaultRpc,
 		},
-		&cli.BoolFlag{
-			Name:  "fcp",
-			Usage: "Specify the fcp collateral",
-		},
-		&cli.BoolFlag{
-			Name:  "ecp",
-			Usage: "Specify the ecp collateral",
-		},
 	},
 	Subcommands: []*cli.Command{
 		collateralInfoCmd,
@@ -333,14 +325,29 @@ var collateralCmd = &cli.Command{
 }
 
 var collateralAddCmd = &cli.Command{
-	Name:      "add",
-	Usage:     "Send the collateral amount to the collateral contract address",
-	ArgsUsage: "add [targetAddress] [amount]",
+	Name:  "add",
+	Usage: "Send the collateral amount to the collateral contract address",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "fcp",
+			Usage: "Specify the fcp collateral",
+		},
+		&cli.BoolFlag{
+			Name:  "ecp",
+			Usage: "Specify the ecp collateral",
+		},
+		&cli.StringFlag{
+			Name:  "from",
+			Usage: "Specify the owner address",
+		},
+		&cli.StringFlag{
+			Name:  "account",
+			Usage: "Specify the cp account address, if not specified, cp account is the content of the account file under the CP_PATH variable",
+		},
+	},
+	ArgsUsage: "[amount]",
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
-		if cctx.NArg() != 2 {
-			return fmt.Errorf("need two params: the from address and amount")
-		}
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
 			return fmt.Errorf("chain field cannot be empty")
@@ -359,12 +366,14 @@ var collateralAddCmd = &cli.Command{
 			collateralType = "ecp"
 		}
 
-		from := cctx.Args().Get(0)
-		if strings.TrimSpace(from) == "" {
-			return fmt.Errorf("from address cannot be empty")
+		fromAddress := cctx.String("from")
+		if strings.TrimSpace(fromAddress) == "" {
+			return fmt.Errorf("the owner address is required")
 		}
 
-		amount := cctx.Args().Get(1)
+		cpAccountAddress := cctx.String("account")
+
+		amount := cctx.Args().Get(0)
 		if strings.TrimSpace(amount) == "" {
 			return fmt.Errorf("failed to get amount: %s", chain)
 		}
@@ -373,7 +382,7 @@ var collateralAddCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		txHash, err := localWallet.WalletCollateral(ctx, chain, from, amount, collateralType)
+		txHash, err := localWallet.WalletCollateral(ctx, chain, fromAddress, amount, cpAccountAddress, collateralType)
 		if err != nil {
 			return err
 		}
@@ -392,38 +401,39 @@ var collateralInfoCmd = &cli.Command{
 			return fmt.Errorf("failed to parse chain: %s", chain)
 		}
 
-		fcpCollateral := cctx.Bool("fcp")
-		ecpCollateral := cctx.Bool("ecp")
-		if !fcpCollateral && !ecpCollateral {
-			return fmt.Errorf("must specify one of fcp or ecp")
-		}
-		var collateralType string
-		if fcpCollateral {
-			collateralType = "fcp"
-		}
-		if ecpCollateral {
-			collateralType = "ecp"
-		}
-
 		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
 		if err != nil {
 			return err
 		}
 
-		return localWallet.CollateralInfo(ctx, chain, collateralType)
+		return localWallet.CollateralInfo(ctx, chain, "fcp")
 	},
 }
 
 var collateralWithdrawCmd = &cli.Command{
-	Name:      "withdraw",
-	Usage:     "Withdraw funds from the collateral contract",
-	ArgsUsage: "[targetAddress] [amount]",
+	Name:  "withdraw",
+	Usage: "Withdraw funds from the collateral contract",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:  "fcp",
+			Usage: "Specify the fcp collateral",
+		},
+		&cli.BoolFlag{
+			Name:  "ecp",
+			Usage: "Specify the ecp collateral",
+		},
+		&cli.StringFlag{
+			Name:  "owner",
+			Usage: "Specify the owner address",
+		},
+		&cli.StringFlag{
+			Name:  "account",
+			Usage: "Specify the cp account address, if not specified, cp account is the content of the account file under the CP_PATH variable",
+		},
+	},
+	ArgsUsage: "[amount]",
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
-		if cctx.NArg() != 2 {
-			return fmt.Errorf("need two params: the to address and amount")
-		}
-
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
 			return fmt.Errorf("chain field cannot be empty")
@@ -442,12 +452,13 @@ var collateralWithdrawCmd = &cli.Command{
 			collateralType = "ecp"
 		}
 
-		to := cctx.Args().Get(0)
-		if strings.TrimSpace(to) == "" {
-			return fmt.Errorf("the to address param cannot be empty")
+		ownerAddress := cctx.String("owner")
+		if strings.TrimSpace(ownerAddress) == "" {
+			return fmt.Errorf("the owner address is required")
 		}
 
-		amount := cctx.Args().Get(1)
+		cpAccountAddress := cctx.String("account")
+		amount := cctx.Args().Get(0)
 		if strings.TrimSpace(amount) == "" {
 			return fmt.Errorf("the amount param cannot be empty")
 		}
@@ -456,7 +467,7 @@ var collateralWithdrawCmd = &cli.Command{
 		if err != nil {
 			return err
 		}
-		txHash, err := localWallet.CollateralWithdraw(ctx, chain, to, amount, collateralType)
+		txHash, err := localWallet.CollateralWithdraw(ctx, chain, ownerAddress, amount, cpAccountAddress, collateralType)
 		if err != nil {
 			return err
 		}

@@ -159,10 +159,6 @@ func (task *CronTask) watchExpiredTask() {
 			}
 		}
 
-		err = NewJobService().DeleteJobs(deleteSpaceIds)
-		if err != nil {
-			logs.GetLogger().Errorf("delete spaces failed, error: %v", err)
-		}
 	})
 	c.Start()
 }
@@ -407,7 +403,7 @@ func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
 func reportJobStatus(jobUuid string, deployStatus int, ownerAddress string) bool {
 	var job = new(models.JobEntity)
 	job.JobUuid = jobUuid
-	job.Status = deployStatus
+	job.DeployStatus = deployStatus
 	if err := NewJobService().UpdateJobEntityByJobUuid(job); err != nil {
 		logs.GetLogger().Errorf("update job info by jobUuid failed, error: %v", err)
 	}
