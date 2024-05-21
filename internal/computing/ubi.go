@@ -850,7 +850,7 @@ func reportClusterResourceForDocker() {
 	dockerService := NewDockerService()
 	containerLogStr, err := dockerService.ContainerLogs("resource-exporter")
 	if err != nil {
-		logs.GetLogger().Error("collect host hardware resource failed, error: %+v", err)
+		logs.GetLogger().Errorf("collect host hardware resource failed, error: %v", err)
 		resourceExporterContainerName := "resource-exporter"
 		err = NewDockerService().RemoveImageByName(resourceExporterContainerName)
 		if err != nil {
