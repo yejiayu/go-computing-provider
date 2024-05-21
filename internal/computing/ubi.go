@@ -352,6 +352,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			Timestamps: true,
 		})
 
+		time.Sleep(2 * time.Second)
 		podLogs, err := req.Stream(context.Background())
 		if err != nil {
 			logs.GetLogger().Errorf("Error opening log stream: %v", err)
@@ -879,13 +880,44 @@ func reportClusterResourceForDocker() {
 	dockerService := NewDockerService()
 	containerLogStr, err := dockerService.ContainerLogs("resource-exporter")
 	if err != nil {
-		logs.GetLogger().Error("collect host hardware resource failed, error: %+v", err)
+		logs.GetLogger().Errorf("collect host hardware resource failed, error: %v", err)
+		resourceExporterContainerName := "resource-exporter"
+		err = dockerService.RemoveImageByName(resourceExporterContainerName)
+		if err != nil {
+			logs.GetLogger().Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
+			return
+		}
+
+		dockerService.PullImage(build.UBIResourceExporterDockerImage)
+		if err = dockerService.ContainerCreateAndStart(&container.Config{
+			Image:        build.UBIResourceExporterDockerImage,
+			AttachStdout: true,
+			AttachStderr: true,
+			Tty:          true,
+		}, nil, resourceExporterContainerName); err != nil {
+			logs.GetLogger().Errorf("create resource-exporter container failed, error: %v", err)
+		}
 		return
 	}
 
 	var nodeResource models.NodeResource
 	if err := json.Unmarshal([]byte(containerLogStr), &nodeResource); err != nil {
-		logs.GetLogger().Error("hardware info parse to json failed, error: %+v", err)
+		logs.GetLogger().Warnf("hardware info parse to json failed, restarting resource-exporter")
+		resourceExporterContainerName := "resource-exporter"
+		err = NewDockerService().RemoveImageByName(resourceExporterContainerName)
+		if err != nil {
+			logs.GetLogger().Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
+			return
+		}
+		dockerService.PullImage(build.UBIResourceExporterDockerImage)
+		if err = dockerService.ContainerCreateAndStart(&container.Config{
+			Image:        build.UBIResourceExporterDockerImage,
+			AttachStdout: true,
+			AttachStderr: true,
+			Tty:          true,
+		}, nil, resourceExporterContainerName); err != nil {
+			logs.GetLogger().Errorf("create resource-exporter container failed, error: %v", err)
+		}
 		return
 	}
 
