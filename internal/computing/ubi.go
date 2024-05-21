@@ -850,13 +850,46 @@ func reportClusterResourceForDocker() {
 	dockerService := NewDockerService()
 	containerLogStr, err := dockerService.ContainerLogs("resource-exporter")
 	if err != nil {
-		logs.GetLogger().Error("collect host hardware resource failed, error: %+v", err)
+		logs.GetLogger().Errorf("collect host hardware resource failed, error: %v", err)
+		resourceExporterContainerName := "resource-exporter"
+		err = dockerService.RemoveImageByName(resourceExporterContainerName)
+		if err != nil {
+			logs.GetLogger().Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
+			return
+		}
+
+		imageName := "filswan/hardware-exporter:v1.0"
+		dockerService.PullImage(imageName)
+		if err = dockerService.ContainerCreateAndStart(&container.Config{
+			Image:        imageName,
+			AttachStdout: true,
+			AttachStderr: true,
+			Tty:          true,
+		}, nil, resourceExporterContainerName); err != nil {
+			logs.GetLogger().Errorf("create resource-exporter container failed, error: %v", err)
+		}
 		return
 	}
 
 	var nodeResource models.NodeResource
 	if err := json.Unmarshal([]byte(containerLogStr), &nodeResource); err != nil {
-		logs.GetLogger().Error("hardware info parse to json failed, error: %+v", err)
+		logs.GetLogger().Warnf("hardware info parse to json failed, restarting resource-exporter")
+		resourceExporterContainerName := "resource-exporter"
+		err = NewDockerService().RemoveImageByName(resourceExporterContainerName)
+		if err != nil {
+			logs.GetLogger().Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
+			return
+		}
+		imageName := "filswan/hardware-exporter:v1.0"
+		dockerService.PullImage(imageName)
+		if err = dockerService.ContainerCreateAndStart(&container.Config{
+			Image:        imageName,
+			AttachStdout: true,
+			AttachStderr: true,
+			Tty:          true,
+		}, nil, resourceExporterContainerName); err != nil {
+			logs.GetLogger().Errorf("create resource-exporter container failed, error: %v", err)
+		}
 		return
 	}
 
@@ -865,6 +898,8 @@ func reportClusterResourceForDocker() {
 		for _, g := range nodeResource.Gpu.Details {
 			if g.Status == models.Available {
 				freeGpuMap[g.ProductName] += 1
+			} else {
+				freeGpuMap[g.ProductName] = 0
 			}
 		}
 	}
