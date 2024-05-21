@@ -348,6 +348,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			Timestamps: true,
 		})
 
+		time.Sleep(2 * time.Second)
 		podLogs, err := req.Stream(context.Background())
 		if err != nil {
 			logs.GetLogger().Errorf("Error opening log stream: %v", err)
