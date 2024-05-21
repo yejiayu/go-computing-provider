@@ -389,3 +389,13 @@ func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 		return result, nil
 	}
 }
+
+func (ds *DockerService) GetContainerLogStream(containerName string) (io.ReadCloser, error) {
+	ctx := context.Background()
+	return ds.c.ContainerLogs(ctx, containerName, container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     false,
+		Tail:       "1",
+	})
+}
