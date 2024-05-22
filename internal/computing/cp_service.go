@@ -89,7 +89,7 @@ func ReceiveJob(c *gin.Context) {
 
 		signatureStart := time.Now()
 		signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobData.JobSourceURI), jobData.NodeIdJobSourceUriSignature)
-		logs.GetLogger().Infof("signature: %d", time.Now().Sub(signatureStart))
+		logs.GetLogger().Infof("time:: signature: %d", time.Now().Sub(signatureStart).Milliseconds())
 
 		if err != nil {
 			logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
@@ -113,7 +113,7 @@ func ReceiveJob(c *gin.Context) {
 
 	resourceStart := time.Now()
 	available, gpuProductName, err := checkResourceAvailableForSpace(spaceDetail.Data.Space.ActiveOrder.Config.Description)
-	logs.GetLogger().Infof("signature: %d", time.Now().Sub(resourceStart))
+	logs.GetLogger().Infof("time:: resource: %d", time.Now().Sub(resourceStart).Milliseconds())
 	if err != nil {
 		logs.GetLogger().Errorf("check job resource failed, error: %+v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
@@ -184,7 +184,7 @@ func submitJob(jobData *models.JobData) error {
 	mcsStart := time.Now()
 	storageService := NewStorageService()
 	mcsOssFile, err := storageService.UploadFileToBucket(jobDetailFile, taskDetailFilePath, true)
-	logs.GetLogger().Infof("mcs: %d", time.Now().Sub(mcsStart))
+	logs.GetLogger().Infof("time:: mcs: %d", time.Now().Sub(mcsStart).Milliseconds())
 	if err != nil {
 		logs.GetLogger().Errorf("Failed upload file to bucket, error: %v", err)
 		return err
