@@ -73,6 +73,10 @@ func (s *TaskStub) SubmitUBIProof(proof string) (string, error) {
 	return transaction.Hash().String(), nil
 }
 
+func (s *TaskStub) GetTaskInfo() (ECPTaskTaskInfo, error) {
+	return s.task.GetTaskInfo(&bind.CallOpts{})
+}
+
 func (s *TaskStub) privateKeyToPublicKey() (common.Address, error) {
 	if len(strings.TrimSpace(s.privateK)) == 0 {
 		return common.Address{}, fmt.Errorf("wallet address private key must be not empty")

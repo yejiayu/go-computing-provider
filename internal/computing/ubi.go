@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/docker/docker/api/types/container"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-swan-lib/logs"
 	"github.com/gin-gonic/gin"
@@ -982,7 +983,7 @@ func CleanDockerResource() {
 
 			for _, entity := range taskList {
 				ubiTask := entity
-				reward, err := getReward(nodeId, strconv.Itoa(int(ubiTask.Id)))
+				reward, err := getReward(ubiTask)
 				if err != nil {
 					logs.GetLogger().Errorf("get ubi task reward failed, taskId: %d, error: %v", ubiTask.Id, err)
 					continue
@@ -994,51 +995,55 @@ func CleanDockerResource() {
 	}()
 }
 
-func getReward(nodeId, taskId string) (float64, error) {
-	var taskInfo TaskInfo
+func getReward(task *models.TaskEntity) (float64, error) {
+	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+	if err != nil {
+		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+		return 0, err
+	}
+	client, err := ethclient.Dial(chainUrl)
+	if err != nil {
+		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+		return 0, err
+	}
+	client.Close()
 
-	url := fmt.Sprintf("%s/rewards?node_id=%s&task_id=%s", conf.GetConfig().UBI.UbiUrl, nodeId, taskId)
-	resp, err := http.Get(url)
+	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
+	if err != nil {
+		logs.GetLogger().Errorf("setup wallet failed, error: %v,", err)
+		return 0, err
+	}
+
+	ownerAddress, _, err := GetOwnerAddressAndWorkerAddress()
+	if err != nil {
+		logs.GetLogger().Errorf("get worker address failed, error: %v", err)
+		return 0, err
+	}
+
+	ki, err := localWallet.FindKey(ownerAddress)
+	if err != nil || ki == nil {
+		logs.GetLogger().Errorf("the address: %s, private key %v,", ownerAddress, wallet.ErrKeyInfoNotFound)
+		return 0, err
+	}
+
+	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(task.Contract), account.WithTaskPrivateKey(ki.PrivateKey))
+	if err != nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		return 0, err
+	}
+
+	taskInfo, err := taskStub.GetTaskInfo()
 	if err != nil {
 		return 0, err
 	}
-	defer resp.Body.Close()
+	rewardTx := taskInfo.RewardTx
+	if rewardTx != "" {
+		tx, _, err := client.TransactionByHash(context.Background(), common.HexToHash(rewardTx))
+		if err != nil {
 
-	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("get ubi task reward failed")
+		}
+		tx.Value()
+
 	}
 
-	bytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return 0, err
-	}
-
-	err = json.Unmarshal(bytes, &taskInfo)
-	if err != nil {
-		return 0, err
-	}
-	if len(taskInfo.Data.List) > 0 {
-		task := taskInfo.Data.List[0]
-		floatVal, _ := strconv.ParseFloat(task.Amount, 64)
-		return floatVal, nil
-	} else {
-		return 0, nil
-	}
-}
-
-type TaskInfo struct {
-	Code int    `json:"code"`
-	Msg  string `json:"msg"`
-	Data struct {
-		Total int `json:"total"`
-		List  []struct {
-			TaskId          int    `json:"task_id"`
-			BeneficiaryAddr string `json:"beneficiary_addr"`
-			Amount          string `json:"amount"`
-			From            string `json:"from"`
-			TxHash          string `json:"tx_hash"`
-			ChainId         int    `json:"chain_id"`
-			CreatedAt       int    `json:"created_at"`
-		} `json:"list"`
-	} `json:"data"`
 }
