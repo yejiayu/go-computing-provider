@@ -66,6 +66,7 @@ func GetServiceProviderInfo(c *gin.Context) {
 }
 
 func ReceiveJob(c *gin.Context) {
+	start := time.Now()
 	var jobData models.JobData
 	if err := c.ShouldBindJSON(&jobData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -89,7 +90,7 @@ func ReceiveJob(c *gin.Context) {
 
 		signatureStart := time.Now()
 		signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobData.JobSourceURI), jobData.NodeIdJobSourceUriSignature)
-		logs.GetLogger().Infof("time:: signature: %d", time.Now().Sub(signatureStart).Milliseconds())
+		logs.GetLogger().Infof("time:: signature: %f", time.Now().Sub(signatureStart).Seconds())
 
 		if err != nil {
 			logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
@@ -113,7 +114,7 @@ func ReceiveJob(c *gin.Context) {
 
 	resourceStart := time.Now()
 	available, gpuProductName, err := checkResourceAvailableForSpace(spaceDetail.Data.Space.ActiveOrder.Config.Description)
-	logs.GetLogger().Infof("time:: resource: %d", time.Now().Sub(resourceStart).Milliseconds())
+	logs.GetLogger().Infof("time:: resource: %f", time.Now().Sub(resourceStart).Seconds())
 	if err != nil {
 		logs.GetLogger().Errorf("check job resource failed, error: %+v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
@@ -156,6 +157,7 @@ func ReceiveJob(c *gin.Context) {
 	}
 	logs.GetLogger().Infof("submit job detail: %+v", jobData)
 	c.JSON(http.StatusOK, jobData)
+	logs.GetLogger().Infof("time:: total: %f", time.Now().Sub(start).Seconds())
 }
 
 func submitJob(jobData *models.JobData) error {
@@ -184,7 +186,7 @@ func submitJob(jobData *models.JobData) error {
 	mcsStart := time.Now()
 	storageService := NewStorageService()
 	mcsOssFile, err := storageService.UploadFileToBucket(jobDetailFile, taskDetailFilePath, true)
-	logs.GetLogger().Infof("time:: mcs: %d", time.Now().Sub(mcsStart).Milliseconds())
+	logs.GetLogger().Infof("time:: mcs: %f", time.Now().Sub(mcsStart).Seconds())
 	if err != nil {
 		logs.GetLogger().Errorf("Failed upload file to bucket, error: %v", err)
 		return err
