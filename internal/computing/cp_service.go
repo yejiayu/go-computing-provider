@@ -87,7 +87,10 @@ func ReceiveJob(c *gin.Context) {
 		cpRepoPath, _ := os.LookupEnv("CP_PATH")
 		nodeID := GetNodeId(cpRepoPath)
 
+		signatureStart := time.Now()
 		signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobData.JobSourceURI), jobData.NodeIdJobSourceUriSignature)
+		logs.GetLogger().Infof("signature: %d", time.Now().Sub(signatureStart))
+
 		if err != nil {
 			logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
 			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
@@ -108,7 +111,9 @@ func ReceiveJob(c *gin.Context) {
 		return
 	}
 
+	resourceStart := time.Now()
 	available, gpuProductName, err := checkResourceAvailableForSpace(spaceDetail.Data.Space.ActiveOrder.Config.Description)
+	logs.GetLogger().Infof("signature: %d", time.Now().Sub(resourceStart))
 	if err != nil {
 		logs.GetLogger().Errorf("check job resource failed, error: %+v", err)
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
@@ -176,8 +181,10 @@ func submitJob(jobData *models.JobData) error {
 		return err
 	}
 
+	mcsStart := time.Now()
 	storageService := NewStorageService()
 	mcsOssFile, err := storageService.UploadFileToBucket(jobDetailFile, taskDetailFilePath, true)
+	logs.GetLogger().Infof("mcs: %d", time.Now().Sub(mcsStart))
 	if err != nil {
 		logs.GetLogger().Errorf("Failed upload file to bucket, error: %v", err)
 		return err
