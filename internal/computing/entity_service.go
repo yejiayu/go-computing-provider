@@ -42,7 +42,7 @@ func (taskServ TaskService) GetTaskEntity(taskId int64) (*models.TaskEntity, err
 }
 
 func (taskServ TaskService) GetTaskListNoReward() (list []*models.TaskEntity, err error) {
-	err = taskServ.Where("reward ==0").Find(&list).Error
+	err = taskServ.Where("reward_status=0").Find(&list).Error
 	if err != nil {
 		return nil, err
 	}

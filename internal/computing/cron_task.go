@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"math"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -295,11 +294,8 @@ func (task *CronTask) setFailedUbiTaskStatus() {
 }
 
 func (task *CronTask) updateUbiTaskReward() {
-	cpRepoPath, _ := os.LookupEnv("CP_PATH")
-	nodeId := GetNodeId(cpRepoPath)
-
 	c := cron.New(cron.WithSeconds())
-	c.AddFunc("0 0/10 * * * ?", func() {
+	c.AddFunc("0 0/30 * * * ?", func() {
 		defer func() {
 			if err := recover(); err != nil {
 				logs.GetLogger().Errorf("task job: [updateUbiTaskReward], error: %+v", err)
@@ -314,13 +310,11 @@ func (task *CronTask) updateUbiTaskReward() {
 
 		for _, entity := range taskList {
 			ubiTask := entity
-			reward, err := getReward(nodeId, strconv.Itoa(int(ubiTask.Id)))
+			err = getReward(ubiTask)
 			if err != nil {
 				logs.GetLogger().Errorf("get ubi task reward failed, taskId: %d, error: %v", ubiTask.Id, err)
 				continue
 			}
-			ubiTask.Reward = reward
-			NewTaskService().SaveTaskEntity(ubiTask)
 		}
 	})
 	c.Start()

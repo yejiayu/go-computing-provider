@@ -64,7 +64,7 @@ var ubiTaskListCmd = &cli.Command{
 			createTime := time.Unix(task.CreateTime, 0).Format("2006-01-02 15:04:05")
 			taskData = append(taskData,
 				[]string{strconv.Itoa(int(task.Id)), models.GetSourceTypeStr(task.ResourceType), task.ZkType, task.TxHash, models.TaskStatusStr(task.Status),
-					fmt.Sprintf("%.2f", task.Reward), createTime})
+					fmt.Sprintf("%s", task.Reward), createTime})
 
 			var rowColor []tablewriter.Colors
 			if task.Status == models.TASK_RECEIVED_STATUS {

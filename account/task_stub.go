@@ -5,12 +5,14 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
 	"strings"
+	"sync"
 )
 
 type TaskStub struct {
@@ -19,6 +21,8 @@ type TaskStub struct {
 	privateK        string
 	publicK         string
 	ContractAddress string
+	nonceX          uint64
+	taskL           sync.Mutex
 }
 
 type TaskOption func(*TaskStub)
@@ -131,4 +135,64 @@ func (s *TaskStub) createTransactOpts() (*bind.TransactOpts, error) {
 	txOptions.GasFeeCap = suggestGasPrice
 	txOptions.Context = context.Background()
 	return txOptions, nil
+}
+
+func (s *TaskStub) getNonce() error {
+	publicAddress, err := s.privateKeyToPublicKey()
+	if err != nil {
+		return err
+	}
+	nonce, err := s.client.NonceAt(context.Background(), publicAddress, nil)
+	if err != nil {
+		return fmt.Errorf("address: %s, collateral client get nonce error: %+v", publicAddress, err)
+	}
+	s.taskL.Lock()
+	defer s.taskL.Unlock()
+	s.nonceX = nonce
+	return nil
+}
+
+// GetReward  status: 1: Challenged  2: Slashed  3: rewarded
+func (s *TaskStub) GetReward() (status int, reward string, err error) {
+	reward = "0.0"
+	taskInfo, err := s.GetTaskInfo()
+	if err != nil {
+		return 0, reward, err
+	}
+
+	if taskInfo.ChallengeTx != "" {
+		return 1, reward, nil
+	}
+
+	if taskInfo.SlashTx != "" {
+		return 2, reward, nil
+	}
+
+	if taskInfo.RewardTx != "" {
+		receipt, err := s.client.TransactionReceipt(context.Background(), common.HexToHash(taskInfo.RewardTx))
+		if err != nil {
+			return 0, reward, err
+		}
+		contractAbi, err := abi.JSON(strings.NewReader(ECPTaskMetaData.ABI))
+		if err != nil {
+			return 0, reward, err
+		}
+
+		for _, l := range receipt.Logs {
+			event := struct {
+				From  common.Address
+				To    common.Address
+				Value *big.Int
+			}{}
+			if err := contractAbi.UnpackIntoInterface(&event, "Transfer", l.Data); err != nil {
+				continue
+			}
+
+			if len(l.Topics) == 3 && l.Topics[0] == contractAbi.Events["Transfer"].ID {
+				reward = balanceToStr(event.Value)
+			}
+		}
+		return 3, reward, nil
+	}
+	return 0, reward, nil
 }

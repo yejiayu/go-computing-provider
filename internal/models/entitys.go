@@ -43,19 +43,42 @@ func GetSourceTypeStr(resourceType int) string {
 	return ""
 }
 
+const (
+	REWARD_UNCLAIMED = iota
+	REWARD_CHALLENGED
+	REWARD_SLASHED
+	REWARD_CLAIMED
+)
+
+func GetRewardStr(status int) string {
+	var statusStr string
+	switch status {
+	case REWARD_UNCLAIMED:
+		statusStr = "unclaimed"
+	case REWARD_CHALLENGED:
+		statusStr = "challenged"
+	case REWARD_SLASHED:
+		statusStr = "slashed"
+	case REWARD_CLAIMED:
+		statusStr = "claimed"
+	}
+	return statusStr
+}
+
 type TaskEntity struct {
-	Id           int64   `json:"id" gorm:"primaryKey;id"`
-	ZkType       string  `json:"zk_type" gorm:"zk_type"`
-	Name         string  `json:"name" gorm:"name"`
-	Contract     string  `json:"contract" gorm:"name"`
-	ResourceType int     `json:"resource_type" gorm:"resource_type"` // 1
-	InputParam   string  `json:"input_param" gorm:"input_param"`
-	TxHash       string  `json:"tx_hash" gorm:"tx_hash"`
-	Status       int     `json:"status" gorm:"status"`
-	Reward       float64 `json:"reward" gorm:"reward; default:0"`
-	CreateTime   int64   `json:"create_time" gorm:"create_time"`
-	EndTime      int64   `json:"end_time" gorm:"end_time"`
-	Error        string  `json:"error" gorm:"error"`
+	Id           int64  `json:"id" gorm:"primaryKey;id"`
+	ZkType       string `json:"zk_type" gorm:"zk_type"`
+	Name         string `json:"name" gorm:"name"`
+	Contract     string `json:"contract" gorm:"name"`
+	ResourceType int    `json:"resource_type" gorm:"resource_type"` // 1
+	InputParam   string `json:"input_param" gorm:"input_param"`
+	TxHash       string `json:"tx_hash" gorm:"tx_hash"`
+	Status       int    `json:"status" gorm:"status"`
+	RewardStatus int    `json:"reward_status" gorm:"status"` // 0: unclaimed; 1: challenged; 2: slashed; 3: claimed
+	Reward       string `json:"reward" gorm:"reward; default:0"`
+	CreateTime   int64  `json:"create_time" gorm:"create_time"`
+	EndTime      int64  `json:"end_time" gorm:"end_time"`
+	Error        string `json:"error" gorm:"error"`
 }
 
 func (task *TaskEntity) TableName() string {

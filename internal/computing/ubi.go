@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/docker/docker/api/types/container"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-swan-lib/logs"
 	"github.com/gin-gonic/gin"
@@ -971,9 +970,7 @@ func CleanDockerResource() {
 	}()
 
 	go func() {
-		cpRepoPath, _ := os.LookupEnv("CP_PATH")
-		nodeId := GetNodeId(cpRepoPath)
-		ticker := time.NewTicker(10 * time.Minute)
+		ticker := time.NewTicker(30 * time.Minute)
 		for range ticker.C {
 			taskList, err := NewTaskService().GetTaskListNoReward()
 			if err != nil {
@@ -983,67 +980,46 @@ func CleanDockerResource() {
 
 			for _, entity := range taskList {
 				ubiTask := entity
-				reward, err := getReward(ubiTask)
+				err = getReward(ubiTask)
 				if err != nil {
 					logs.GetLogger().Errorf("get ubi task reward failed, taskId: %d, error: %v", ubiTask.Id, err)
 					continue
 				}
-				ubiTask.Reward = reward
-				NewTaskService().SaveTaskEntity(ubiTask)
 			}
 		}
 	}()
 }
 
-func getReward(task *models.TaskEntity) (float64, error) {
+func getReward(task *models.TaskEntity) error {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
 		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
-		return 0, err
+		return err
 	}
+
 	client, err := ethclient.Dial(chainUrl)
 	if err != nil {
 		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
-		return 0, err
+		return err
 	}
-	client.Close()
+	defer client.Close()
 
-	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
-	if err != nil {
-		logs.GetLogger().Errorf("setup wallet failed, error: %v,", err)
-		return 0, err
-	}
-
-	ownerAddress, _, err := GetOwnerAddressAndWorkerAddress()
-	if err != nil {
-		logs.GetLogger().Errorf("get worker address failed, error: %v", err)
-		return 0, err
-	}
-
-	ki, err := localWallet.FindKey(ownerAddress)
-	if err != nil || ki == nil {
-		logs.GetLogger().Errorf("the address: %s, private key %v,", ownerAddress, wallet.ErrKeyInfoNotFound)
-		return 0, err
-	}
-
-	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(task.Contract), account.WithTaskPrivateKey(ki.PrivateKey))
+	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(task.Contract))
 	if err != nil {
 		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
-		return 0, err
+		return err
 	}
 
-	taskInfo, err := taskStub.GetTaskInfo()
+	status, reward, err := taskStub.GetReward()
 	if err != nil {
-		return 0, err
-	}
-	rewardTx := taskInfo.RewardTx
-	if rewardTx != "" {
-		tx, _, err := client.TransactionByHash(context.Background(), common.HexToHash(rewardTx))
-		if err != nil {
-
-		}
-		tx.Value()
-
+		return err
 	}
 
+	if status != models.REWARD_UNCLAIMED {
+		task.Reward = reward
+		task.RewardStatus = status
+		return NewTaskService().SaveTaskEntity(task)
+	}
+
+	return nil
 }
