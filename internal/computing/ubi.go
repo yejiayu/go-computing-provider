@@ -970,7 +970,7 @@ func CleanDockerResource() {
 	}()
 
 	go func() {
-		ticker := time.NewTicker(30 * time.Minute)
+		ticker := time.NewTicker(3 * time.Minute)
 		for range ticker.C {
 			taskList, err := NewTaskService().GetTaskListNoReward()
 			if err != nil {
