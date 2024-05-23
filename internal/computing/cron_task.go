@@ -161,8 +161,12 @@ func (task *CronTask) setFailedUbiTaskStatus() {
 			if _, err = service.k8sClient.BatchV1().Jobs(k8sNameSpace).Get(context.TODO(), JobName, metav1.GetOptions{}); err != nil && errors.IsNotFound(err) {
 				if ubiTask.Status != constants.UBI_TASK_SUCCESS_STATUS && ubiTask.Status != constants.UBI_TASK_FAILED_STATUS {
 					ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
+					SaveUbiTaskMetadata(ubiTask)
 				}
-				SaveUbiTaskMetadata(ubiTask)
+				if ubiTask.Tx != "" && ubiTask.Status == constants.UBI_TASK_FAILED_STATUS {
+					ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
+					SaveUbiTaskMetadata(ubiTask)
+				}
 			}
 		}
 
