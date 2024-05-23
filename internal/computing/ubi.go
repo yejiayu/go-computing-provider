@@ -483,7 +483,9 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
-	logs.GetLogger().Infof("receive ubi task received: %+v", ubiTask)
+
+	logs.GetLogger().Infof("ubi task received: id: %d, type: %d, zk_type: %s, input_param: %s, signature: %s, contract: %s",
+		ubiTask.ID, ubiTask.ResourceType, ubiTask.ZkType, ubiTask.InputParam, ubiTask.Signature, ubiTask.ContractAddr)
 
 	if ubiTask.ID == 0 {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: id"))
@@ -527,7 +529,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		return
 	}
 
-	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
+	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, verify: %v", ubiTask.ID, signature)
 	if !signature {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
 		return
@@ -944,7 +946,7 @@ func CleanDockerResource() {
 	}()
 
 	go func() {
-		ticker := time.NewTicker(1 * time.Minute)
+		ticker := time.NewTicker(3 * time.Minute)
 		for range ticker.C {
 			reportClusterResourceForDocker()
 		}
