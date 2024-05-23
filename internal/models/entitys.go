@@ -73,6 +73,9 @@ type TaskEntity struct {
 	ResourceType int    `json:"resource_type" gorm:"resource_type"` // 1
 	InputParam   string `json:"input_param" gorm:"input_param"`
 	TxHash       string `json:"tx_hash" gorm:"tx_hash"`
+	RewardTx     string `json:"reward_tx"`
+	ChallengeTx  string `json:"challenge_tx"`
+	SlashTx      string `json:"slash_tx"`
 	Status       int    `json:"status" gorm:"status"`
 	RewardStatus int    `json:"reward_status" gorm:"status"` // 0: unclaimed; 1: challenged; 2: slashed; 3: claimed
 	Reward       string `json:"reward" gorm:"reward; default:0"`

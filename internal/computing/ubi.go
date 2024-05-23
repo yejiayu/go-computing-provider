@@ -1010,14 +1010,16 @@ func getReward(task *models.TaskEntity) error {
 		return err
 	}
 
-	status, reward, err := taskStub.GetReward()
+	status, rewardTx, challengeTx, slashTx, reward, err := taskStub.GetReward()
 	if err != nil {
 		return err
 	}
-
 	if status != models.REWARD_UNCLAIMED {
 		task.Reward = reward
 		task.RewardStatus = status
+		task.RewardTx = rewardTx
+		task.ChallengeTx = challengeTx
+		task.SlashTx = slashTx
 		return NewTaskService().SaveTaskEntity(task)
 	}
 
