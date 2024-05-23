@@ -18,7 +18,7 @@ import (
 
 type TaskStub struct {
 	client          *ethclient.Client
-	task            *ECPTask
+	task            *Task
 	privateK        string
 	publicK         string
 	ContractAddress string
@@ -51,7 +51,7 @@ func NewTaskStub(client *ethclient.Client, options ...TaskOption) (*TaskStub, er
 	}
 
 	cpAccountAddress := common.HexToAddress(stub.ContractAddress)
-	taskClient, err := NewECPTask(cpAccountAddress, client)
+	taskClient, err := NewTask(cpAccountAddress, client)
 	if err != nil {
 		return nil, fmt.Errorf("create task contract client, error: %+v", err)
 	}

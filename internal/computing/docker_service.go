@@ -320,17 +320,18 @@ func (ds *DockerService) CleanResource() {
 		return
 	}
 
-	for _, image := range images {
+	for _, img := range images {
 		var specialImage bool
-		for _, tag := range image.RepoTags {
-			if strings.HasPrefix(tag, "filswan/ubi-worker") || strings.HasPrefix(tag, "filswan/cpu-model-collector") {
+		for _, tag := range img.RepoTags {
+			if strings.HasPrefix(tag, "filswan/ubi-worker") || strings.HasPrefix(tag, "filswan/cpu-model-collector") ||
+				strings.HasPrefix(tag, "filswan/hardware-exporter") {
 				specialImage = true
 				break
 			}
 		}
 
 		if !specialImage {
-			ds.RemoveImage(image.ID)
+			ds.RemoveImage(img.ID)
 		}
 	}
 
@@ -355,7 +356,6 @@ func (ds *DockerService) PullImage(imagesName string) error {
 		return err
 	}
 	defer resp.Close()
-	printOut(resp)
 	return nil
 }
 
@@ -382,7 +382,6 @@ func (ds *DockerService) ContainerLogs(containerName string) (string, error) {
 	defer logReader.Close()
 	all, err := io.ReadAll(logReader)
 	result := string(all)
-	println(result)
 	index := strings.Index(result, "{")
 	if index > 0 {
 		return result[index:], nil
