@@ -79,12 +79,14 @@ func (s *TaskStub) SubmitUBIProof(proof string) (string, error) {
 			return "", fmt.Errorf("address: %s, task_stub create transaction opts failed, error: %+v", publicAddress, err)
 		}
 		transaction, err := s.task.SubmitProof(txOptions, proof)
-		if err.Error() == "replacement transaction underpriced" {
-			s.IncrementNonce()
-		} else if strings.Contains(err.Error(), "next nonce") {
-			return "", s.getNonce()
-		} else {
-			return "", err
+		if err != nil {
+			if err.Error() == "replacement transaction underpriced" {
+				s.IncrementNonce()
+			} else if strings.Contains(err.Error(), "next nonce") {
+				return "", s.getNonce()
+			} else {
+				return "", err
+			}
 		}
 		submitProofTxHash = transaction.Hash().String()
 		break
