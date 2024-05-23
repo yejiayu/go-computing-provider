@@ -3,11 +3,13 @@ package main
 import (
 	_ "embed"
 	"fmt"
+	"github.com/docker/docker/api/types/container"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	cors "github.com/itsjamie/gin-cors"
 	"github.com/olekukonko/tablewriter"
+	"github.com/swanchain/go-computing-provider/build"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/internal/computing"
 	"github.com/swanchain/go-computing-provider/internal/models"
@@ -103,27 +105,23 @@ var daemonCmd = &cli.Command{
 		logs.GetLogger().Info("Start a computing-provider client that only accepts ubi-task mode.")
 		cpRepoPath, _ := os.LookupEnv("CP_PATH")
 
-		err := computing.StopPreviousServices(dockerComposeContent, cpRepoPath)
-		if err != nil {
-			return fmt.Errorf("stop pre-dependency-env failed, error: %v", err)
-		}
-
-		redisContainerName := "ubi-redis"
 		resourceExporterContainerName := "resource-exporter"
-		err = computing.NewDockerService().RemoveImageByName(redisContainerName)
+		rsExist, err := computing.NewDockerService().RemoveUnRunningContainer(resourceExporterContainerName)
 		if err != nil {
-			return fmt.Errorf("remove %s container failed, error: %v", redisContainerName, err)
+			return fmt.Errorf("check %s container failed, error: %v", resourceExporterContainerName, err)
 		}
-		err = computing.NewDockerService().RemoveImageByName(resourceExporterContainerName)
-		if err != nil {
-			return fmt.Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
+		if !rsExist {
+			dockerService := computing.NewDockerService()
+			dockerService.PullImage(build.UBIResourceExporterDockerImage)
+			if err = dockerService.ContainerCreateAndStart(&container.Config{
+				Image:        build.UBIResourceExporterDockerImage,
+				AttachStdout: true,
+				AttachStderr: true,
+				Tty:          true,
+			}, nil, resourceExporterContainerName); err != nil {
+				logs.GetLogger().Errorf("create resource-exporter container failed, error: %v", err)
+			}
 		}
-
-		err = computing.RunDockerCompose(dockerComposeContent, cpRepoPath)
-		if err != nil {
-			return fmt.Errorf("start pre-dependency-env failed, error: %v", err)
-		}
-
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
