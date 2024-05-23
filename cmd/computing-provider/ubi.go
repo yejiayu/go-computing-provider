@@ -63,7 +63,7 @@ var ubiTaskListCmd = &cli.Command{
 		for i, task := range taskList {
 			createTime := time.Unix(task.CreateTime, 0).Format("2006-01-02 15:04:05")
 			taskData = append(taskData,
-				[]string{strconv.Itoa(int(task.Id)), models.GetSourceTypeStr(task.ResourceType), task.ZkType, task.TxHash, models.TaskStatusStr(task.Status),
+				[]string{strconv.Itoa(int(task.Id)), models.GetSourceTypeStr(task.ResourceType), task.ZkType, task.TxHash, task.RewardTx, models.TaskStatusStr(task.Status),
 					fmt.Sprintf("%s", task.Reward), createTime})
 
 			var rowColor []tablewriter.Colors
@@ -79,12 +79,12 @@ var ubiTaskListCmd = &cli.Command{
 
 			rowColorList = append(rowColorList, RowColor{
 				row:    i,
-				column: []int{4},
+				column: []int{5},
 				color:  rowColor,
 			})
 		}
 
-		header := []string{"TASK ID", "TASK TYPE", "ZK TYPE", "PROOF HASH", "STATUS", "REWARD", "CREATE TIME"}
+		header := []string{"TASK ID", "TASK TYPE", "ZK TYPE", "PROOF HASH", "REWARD HASH", "STATUS", "REWARD", "CREATE TIME"}
 		NewVisualTable(header, taskData, rowColorList).Generate(true)
 
 		return nil
