@@ -27,6 +27,7 @@ var TaskMap sync.Map
 type CronTask struct {
 	nodeId       string
 	ownerAddress string
+	location     string
 }
 
 func NewCronTask(nodeId string) *CronTask {
@@ -35,7 +36,13 @@ func NewCronTask(nodeId string) *CronTask {
 		logs.GetLogger().Errorf("get owner address failed, error: %v", err)
 		return nil
 	}
-	return &CronTask{nodeId: nodeId, ownerAddress: ownerAddress}
+
+	location, err := getLocation()
+	if err != nil {
+		logs.GetLogger().Error(err)
+	}
+
+	return &CronTask{nodeId: nodeId, ownerAddress: ownerAddress, location: location}
 }
 
 func (task *CronTask) RunTask() {
@@ -46,6 +53,7 @@ func (task *CronTask) RunTask() {
 	task.setFailedUbiTaskStatus()
 	task.watchNameSpaceForDeleted()
 	task.updateUbiTaskReward()
+	task.reportClusterResourceToHub()
 }
 
 func checkJobStatus(ownerAddress string) {
@@ -66,6 +74,25 @@ func checkJobStatus(ownerAddress string) {
 			}
 		}
 	}()
+}
+
+func (task *CronTask) reportClusterResourceToHub() {
+	c := cron.New(cron.WithSeconds())
+	c.AddFunc("0/10 * * * * ?", func() {
+		defer func() {
+			if err := recover(); err != nil {
+				logs.GetLogger().Errorf("Failed report cp resource's summary, error: %+v", err)
+			}
+		}()
+
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			reportClusterResource(task.location, task.nodeId, task.ownerAddress)
+			checkClusterProviderStatus()
+		}
+	})
+	c.Start()
 }
 
 func (task *CronTask) watchNameSpaceForDeleted() {
@@ -350,6 +377,50 @@ func addNodeLabel() {
 			}
 		}
 	}
+}
+
+func reportClusterResource(location, nodeId, ownerAddress string) {
+	k8sService := NewK8sService()
+	statisticalSources, err := k8sService.StatisticalSources(context.TODO())
+	if err != nil {
+		logs.GetLogger().Errorf("Failed k8s statistical sources, error: %+v", err)
+		return
+	}
+	clusterSource := models.ClusterResource{
+		NodeId:        nodeId,
+		Region:        location,
+		ClusterInfo:   statisticalSources,
+		PublicAddress: ownerAddress,
+	}
+
+	payload, err := json.Marshal(clusterSource)
+	if err != nil {
+		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
+		return
+	}
+
+	client := &http.Client{}
+	url := conf.GetConfig().HUB.ServerUrl + "/cp/summary"
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		logs.GetLogger().Errorf("Error creating request: %v", err)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
+		return
+	}
+
 }
 
 func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
