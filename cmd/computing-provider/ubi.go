@@ -138,7 +138,6 @@ var detailCmd = &cli.Command{
 			taskData = append(taskData, []string{"Slash Tx Hash:", taskEntity.SlashTx})
 		}
 		taskData = append(taskData, []string{"CreateTime:", time.Unix(taskEntity.CreateTime, 0).Format("2006-01-02 15:04:05")})
-		taskData = append(taskData, []string{"End Time:", time.Unix(taskEntity.EndTime, 0).Format("2006-01-02 15:04:05")})
 
 		var rowColorList []RowColor
 		var rowColor []tablewriter.Colors
