@@ -120,7 +120,6 @@ var detailCmd = &cli.Command{
 		}
 
 		var taskData [][]string
-		taskData = append(taskData, []string{"Task Id:", taskIdStr})
 		taskData = append(taskData, []string{"Task Name:", taskEntity.Name})
 		taskData = append(taskData, []string{"ZK Type:", taskEntity.ZkType})
 		taskData = append(taskData, []string{"Contract Address:", taskEntity.Contract})
@@ -151,12 +150,12 @@ var detailCmd = &cli.Command{
 			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgRedColor}}
 		}
 		rowColorList = append(rowColorList, RowColor{
-			row:    4,
+			row:    3,
 			column: []int{1},
 			color:  rowColor,
 		})
 
-		header := []string{"Name:", conf.GetConfig().API.NodeName}
+		header := []string{"Task Id:", taskIdStr}
 		NewVisualTable(header, taskData, rowColorList).Generate(false)
 		return nil
 
