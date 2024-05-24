@@ -54,6 +54,7 @@ func updateProviderInfo(nodeID string, status string) {
 		NodeId:        nodeID,
 		MultiAddress:  conf.GetConfig().API.MultiAddress,
 		Status:        status,
+		Autobid:       1,
 	}
 
 	jsonData, err := json.Marshal(provider)

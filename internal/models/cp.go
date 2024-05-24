@@ -4,15 +4,8 @@ import (
 	"time"
 )
 
-type BidStatus string
-
 const (
-	BidDisabledStatus    BidStatus = "bidding_disabled"
-	BidEnabledStatus     BidStatus = "bidding_enabled"
-	BidGpuDisabledStatus BidStatus = "bidding_gpu_disabled"
-
-	ActiveStatus   string = "Active"
-	InactiveStatus string = "Inactive"
+	ActiveStatus string = "Active"
 )
 
 type ComputingProvider struct {
