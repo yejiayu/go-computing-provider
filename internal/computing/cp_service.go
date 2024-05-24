@@ -464,11 +464,10 @@ func StatisticalSources(c *gin.Context) {
 
 	cpRepo, _ := os.LookupEnv("CP_PATH")
 	c.JSON(http.StatusOK, models.ClusterResource{
-		Region:       location,
-		ClusterInfo:  statisticalSources,
-		MultiAddress: conf.GetConfig().API.MultiAddress,
-		NodeName:     conf.GetConfig().API.NodeName,
-		NodeId:       GetNodeId(cpRepo),
+		Region:      location,
+		ClusterInfo: statisticalSources,
+		NodeName:    conf.GetConfig().API.NodeName,
+		NodeId:      GetNodeId(cpRepo),
 	})
 }
 
