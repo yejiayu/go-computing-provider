@@ -341,7 +341,7 @@ var changeOwnerAddressCmd = &cli.Command{
 		}
 
 		if cctx.NArg() != 1 {
-			return fmt.Errorf(" Requires a ownerAddress")
+			return fmt.Errorf(" Requires a new ownerAddress")
 		}
 
 		newOwnerAddr := cctx.Args().Get(0)

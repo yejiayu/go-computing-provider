@@ -962,8 +962,13 @@ func CleanDockerResource() {
 
 				if ubiTask.Status != constants.UBI_TASK_SUCCESS_STATUS && ubiTask.Status != constants.UBI_TASK_FAILED_STATUS {
 					ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
+					SaveUbiTaskMetadata(ubiTask)
 				}
-				SaveUbiTaskMetadata(ubiTask)
+				if ubiTask.Tx != "" && ubiTask.Status == constants.UBI_TASK_FAILED_STATUS {
+					ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
+					SaveUbiTaskMetadata(ubiTask)
+				}
+
 			}
 		}
 	}()
