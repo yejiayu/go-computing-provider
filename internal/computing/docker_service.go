@@ -395,7 +395,7 @@ func (ds *DockerService) GetContainerLogStream(containerName string) (io.ReadClo
 	return ds.c.ContainerLogs(ctx, containerName, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
-		Follow:     false,
-		Tail:       "1",
+		Follow:     true,
+		Timestamps: true,
 	})
 }
