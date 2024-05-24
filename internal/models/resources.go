@@ -7,7 +7,6 @@ type ClusterResource struct {
 	PublicAddress string          `json:"public_address,omitempty"`
 	MultiAddress  string          `json:"multi_address,omitempty"`
 	NodeName      string          `json:"node_name,omitempty"`
-	TaskFlag      int             `json:"task_flag,omitempty"`
 }
 
 type NodeResource struct {

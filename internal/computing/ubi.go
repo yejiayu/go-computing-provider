@@ -348,6 +348,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			Timestamps: true,
 		})
 
+		time.Sleep(2 * time.Second)
 		podLogs, err := req.Stream(context.Background())
 		if err != nil {
 			logs.GetLogger().Errorf("Error opening log stream: %v", err)
@@ -644,9 +645,29 @@ func DoUbiTaskForDocker(c *gin.Context) {
 			Tty:          true,
 		}
 
+		containerName := JobName + generateString(5)
 		dockerService := NewDockerService()
-		if err = dockerService.ContainerCreateAndStart(containerConfig, hostConfig, JobName+generateString(5)); err != nil {
+		if err = dockerService.ContainerCreateAndStart(containerConfig, hostConfig, containerName); err != nil {
 			logs.GetLogger().Errorf("create ubi task container failed, error: %v", err)
+		}
+
+		containerLogStream, err := dockerService.GetContainerLogStream(containerName)
+		if err != nil {
+			logs.GetLogger().Errorf("get docker container log stream failed, error: %v", err)
+		}
+		defer containerLogStream.Close()
+
+		ubiLogFileName := filepath.Join(cpRepoPath, "ubi.log")
+		logFile, err := os.OpenFile(ubiLogFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			logs.GetLogger().Errorf("opening ubi log file failed, error: %v", err)
+			return
+		}
+		defer logFile.Close()
+
+		if _, err = io.Copy(logFile, containerLogStream); err != nil {
+			logs.GetLogger().Errorf("write ubi log to file failed, error: %v", err)
+			return
 		}
 	}()
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
