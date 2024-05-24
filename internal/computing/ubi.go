@@ -795,20 +795,22 @@ func GetCpResource(c *gin.Context) {
 	location, err := getLocation()
 	if err != nil {
 		logs.GetLogger().Error(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed get location info"})
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, err.Error()))
 		return
 	}
 
 	dockerService := NewDockerService()
 	containerLogStr, err := dockerService.ContainerLogs("resource-exporter")
 	if err != nil {
-		logs.GetLogger().Error("collect host hardware resource failed, error: %+v", err)
+		logs.GetLogger().Errorf("collect host hardware resource failed, error: %v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, err.Error()))
 		return
 	}
 
 	var nodeResource models.NodeResource
 	if err := json.Unmarshal([]byte(containerLogStr), &nodeResource); err != nil {
 		logs.GetLogger().Error("hardware info parse to json failed, error: %+v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.JsonError))
 		return
 	}
 

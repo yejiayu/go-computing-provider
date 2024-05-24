@@ -94,9 +94,6 @@ var ubiTaskListCmd = &cli.Command{
 	},
 }
 
-//go:embed docker-compose.yml
-var dockerComposeContent string
-
 var daemonCmd = &cli.Command{
 	Name:  "daemon",
 	Usage: "Start a cp process",
@@ -112,7 +109,10 @@ var daemonCmd = &cli.Command{
 		}
 		if !rsExist {
 			dockerService := computing.NewDockerService()
-			dockerService.PullImage(build.UBIResourceExporterDockerImage)
+			err = dockerService.PullImage(build.UBIResourceExporterDockerImage)
+			if err != nil {
+				return fmt.Errorf("pull image %s failed, error: %v", resourceExporterContainerName, err)
+			}
 			if err = dockerService.ContainerCreateAndStart(&container.Config{
 				Image:        build.UBIResourceExporterDockerImage,
 				AttachStdout: true,

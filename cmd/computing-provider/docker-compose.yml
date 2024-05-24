@@ -1,5 +1,0 @@
-services:
-  resource-exporter:
-    container_name: resource-exporter
-    image: filswan/hardware-exporter:v1.0
-

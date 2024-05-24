@@ -66,7 +66,7 @@ func GetServiceProviderInfo(c *gin.Context) {
 func ReceiveJob(c *gin.Context) {
 	var jobData models.JobData
 	if err := c.ShouldBindJSON(&jobData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
 	logs.GetLogger().Infof("Job received Data: %+v", jobData)
@@ -219,7 +219,7 @@ func RedeployJob(c *gin.Context) {
 	var jobData models.JobData
 
 	if err := c.ShouldBindJSON(&jobData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.ServerError, err.Error()))
 		return
 	}
 	logs.GetLogger().Infof("redeploy Job received: %+v", jobData)
@@ -249,7 +249,7 @@ func RedeployJob(c *gin.Context) {
 		resp, err := http.Get(jobData.JobResultURI)
 		if err != nil {
 			logs.GetLogger().Errorf("error making request to Space API: %+v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, err.Error()))
 			return
 		}
 		defer func(Body io.ReadCloser) {
@@ -261,7 +261,7 @@ func RedeployJob(c *gin.Context) {
 		logs.GetLogger().Infof("Space API response received. Response: %d", resp.StatusCode)
 		if resp.StatusCode != http.StatusOK {
 			logs.GetLogger().Errorf("space API response not OK. Status Code: %d", resp.StatusCode)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, err.Error()))
 		}
 
 		var hostInfo struct {
@@ -269,7 +269,7 @@ func RedeployJob(c *gin.Context) {
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&hostInfo); err != nil {
 			logs.GetLogger().Errorf("error decoding Space API response JSON: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, err.Error()))
 			return
 		}
 		hostName = strings.ReplaceAll(hostInfo.JobResultUri, "https://", "")
@@ -286,6 +286,7 @@ func RedeployJob(c *gin.Context) {
 	job, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
 	if err != nil {
 		logs.GetLogger().Errorf("get job failed, error: %+v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, err.Error()))
 		return
 	}
 	if job.SpaceUuid != "" {
@@ -320,25 +321,25 @@ func ReNewJob(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&jobData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError, err.Error()))
 		return
 	}
 	logs.GetLogger().Infof("renew Job received: %+v", jobData)
 
 	if strings.TrimSpace(jobData.TaskUuid) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: task_uuid"})
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: task_uuid"))
 		return
 	}
 
 	if jobData.Duration == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: duration"})
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: duration"))
 		return
 	}
 
 	jobEntity, err := NewJobService().GetJobEntityByTaskUuid(jobData.TaskUuid)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get job from db, taskUuid: %s, error: %+v", jobData.TaskUuid, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "query data failed"))
 		return
 	}
 
@@ -354,7 +355,7 @@ func ReNewJob(c *gin.Context) {
 		err = NewJobService().SaveJobEntity(&jobEntity)
 		if err != nil {
 			logs.GetLogger().Errorf("update job expireTime failed, taskUuid: %s, error: %+v", jobData.TaskUuid, err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "query data failed"))
 			return
 		}
 	}
@@ -364,7 +365,7 @@ func ReNewJob(c *gin.Context) {
 func CancelJob(c *gin.Context) {
 	taskUuid := c.Query("task_uuid")
 	if taskUuid == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "task_uuid is required"})
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "task_uuid is required"))
 		return
 	}
 
@@ -396,7 +397,7 @@ func CancelJob(c *gin.Context) {
 	jobEntity, err := NewJobService().GetJobEntityByTaskUuid(taskUuid)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get job from db, taskUuid: %s, error: %+v", taskUuid, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "query data failed"))
 		return
 	}
 
@@ -428,7 +429,7 @@ func WhiteList(c *gin.Context) {
 func GetJobStatus(c *gin.Context) {
 	jobUuId := c.Param("job_uuid")
 	if jobUuId == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: job_uuid"})
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: job_uuid"))
 	}
 
 	jobEntity, err := NewJobService().GetJobEntityByJobUuid(jobUuId)
@@ -450,14 +451,14 @@ func StatisticalSources(c *gin.Context) {
 	location, err := getLocation()
 	if err != nil {
 		logs.GetLogger().Error(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed get location info"})
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.BadParamError, "get location info failed"))
 		return
 	}
 
 	k8sService := NewK8sService()
 	statisticalSources, err := k8sService.StatisticalSources(context.TODO())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.BadParamError, err.Error()))
 		return
 	}
 
@@ -477,33 +478,33 @@ func GetSpaceLog(c *gin.Context) {
 	orderType := c.Query("order")
 	if strings.TrimSpace(spaceUuid) == "" {
 		logs.GetLogger().Errorf("get space log failed, space_id is empty: %s", spaceUuid)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: space_id"})
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: space_id"))
 		return
 	}
 
 	if strings.TrimSpace(logType) == "" {
 		logs.GetLogger().Errorf("get space log failed, type is empty: %s", logType)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: type"})
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: type"))
 		return
 	}
 
 	if strings.TrimSpace(logType) != "build" && strings.TrimSpace(logType) != "container" {
 		logs.GetLogger().Errorf("get space log failed, type is build or container, type:: %s", logType)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing required field: type"})
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: type"))
 		return
 	}
 
 	jobEntity, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
 	if err != nil {
 		logs.GetLogger().Error(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "query data failed"})
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "query data failed"))
 		return
 	}
 
 	conn, err := upgrade.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		logs.GetLogger().Errorf("upgrading connection failed, error: %+v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "upgrading connection failed"})
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "websocket upgrading connection failed"))
 		return
 	}
 
