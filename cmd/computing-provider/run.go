@@ -114,7 +114,8 @@ var infoCmd = &cli.Command{
 		}
 		defer client.Close()
 
-		var fcpCollateralBalance, ecpCollateralBalance, ownerBalance string
+		var ecpCollateralBalance, ecpEscrowBalance, ownerBalance, workerBalance string
+		var fcpCollateralBalance, fcpEscrowBalance string
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 
 		cpStub, err := account.NewAccountStub(client)
@@ -147,16 +148,20 @@ var infoCmd = &cli.Command{
 		}
 
 		ownerBalance, err = wallet.Balance(context.TODO(), client, ownerAddress)
+		workerBalance, err = wallet.Balance(context.TODO(), client, workerAddress)
 		fcpCollateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(ownerAddress))
 		if err == nil {
 			fcpCollateralBalance, err = fcpCollateralStub.Balances()
 		}
+
+		fcpEscrowBalance, err = wallet.GetFrozenCollateral(ownerAddress)
 
 		ecpCollateral, err := account.NewCollateralStub(client, account.WithPublicKey(ownerAddress))
 		if err == nil {
 			cpCollateralInfo, err := ecpCollateral.CpInfo()
 			if err == nil {
 				ecpCollateralBalance = cpCollateralInfo.CollateralBalance
+				ecpEscrowBalance = cpCollateralInfo.FrozenBalance
 			}
 		}
 
@@ -166,34 +171,40 @@ var infoCmd = &cli.Command{
 		}
 		var taskData [][]string
 
-		taskData = append(taskData, []string{"Owner:", ownerAddress})
-		taskData = append(taskData, []string{"Contract Address:", contractAddress})
-		taskData = append(taskData, []string{"Contract Version:", version})
-		taskData = append(taskData, []string{"Multi-Address:", conf.GetConfig().API.MultiAddress})
-		taskData = append(taskData, []string{"Node ID:", localNodeId})
-		taskData = append(taskData, []string{"Task Types:", taskTypes})
-		taskData = append(taskData, []string{"ECP:"})
+		taskData = append(taskData, []string{fmt.Sprintf("   CP Account Address(%s):", version), contractAddress})
+		taskData = append(taskData, []string{"   Name:", conf.GetConfig().API.NodeName})
+		taskData = append(taskData, []string{"   Owner:", ownerAddress})
+		taskData = append(taskData, []string{"   Node ID:", localNodeId})
+		taskData = append(taskData, []string{"   Domain:", domain})
+		taskData = append(taskData, []string{"   Multi-Address:", conf.GetConfig().API.MultiAddress})
 		taskData = append(taskData, []string{"   Worker Address:", workerAddress})
 		taskData = append(taskData, []string{"   Beneficiary Address:", beneficiaryAddress})
-		taskData = append(taskData, []string{"   Available(SWAN-ETH):", ownerBalance})
-		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", ecpCollateralBalance})
-		taskData = append(taskData, []string{"FCP:"})
-		taskData = append(taskData, []string{"   Domain:", domain})
-		taskData = append(taskData, []string{"   Running deployments:", strconv.Itoa(count)})
-		taskData = append(taskData, []string{"   Available(SWAN-ETH):", ownerBalance})
-		taskData = append(taskData, []string{"   Collateral(SWAN-ETH):", fcpCollateralBalance})
+		taskData = append(taskData, []string{""})
+		taskData = append(taskData, []string{"Capabilities:"})
+		taskData = append(taskData, []string{"   Task Types:", taskTypes})
+		taskData = append(taskData, []string{"   Applications:", strconv.Itoa(count)})
+		taskData = append(taskData, []string{""})
+		taskData = append(taskData, []string{"Owner Balance(sETH):", ownerBalance})
+		taskData = append(taskData, []string{"Worker Balance(sETH):", workerBalance})
+		taskData = append(taskData, []string{""})
+		taskData = append(taskData, []string{"ECP Balance(sETH):"})
+		taskData = append(taskData, []string{"   Collateral:", ecpCollateralBalance})
+		taskData = append(taskData, []string{"   Escrow:", ecpEscrowBalance})
+		taskData = append(taskData, []string{"FCP Balance(sETH):"})
+		taskData = append(taskData, []string{"   Collateral:", fcpCollateralBalance})
+		taskData = append(taskData, []string{"   Escrow:", fcpEscrowBalance})
 
 		var rowColorList []RowColor
 		if taskTypes != "" {
 			var rowColor []tablewriter.Colors
 			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
 			rowColorList = append(rowColorList, RowColor{
-				row:    5,
+				row:    8,
 				column: []int{1},
 				color:  rowColor,
 			})
 		}
-		header := []string{"Name:", conf.GetConfig().API.NodeName}
+		header := []string{"CP Account Info:"}
 		NewVisualTable(header, taskData, rowColorList).Generate(false)
 		if localNodeId != chainNodeId {
 			fmt.Printf("NodeId mismatch, local node id: %s, chain node id: %s.\n", localNodeId, chainNodeId)

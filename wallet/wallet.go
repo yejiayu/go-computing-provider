@@ -430,7 +430,7 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string, coll
 			if err == nil {
 				collateralBalance, err = collateralStub.Balances()
 			}
-			frozenCollateral, err = getFrozenCollateral(addr)
+			frozenCollateral, err = GetFrozenCollateral(addr)
 		}
 
 		var errmsg string
@@ -571,7 +571,7 @@ func convertToWei(ethValue string) (*big.Int, error) {
 	return weiInt, nil
 }
 
-func getFrozenCollateral(walletAddress string) (string, error) {
+func GetFrozenCollateral(walletAddress string) (string, error) {
 	url := fmt.Sprintf("%s/check_holding_collateral/%s", conf.GetConfig().HUB.ServerUrl, walletAddress)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
