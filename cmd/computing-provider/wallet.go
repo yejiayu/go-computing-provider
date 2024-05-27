@@ -338,7 +338,7 @@ var collateralAddCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "from",
-			Usage: "Specify the owner address",
+			Usage: "Specify the wallet address",
 		},
 		&cli.StringFlag{
 			Name:  "account",
@@ -350,7 +350,7 @@ var collateralAddCmd = &cli.Command{
 		ctx := reqContext(cctx)
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
-			return fmt.Errorf("chain field cannot be empty")
+			return fmt.Errorf("the chain is required")
 		}
 
 		fcpCollateral := cctx.Bool("fcp")
@@ -368,7 +368,7 @@ var collateralAddCmd = &cli.Command{
 
 		fromAddress := cctx.String("from")
 		if strings.TrimSpace(fromAddress) == "" {
-			return fmt.Errorf("the owner address is required")
+			return fmt.Errorf("the wallet address is required")
 		}
 
 		cpAccountAddress := cctx.String("account")
@@ -436,7 +436,7 @@ var collateralWithdrawCmd = &cli.Command{
 		ctx := reqContext(cctx)
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
-			return fmt.Errorf("chain field cannot be empty")
+			return fmt.Errorf("the chain is required")
 		}
 
 		fcpCollateral := cctx.Bool("fcp")
@@ -460,7 +460,7 @@ var collateralWithdrawCmd = &cli.Command{
 		cpAccountAddress := cctx.String("account")
 		amount := cctx.Args().Get(0)
 		if strings.TrimSpace(amount) == "" {
-			return fmt.Errorf("the amount param cannot be empty")
+			return fmt.Errorf("the amount param is required")
 		}
 
 		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
@@ -495,22 +495,22 @@ var collateralSendCmd = &cli.Command{
 
 		chainName := cctx.String("chain")
 		if strings.TrimSpace(chainName) == "" {
-			return fmt.Errorf("chain field cannot be empty")
+			return fmt.Errorf("the chain is required")
 		}
 
 		from := cctx.String("from")
 		if strings.TrimSpace(from) == "" {
-			return fmt.Errorf("the from address param cannot be empty")
+			return fmt.Errorf("the from address param is required")
 		}
 
 		to := cctx.Args().Get(0)
 		if strings.TrimSpace(to) == "" {
-			return fmt.Errorf("the to address param cannot be empty")
+			return fmt.Errorf("the to address param is required")
 		}
 
 		amount := cctx.Args().Get(1)
 		if strings.TrimSpace(amount) == "" {
-			return fmt.Errorf("the amount param cannot be empty")
+			return fmt.Errorf("the amount param is required")
 		}
 		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
 		if err != nil {

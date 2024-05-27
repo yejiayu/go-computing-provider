@@ -227,7 +227,7 @@ var stateInfoCmd = &cli.Command{
 
 		chain := cctx.String("chain")
 		if strings.TrimSpace(chain) == "" {
-			return fmt.Errorf("chain field cannot be empty")
+			return fmt.Errorf("the chain is required")
 		}
 
 		chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
