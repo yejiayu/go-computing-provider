@@ -199,7 +199,7 @@ var infoCmd = &cli.Command{
 			var rowColor []tablewriter.Colors
 			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
 			rowColorList = append(rowColorList, RowColor{
-				row:    9,
+				row:    10,
 				column: []int{1},
 				color:  rowColor,
 			})
