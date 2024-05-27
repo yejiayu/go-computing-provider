@@ -790,10 +790,11 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 	}
 
 	defer func() {
-		if err == nil {
+		if submitUBIProofTx != "" {
 			ubiTask.Status = models.TASK_SUCCESS_STATUS
-		} else {
+		} else if err != nil {
 			ubiTask.Status = models.TASK_FAILED_STATUS
+			logs.GetLogger().Errorf("debug:: submitUBIProofTx, error: %v", err)
 		}
 		ubiTask.TxHash = submitUBIProofTx
 		NewTaskService().SaveTaskEntity(ubiTask)
@@ -978,7 +979,7 @@ func CleanDockerResource() {
 		for range ticker.C {
 			var taskList []models.TaskEntity
 			oneHourAgo := time.Now().Add(-1 * time.Hour).Unix()
-			err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and status !=? and create_time <?", models.TASK_SUCCESS_STATUS, models.TASK_FAILED_STATUS, oneHourAgo).Or("tx_hash==''").Find(&taskList).Error
+			err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and status !=? and create_time <?", models.TASK_SUCCESS_STATUS, models.TASK_FAILED_STATUS, oneHourAgo).Find(&taskList).Error
 			if err != nil {
 				logs.GetLogger().Errorf("Failed get task list, error: %+v", err)
 				return
@@ -986,7 +987,11 @@ func CleanDockerResource() {
 
 			for _, entity := range taskList {
 				ubiTask := entity
-				ubiTask.Status = models.TASK_FAILED_STATUS
+				if ubiTask.TxHash != "" {
+					ubiTask.Status = models.TASK_SUCCESS_STATUS
+				} else {
+					ubiTask.Status = models.TASK_FAILED_STATUS
+				}
 				NewTaskService().SaveTaskEntity(&ubiTask)
 			}
 		}
