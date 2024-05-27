@@ -211,7 +211,6 @@ var daemonCmd = &cli.Command{
 		router := v1.Group("/computing")
 
 		router.GET("/cp", computing.GetCpResource)
-		router.GET("/cp/info", computing.GetCpInfo)
 		router.POST("/cp/ubi", computing.DoUbiTaskForDocker)
 		router.POST("/cp/docker/receive/ubi", computing.ReceiveUbiProofForDocker)
 

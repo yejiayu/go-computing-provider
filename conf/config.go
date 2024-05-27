@@ -37,9 +37,7 @@ type API struct {
 	WalletWhiteList string
 }
 type UBI struct {
-	UbiTask     bool
 	UbiEnginePk string
-	UbiUrl      string
 }
 
 type LOG struct {
@@ -131,9 +129,7 @@ func requiredFieldsAreGiven(metaData toml.MetaData) bool {
 		{"LOG", "CrtFile"},
 		{"LOG", "KeyFile"},
 
-		{"UBI", "UbiTask"},
 		{"UBI", "UbiEnginePk"},
-		{"UBI", "UbiUrl"},
 
 		{"HUB", "ServerUrl"},
 		{"HUB", "AccessToken"},
@@ -167,9 +163,7 @@ func requiredFieldsAreGivenForSeparate(metaData toml.MetaData) bool {
 		{"API", "MultiAddress"},
 		{"API", "NodeName"},
 
-		{"UBI", "UbiTask"},
 		{"UBI", "UbiEnginePk"},
-		{"UBI", "UbiUrl"},
 
 		{"RPC", "SWAN_TESTNET"},
 

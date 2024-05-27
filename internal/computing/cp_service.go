@@ -33,27 +33,6 @@ import (
 	"time"
 )
 
-func GetCpInfo(c *gin.Context) {
-	var info struct {
-		NodeId       string `json:"node_id"`
-		MultiAddress string `json:"multi_address"`
-		UbiTask      int    `json:"ubi_task"`
-	}
-
-	cpPath, exit := os.LookupEnv("CP_PATH")
-	if !exit {
-		return
-	}
-
-	info.NodeId = GetNodeId(cpPath)
-	info.MultiAddress = conf.GetConfig().API.MultiAddress
-	info.UbiTask = 0
-	if conf.GetConfig().UBI.UbiTask {
-		info.UbiTask = 1
-	}
-	c.JSON(http.StatusOK, util.CreateSuccessResponse(info))
-}
-
 func GetServiceProviderInfo(c *gin.Context) {
 	info := new(models.HostInfo)
 	info.SwanProviderVersion = build.UserVersion()

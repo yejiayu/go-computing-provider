@@ -7,9 +7,7 @@ NodeName = "<YOUR_CP_Node_Name>"                 # The computing-provider node n
 WalletWhiteList=""                              # CP only accepts user addresses from this whitelist for space deployment
 
 [UBI]
-UbiTask = true                                               # Accept the UBI task (Default: true)
 UbiEnginePk = "0xB5aeb540B4895cd024c1625E146684940A849ED9"   # UBI Engine's public key, CP only accept the task from this UBI engine
-UbiUrl ="https://ubi-task.swanchain.io/v1"                   # UBI Engine's API address
 
 [LOG]
 CrtFile = "/YOUR_DOMAIN_NAME_CRT_PATH/server.crt"            # Your domain name SSL .crt file path
