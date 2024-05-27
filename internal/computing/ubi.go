@@ -220,8 +220,8 @@ func DoUbiTaskForK8s(c *gin.Context) {
 				ubiTaskRun.Contract = ubiTask.ContractAddr
 			}
 
-			if err == nil {
-				ubiTaskRun.Status = models.TASK_RUNNING_STATUS
+			if ubiTaskRun.TxHash != "" {
+				ubiTaskRun.Status = models.TASK_SUCCESS_STATUS
 			} else {
 				ubiTaskRun.Status = models.TASK_FAILED_STATUS
 				k8sService := NewK8sService()
@@ -562,13 +562,8 @@ func DoUbiTaskForDocker(c *gin.Context) {
 				ubiTaskRun.InputParam = ubiTask.InputParam
 				ubiTaskRun.CreateTime = time.Now().Unix()
 				ubiTaskRun.Contract = ubiTask.ContractAddr
+				NewTaskService().SaveTaskEntity(ubiTaskRun)
 			}
-			if err == nil {
-				ubiTaskRun.Status = models.TASK_RUNNING_STATUS
-			} else {
-				ubiTaskRun.Status = models.TASK_FAILED_STATUS
-			}
-			NewTaskService().SaveTaskEntity(ubiTaskRun)
 		}()
 
 		multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
@@ -751,11 +746,11 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 		ubiTask.Status = models.TASK_SUCCESS_STATUS
 		ubiTask.TxHash = submitUBIProofTx
 		logs.GetLogger().Infof("submitUBIProofTx: %s", submitUBIProofTx)
-	} else if err != nil {
+	}
+	if err != nil {
 		ubiTask.Status = models.TASK_FAILED_STATUS
 		logs.GetLogger().Errorf("submitUBIProofTx failed, error: %v", err)
 	}
-
 	NewTaskService().SaveTaskEntity(ubiTask)
 
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))

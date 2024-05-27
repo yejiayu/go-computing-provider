@@ -67,7 +67,6 @@ var runCmd = &cli.Command{
 
 func cpManager(router *gin.RouterGroup) {
 	router.GET("/cp", computing.StatisticalSources)
-
 	router.GET("/host/info", computing.GetServiceProviderInfo)
 	router.POST("/lagrange/jobs", computing.ReceiveJob)
 	router.POST("/lagrange/jobs/redeploy", computing.RedeployJob)

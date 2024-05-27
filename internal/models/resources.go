@@ -5,7 +5,7 @@ type ClusterResource struct {
 	Region        string          `json:"region,omitempty"`
 	ClusterInfo   []*NodeResource `json:"cluster_info"`
 	NodeName      string          `json:"node_name,omitempty"`
-	PublicAddress string          `json:"public_address"`
+	PublicAddress string          `json:"public_address,omitempty"`
 }
 
 type NodeResource struct {
