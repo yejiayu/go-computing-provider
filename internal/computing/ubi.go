@@ -333,6 +333,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			return
 		}
 
+		// TODO(yejiayu): Change it to the parameters you prefer or make it a configuration file.
 		err = wait.PollImmediate(2*time.Second, 60*time.Second, func() (bool, error) {
 			pods, err := k8sService.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
 				LabelSelector: fmt.Sprintf("job-name=%s", JobName),
