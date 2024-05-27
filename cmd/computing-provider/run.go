@@ -252,7 +252,7 @@ var stateInfoCmd = &cli.Command{
 		defer client.Close()
 
 		var ecpCollateralBalance, ecpEscrowBalance, ownerBalance, workerBalance string
-		var fcpCollateralBalance string
+		var fcpCollateralBalance, chainMultiAddress string
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 
 		cpStub, err := account.NewAccountStub(client, account.WithContractAddress(cctx.String("contract")))
@@ -281,7 +281,12 @@ var stateInfoCmd = &cli.Command{
 			workerAddress = cpAccount.WorkerAddress
 			beneficiaryAddress = cpAccount.Beneficiary
 			chainNodeId = cpAccount.NodeId
+			chainMultiAddress = strings.Join(cpAccount.MultiAddresses, ",")
 			version = cpAccount.Version
+		}
+
+		if strings.HasSuffix(chainMultiAddress, ",") {
+			chainMultiAddress = chainMultiAddress[:len(chainMultiAddress)-1]
 		}
 
 		ownerBalance, err = wallet.Balance(context.TODO(), client, ownerAddress)
@@ -305,7 +310,7 @@ var stateInfoCmd = &cli.Command{
 		taskData = append(taskData, []string{"   Name:", conf.GetConfig().API.NodeName})
 		taskData = append(taskData, []string{"   Owner:", ownerAddress})
 		taskData = append(taskData, []string{"   Node ID:", chainNodeId})
-		taskData = append(taskData, []string{"   Multi-Address:", conf.GetConfig().API.MultiAddress})
+		taskData = append(taskData, []string{"   Multi-Address:", chainMultiAddress})
 		taskData = append(taskData, []string{"   Worker Address:", workerAddress})
 		taskData = append(taskData, []string{"   Beneficiary Address:", beneficiaryAddress})
 		taskData = append(taskData, []string{""})
