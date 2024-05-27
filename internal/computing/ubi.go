@@ -979,7 +979,8 @@ func CleanDockerResource() {
 		for range ticker.C {
 			var taskList []models.TaskEntity
 			oneHourAgo := time.Now().Add(-1 * time.Hour).Unix()
-			err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and status !=? and create_time <?", models.TASK_SUCCESS_STATUS, models.TASK_FAILED_STATUS, oneHourAgo).Find(&taskList).Error
+			err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and create_time <?", models.TASK_SUCCESS_STATUS, oneHourAgo).
+				Or("tx_hash !='' and status =?", models.TASK_FAILED_STATUS).Find(&taskList).Error
 			if err != nil {
 				logs.GetLogger().Errorf("Failed get task list, error: %+v", err)
 				return
