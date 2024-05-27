@@ -206,16 +206,8 @@ func DoUbiTaskForK8s(c *gin.Context) {
 				ubiTaskRun.TaskType = ubiTaskToRedis.TaskType
 				ubiTaskRun.ZkType = ubiTask.ZkType
 				ubiTaskRun.CreateTime = ubiTaskToRedis.CreateTime
+				SaveUbiTaskMetadata(ubiTaskRun)
 			}
-
-			if err == nil {
-				ubiTaskRun.Status = constants.UBI_TASK_RUNNING_STATUS
-			} else {
-				ubiTaskRun.Status = constants.UBI_TASK_FAILED_STATUS
-				k8sService := NewK8sService()
-				k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), namespace, metaV1.DeleteOptions{})
-			}
-			SaveUbiTaskMetadata(ubiTaskRun)
 		}()
 
 		k8sService := NewK8sService()
@@ -387,7 +379,7 @@ func ReceiveUbiProofForK8s(c *gin.Context) {
 	defer func() {
 		key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
 		ubiTask, _ := RetrieveUbiTaskMetadata(key)
-		if err == nil {
+		if submitUBIProofTx != "" {
 			ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
 		} else {
 			ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
@@ -579,14 +571,8 @@ func DoUbiTaskForDocker(c *gin.Context) {
 				ubiTaskRun.TaskType = ubiTaskToRedis.TaskType
 				ubiTaskRun.ZkType = ubiTask.ZkType
 				ubiTaskRun.CreateTime = ubiTaskToRedis.CreateTime
+				SaveUbiTaskMetadata(ubiTaskRun)
 			}
-
-			if err == nil {
-				ubiTaskRun.Status = constants.UBI_TASK_RUNNING_STATUS
-			} else {
-				ubiTaskRun.Status = constants.UBI_TASK_FAILED_STATUS
-			}
-			SaveUbiTaskMetadata(ubiTaskRun)
 		}()
 
 		multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
@@ -730,7 +716,7 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 	defer func() {
 		key := constants.REDIS_UBI_C2_PERFIX + c2Proof.TaskId
 		ubiTask, _ := RetrieveUbiTaskMetadata(key)
-		if err == nil {
+		if submitUBIProofTx != "" {
 			ubiTask.Status = constants.UBI_TASK_SUCCESS_STATUS
 		} else {
 			ubiTask.Status = constants.UBI_TASK_FAILED_STATUS
