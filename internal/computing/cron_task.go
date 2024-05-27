@@ -291,7 +291,7 @@ func (task *CronTask) cleanAbnormalDeployment() {
 
 func (task *CronTask) setFailedUbiTaskStatus() {
 	c := cron.New(cron.WithSeconds())
-	c.AddFunc("0 0/10 * * * ?", func() {
+	c.AddFunc("0 0/8 * * * ?", func() {
 		defer func() {
 			if err := recover(); err != nil {
 				logs.GetLogger().Errorf("task job: [setFailedUbiTaskStatus], error: %+v", err)
