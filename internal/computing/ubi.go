@@ -800,14 +800,15 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 
 	if submitUBIProofTx != "" {
 		ubiTask.Status = models.TASK_SUCCESS_STATUS
+		ubiTask.TxHash = submitUBIProofTx
+		logs.GetLogger().Infof("submitUBIProofTx: %s", submitUBIProofTx)
 	} else if err != nil {
 		ubiTask.Status = models.TASK_FAILED_STATUS
 		logs.GetLogger().Errorf("submitUBIProofTx failed, error: %v", err)
 	}
-	ubiTask.TxHash = submitUBIProofTx
+
 	NewTaskService().SaveTaskEntity(ubiTask)
 
-	logs.GetLogger().Infof("submitUBIProofTx: %s", submitUBIProofTx)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
