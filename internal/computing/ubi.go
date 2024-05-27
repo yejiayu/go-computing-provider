@@ -320,10 +320,12 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		*job.Spec.BackoffLimit = 1
 		*job.Spec.TTLSecondsAfterFinished = 120
 
+		logs.GetLogger().Info("jobs 1")
 		if _, err = k8sService.k8sClient.BatchV1().Jobs(namespace).Create(context.TODO(), job, metaV1.CreateOptions{}); err != nil {
 			logs.GetLogger().Errorf("Failed creating ubi task job: %v", err)
 			return
 		}
+		logs.GetLogger().Info("jobs 2")
 
 		// TODO(yejiayu): Change it to the parameters you prefer or make it a configuration file.
 		err = wait.PollImmediate(2*time.Second, 60*time.Second, func() (bool, error) {
@@ -348,6 +350,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			return
 		}
 
+		logs.GetLogger().Info("get pods 1")
 		pods, err := k8sService.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
 			LabelSelector: fmt.Sprintf("job-name=%s", JobName),
 		})
@@ -355,6 +358,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			logs.GetLogger().Errorf("Failed list ubi pods: %v", err)
 			return
 		}
+		logs.GetLogger().Info("get pods 2")
 
 		var podName string
 		for _, pod := range pods.Items {
