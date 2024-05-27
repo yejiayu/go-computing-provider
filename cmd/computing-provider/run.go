@@ -252,7 +252,7 @@ var stateInfoCmd = &cli.Command{
 		defer client.Close()
 
 		var ecpCollateralBalance, ecpEscrowBalance, ownerBalance, workerBalance string
-		var fcpCollateralBalance, fcpEscrowBalance string
+		var fcpCollateralBalance string
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 
 		cpStub, err := account.NewAccountStub(client, account.WithContractAddress(cctx.String("contract")))
@@ -291,8 +291,6 @@ var stateInfoCmd = &cli.Command{
 			fcpCollateralBalance, err = fcpCollateralStub.Balances()
 		}
 
-		fcpEscrowBalance, err = wallet.GetFrozenCollateral(ownerAddress)
-
 		ecpCollateral, err := account.NewCollateralStub(client, account.WithPublicKey(ownerAddress))
 		if err == nil {
 			cpCollateralInfo, err := ecpCollateral.CpInfo()
@@ -302,17 +300,11 @@ var stateInfoCmd = &cli.Command{
 			}
 		}
 
-		var domain = conf.GetConfig().API.Domain
-		if strings.HasPrefix(domain, ".") {
-			domain = domain[1:]
-		}
 		var taskData [][]string
-
 		taskData = append(taskData, []string{fmt.Sprintf("   CP Account Address(%s):", version), contractAddress})
 		taskData = append(taskData, []string{"   Name:", conf.GetConfig().API.NodeName})
 		taskData = append(taskData, []string{"   Owner:", ownerAddress})
 		taskData = append(taskData, []string{"   Node ID:", chainNodeId})
-		taskData = append(taskData, []string{"   Domain:", domain})
 		taskData = append(taskData, []string{"   Multi-Address:", conf.GetConfig().API.MultiAddress})
 		taskData = append(taskData, []string{"   Worker Address:", workerAddress})
 		taskData = append(taskData, []string{"   Beneficiary Address:", beneficiaryAddress})
@@ -328,7 +320,6 @@ var stateInfoCmd = &cli.Command{
 		taskData = append(taskData, []string{"   Escrow:", ecpEscrowBalance})
 		taskData = append(taskData, []string{"FCP Balance(sETH):"})
 		taskData = append(taskData, []string{"   Collateral:", fcpCollateralBalance})
-		taskData = append(taskData, []string{"   Escrow:", fcpEscrowBalance})
 
 		var rowColorList []RowColor
 		if taskTypes != "" {
