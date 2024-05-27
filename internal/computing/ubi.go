@@ -789,17 +789,6 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 		return
 	}
 
-	defer func() {
-		if submitUBIProofTx != "" {
-			ubiTask.Status = models.TASK_SUCCESS_STATUS
-		} else if err != nil {
-			ubiTask.Status = models.TASK_FAILED_STATUS
-			logs.GetLogger().Errorf("debug:: submitUBIProofTx, error: %v", err)
-		}
-		ubiTask.TxHash = submitUBIProofTx
-		NewTaskService().SaveTaskEntity(ubiTask)
-	}()
-
 	retries := 3
 	for i := 0; i < retries; i++ {
 		submitUBIProofTx, err = submitUBIProof(c2Proof, ubiTask.Contract)
@@ -808,6 +797,16 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 		}
 		time.Sleep(time.Second * 2)
 	}
+
+	if submitUBIProofTx != "" {
+		ubiTask.Status = models.TASK_SUCCESS_STATUS
+	} else if err != nil {
+		ubiTask.Status = models.TASK_FAILED_STATUS
+		logs.GetLogger().Errorf("debug:: submitUBIProofTx, error: %v", err)
+	}
+	ubiTask.TxHash = submitUBIProofTx
+	NewTaskService().SaveTaskEntity(ubiTask)
+
 	logs.GetLogger().Infof("submitUBIProofTx: %s", submitUBIProofTx)
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
@@ -979,7 +978,7 @@ func CleanDockerResource() {
 		for range ticker.C {
 			var taskList []models.TaskEntity
 			oneHourAgo := time.Now().Add(-1 * time.Hour).Unix()
-			err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and create_time <?", models.TASK_SUCCESS_STATUS, oneHourAgo).
+			err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and status !=? and create_time <?", models.TASK_SUCCESS_STATUS, models.TASK_FAILED_STATUS, oneHourAgo).
 				Or("tx_hash !='' and status =?", models.TASK_FAILED_STATUS).Find(&taskList).Error
 			if err != nil {
 				logs.GetLogger().Errorf("Failed get task list, error: %+v", err)

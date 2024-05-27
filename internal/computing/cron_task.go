@@ -294,13 +294,15 @@ func (task *CronTask) setFailedUbiTaskStatus() {
 	c.AddFunc("0 0/10 * * * ?", func() {
 		defer func() {
 			if err := recover(); err != nil {
-				logs.GetLogger().Errorf("task job: [cleanAbnormalDeployment], error: %+v", err)
+				logs.GetLogger().Errorf("task job: [setFailedUbiTaskStatus], error: %+v", err)
 			}
 		}()
 
 		var taskList []models.TaskEntity
 		oneHourAgo := time.Now().Add(-1 * time.Hour).Unix()
-		err := NewTaskService().Model(&models.TaskEntity{}).Where("status !=? and status !=? and create_time <?", models.TASK_SUCCESS_STATUS, models.TASK_FAILED_STATUS, oneHourAgo).Or("tx_hash==''").Find(&taskList).Error
+		err := NewTaskService().Model(&models.TaskEntity{}).Where("status in (?,?)", models.TASK_RECEIVED_STATUS, models.TASK_RUNNING_STATUS).
+			Or("status ==? and tx_hash !=''", models.TASK_FAILED_STATUS).
+			Or("status=? and tx_hash==''", models.TASK_SUCCESS_STATUS).Find(&taskList).Error
 		if err != nil {
 			logs.GetLogger().Errorf("Failed get task list, error: %+v", err)
 			return
@@ -309,11 +311,19 @@ func (task *CronTask) setFailedUbiTaskStatus() {
 		for _, entity := range taskList {
 			ubiTask := entity
 
-			JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(int(ubiTask.Id))
-			k8sNameSpace := "ubi-task-" + strconv.Itoa(int(ubiTask.Id))
-			service := NewK8sService()
-			service.k8sClient.BatchV1().Jobs(k8sNameSpace).Delete(context.TODO(), JobName, metav1.DeleteOptions{})
-			ubiTask.Status = models.TASK_FAILED_STATUS
+			if ubiTask.CreateTime < oneHourAgo {
+				JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(int(ubiTask.Id))
+				k8sNameSpace := "ubi-task-" + strconv.Itoa(int(ubiTask.Id))
+				NewK8sService().k8sClient.BatchV1().Jobs(k8sNameSpace).Delete(context.TODO(), JobName, metav1.DeleteOptions{})
+				ubiTask.Status = models.TASK_FAILED_STATUS
+			}
+
+			if ubiTask.TxHash != "" {
+				ubiTask.Status = models.TASK_SUCCESS_STATUS
+			} else {
+				ubiTask.Status = models.TASK_FAILED_STATUS
+			}
+
 			NewTaskService().SaveTaskEntity(&ubiTask)
 		}
 	})
