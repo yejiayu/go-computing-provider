@@ -251,8 +251,9 @@ var stateInfoCmd = &cli.Command{
 		}
 		defer client.Close()
 
-		var ownerAddress, contractAddress, beneficiaryAddress, chainNodeId,
-			multiAddress, workerAddress, taskTypes, version string
+		var ecpCollateralBalance, ecpEscrowBalance, ownerBalance, workerBalance string
+		var fcpCollateralBalance, fcpEscrowBalance string
+		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 
 		cpStub, err := account.NewAccountStub(client, account.WithContractAddress(cctx.String("contract")))
 		if err == nil {
@@ -260,14 +261,6 @@ var stateInfoCmd = &cli.Command{
 			if err != nil {
 				err = fmt.Errorf("get cpAccount failed, error: %v", err)
 			}
-
-			contractAddress = cpStub.ContractAddress
-			chainNodeId = cpAccount.NodeId
-			multiAddress = strings.Join(cpAccount.MultiAddresses, ",")
-			ownerAddress = cpAccount.OwnerAddress
-			beneficiaryAddress = cpAccount.Beneficiary
-			workerAddress = cpAccount.WorkerAddress
-			version = cpAccount.Version
 
 			for _, taskType := range cpAccount.TaskTypes {
 				switch taskType {
@@ -282,28 +275,72 @@ var stateInfoCmd = &cli.Command{
 			if taskTypes != "" {
 				taskTypes = taskTypes[:len(taskTypes)-1]
 			}
+
+			contractAddress = cpStub.ContractAddress
+			ownerAddress = cpAccount.OwnerAddress
+			workerAddress = cpAccount.WorkerAddress
+			beneficiaryAddress = cpAccount.Beneficiary
+			chainNodeId = cpAccount.NodeId
+			version = cpAccount.Version
 		}
 
+		ownerBalance, err = wallet.Balance(context.TODO(), client, ownerAddress)
+		workerBalance, err = wallet.Balance(context.TODO(), client, workerAddress)
+		fcpCollateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(ownerAddress))
+		if err == nil {
+			fcpCollateralBalance, err = fcpCollateralStub.Balances()
+		}
+
+		fcpEscrowBalance, err = wallet.GetFrozenCollateral(ownerAddress)
+
+		ecpCollateral, err := account.NewCollateralStub(client, account.WithPublicKey(ownerAddress))
+		if err == nil {
+			cpCollateralInfo, err := ecpCollateral.CpInfo()
+			if err == nil {
+				ecpCollateralBalance = cpCollateralInfo.CollateralBalance
+				ecpEscrowBalance = cpCollateralInfo.FrozenBalance
+			}
+		}
+
+		var domain = conf.GetConfig().API.Domain
+		if strings.HasPrefix(domain, ".") {
+			domain = domain[1:]
+		}
 		var taskData [][]string
-		taskData = append(taskData, []string{"Node ID:", chainNodeId})
-		taskData = append(taskData, []string{"Multi-Address:", multiAddress})
-		taskData = append(taskData, []string{"Contract Address:", contractAddress})
-		taskData = append(taskData, []string{"Contract Version:", version})
-		taskData = append(taskData, []string{"Task Types:", taskTypes})
-		taskData = append(taskData, []string{"Worker Address:", workerAddress})
-		taskData = append(taskData, []string{"Beneficiary Address:", beneficiaryAddress})
+
+		taskData = append(taskData, []string{fmt.Sprintf("   CP Account Address(%s):", version), contractAddress})
+		taskData = append(taskData, []string{"   Name:", conf.GetConfig().API.NodeName})
+		taskData = append(taskData, []string{"   Owner:", ownerAddress})
+		taskData = append(taskData, []string{"   Node ID:", chainNodeId})
+		taskData = append(taskData, []string{"   Domain:", domain})
+		taskData = append(taskData, []string{"   Multi-Address:", conf.GetConfig().API.MultiAddress})
+		taskData = append(taskData, []string{"   Worker Address:", workerAddress})
+		taskData = append(taskData, []string{"   Beneficiary Address:", beneficiaryAddress})
+		taskData = append(taskData, []string{""})
+		taskData = append(taskData, []string{"Capabilities:"})
+		taskData = append(taskData, []string{"   Task Types:", taskTypes})
+		taskData = append(taskData, []string{""})
+		taskData = append(taskData, []string{"Owner Balance(sETH):", ownerBalance})
+		taskData = append(taskData, []string{"Worker Balance(sETH):", workerBalance})
+		taskData = append(taskData, []string{""})
+		taskData = append(taskData, []string{"ECP Balance(sETH):"})
+		taskData = append(taskData, []string{"   Collateral:", ecpCollateralBalance})
+		taskData = append(taskData, []string{"   Escrow:", ecpEscrowBalance})
+		taskData = append(taskData, []string{"FCP Balance(sETH):"})
+		taskData = append(taskData, []string{"   Collateral:", fcpCollateralBalance})
+		taskData = append(taskData, []string{"   Escrow:", fcpEscrowBalance})
 
 		var rowColorList []RowColor
 		if taskTypes != "" {
 			var rowColor []tablewriter.Colors
 			rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
 			rowColorList = append(rowColorList, RowColor{
-				row:    4,
+				row:    9,
 				column: []int{1},
 				color:  rowColor,
 			})
 		}
-		header := []string{"Owner:", ownerAddress}
+		header := []string{"CP Account Info:"}
 		NewVisualTable(header, taskData, rowColorList).Generate(false)
 		return nil
 	},
