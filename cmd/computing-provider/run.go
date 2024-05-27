@@ -131,7 +131,7 @@ var infoCmd = &cli.Command{
 				case 2:
 					taskTypes += "Aleo,"
 				case 3:
-					taskTypes += "Ai,"
+					taskTypes += "AI,"
 				}
 			}
 			if taskTypes != "" {
@@ -262,9 +262,10 @@ var stateInfoCmd = &cli.Command{
 				switch taskType {
 				case 1:
 					taskTypes += "Fil-C2,"
-
 				case 2:
 					taskTypes += "Aleo,"
+				case 3:
+					taskTypes += "AI,"
 				}
 			}
 			if taskTypes != "" {
@@ -365,7 +366,7 @@ var createAccountCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "task-types",
-			Usage: "Task types of CP (1:Fil-C2, 2:Aleo, 3:Ai), separated by commas",
+			Usage: "Task types of CP (1:Fil-C2, 2:Aleo, 3:AI), separated by commas",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
