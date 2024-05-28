@@ -37,9 +37,10 @@ type GpuDetail struct {
 }
 
 type Common struct {
-	Total string `json:"total"`
-	Used  string `json:"used"`
-	Free  string `json:"free"`
+	Total        string `json:"total"`
+	Used         string `json:"used"`
+	Free         string `json:"free"`
+	RemainderNum int64  `json:"-"`
 }
 
 type ResourceStatus struct {

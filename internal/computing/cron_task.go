@@ -85,12 +85,14 @@ func (task *CronTask) reportClusterResourceToHub() {
 			}
 		}()
 
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			reportClusterResource(task.location, task.nodeId, task.ownerAddress)
-			checkClusterProviderStatus()
+		k8sService := NewK8sService()
+		statisticalSources, err := k8sService.StatisticalSources(context.TODO())
+		if err != nil {
+			logs.GetLogger().Errorf("Failed k8s statistical sources, error: %+v", err)
+			return
 		}
+		reportClusterResource(task.location, task.nodeId, task.ownerAddress, statisticalSources)
+		checkClusterProviderStatus(statisticalSources)
 	})
 	c.Start()
 }
@@ -389,17 +391,11 @@ func addNodeLabel() {
 	}
 }
 
-func reportClusterResource(location, nodeId, ownerAddress string) {
-	k8sService := NewK8sService()
-	statisticalSources, err := k8sService.StatisticalSources(context.TODO())
-	if err != nil {
-		logs.GetLogger().Errorf("Failed k8s statistical sources, error: %+v", err)
-		return
-	}
+func reportClusterResource(location, nodeId, ownerAddress string, nodeResources []*models.NodeResource) {
 	clusterSource := models.ClusterResource{
 		NodeId:        nodeId,
 		Region:        location,
-		ClusterInfo:   statisticalSources,
+		ClusterInfo:   nodeResources,
 		PublicAddress: ownerAddress,
 	}
 
