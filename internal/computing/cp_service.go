@@ -109,18 +109,13 @@ func ReceiveJob(c *gin.Context) {
 		logHost = "log." + conf.GetConfig().API.Domain
 	}
 
-	jobData.JobResultURI = fmt.Sprintf("https://%s", hostName)
 	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 	jobSourceUri := jobData.JobSourceURI
 	spaceUuid := jobSourceUri[strings.LastIndex(jobSourceUri, "/")+1:]
 	wsUrl := fmt.Sprintf("wss://%s:%s/api/v1/computing/lagrange/spaces/log?space_id=%s", logHost, multiAddressSplit[4], spaceUuid)
 	jobData.BuildLog = wsUrl + "&type=build"
 	jobData.ContainerLog = wsUrl + "&type=container"
-	jobData.JobRealUri = jobData.JobResultURI
-
-	if err = submitJob(&jobData); err != nil {
-		jobData.JobResultURI = ""
-	}
+	jobData.JobRealUri = fmt.Sprintf("https://%s", hostName)
 
 	go func() {
 		job, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
@@ -137,7 +132,6 @@ func ReceiveJob(c *gin.Context) {
 		jobEntity.SpaceUuid = spaceUuid
 		jobEntity.TaskUuid = jobData.TaskUUID
 		jobEntity.SourceUrl = jobSourceUri
-		jobEntity.ResultUrl = jobData.JobResultURI
 		jobEntity.RealUrl = jobData.JobRealUri
 		jobEntity.BuildLog = jobData.BuildLog
 		jobEntity.ContainerLog = jobData.ContainerLog
@@ -147,15 +141,27 @@ func ReceiveJob(c *gin.Context) {
 		jobEntity.CreateTime = time.Now().Unix()
 		NewJobService().SaveJobEntity(jobEntity)
 
+		go func() {
+			var resultMcsUrl string
+			for i := 0; i < 5; i++ {
+				if resultMcsUrl, err = submitJob(&jobData); err != nil {
+					logs.GetLogger().Errorf("upload job data to MCS failed, jobUuid: %s, spaceUuid: %s, error: %v",
+						jobData.UUID, spaceUuid, err)
+					continue
+				}
+				break
+			}
+			jobEntity.ResultUrl = resultMcsUrl
+			NewJobService().UpdateJobEntityByJobUuid(jobEntity)
+			logs.GetLogger().Infof("jobuuid: %s successfully uploaded to MCS", jobData.UUID)
+		}()
+
 		DeploySpaceTask(jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName)
 	}()
-
-	logs.GetLogger().Infof("submit job detail: %+v", jobData)
 	c.JSON(http.StatusOK, jobData)
 }
 
-func submitJob(jobData *models.JobData) error {
-	logs.GetLogger().Printf("submitting job...")
+func submitJob(jobData *models.JobData) (string, error) {
 	oldMask := syscall.Umask(0)
 	defer syscall.Umask(oldMask)
 
@@ -165,33 +171,25 @@ func submitJob(jobData *models.JobData) error {
 	os.MkdirAll(filepath.Join(fileCachePath, folderPath), os.ModePerm)
 	taskDetailFilePath := filepath.Join(fileCachePath, jobDetailFile)
 
-	jobData.Status = constants.BiddingSubmitted
-	jobData.UpdatedAt = strconv.FormatInt(time.Now().Unix(), 10)
 	bytes, err := json.Marshal(jobData)
 	if err != nil {
-		logs.GetLogger().Errorf("Failed Marshal JobData, error: %v", err)
-		return err
+		return "", fmt.Errorf(" parse to json failed, error: %v", err)
 	}
 	if err = os.WriteFile(taskDetailFilePath, bytes, os.ModePerm); err != nil {
-		logs.GetLogger().Errorf("Failed jobData write to file, error: %v", err)
-		return err
+		return "", fmt.Errorf("write jobData to file failed, error: %v", err)
 	}
 
 	storageService := NewStorageService()
 	mcsOssFile, err := storageService.UploadFileToBucket(jobDetailFile, taskDetailFilePath, true)
 	if err != nil {
-		logs.GetLogger().Errorf("Failed upload file to bucket, error: %v", err)
-		return err
+		return "", fmt.Errorf("upload file to bucket failed, error: %v", err)
 	}
-	logs.GetLogger().Infof("jobuuid: %s successfully submitted to IPFS", jobData.UUID)
 
 	gatewayUrl, err := storageService.GetGatewayUrl()
 	if err != nil {
-		logs.GetLogger().Errorf("Failed get mcs ipfs gatewayUrl, error: %v", err)
-		return err
+		return "", fmt.Errorf("get mcs ipfs gatewayUrl failed, error: %v", err)
 	}
-	jobData.JobResultURI = *gatewayUrl + "/ipfs/" + mcsOssFile.PayloadCid
-	return nil
+	return *gatewayUrl + "/ipfs/" + mcsOssFile.PayloadCid, nil
 }
 
 func RedeployJob(c *gin.Context) {
@@ -255,38 +253,48 @@ func RedeployJob(c *gin.Context) {
 	} else {
 		hostName = generateString(10) + conf.GetConfig().API.Domain
 	}
-
-	jobData.JobResultURI = fmt.Sprintf("https://%s", hostName)
-	if err = submitJob(&jobData); err != nil {
-		jobData.JobResultURI = ""
-	}
-	spaceUuid := jobData.JobSourceURI[strings.LastIndex(jobData.JobSourceURI, "/")+1:]
-
-	job, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
-	if err != nil {
-		logs.GetLogger().Errorf("get job failed, error: %+v", err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, err.Error()))
-		return
-	}
-	if job.SpaceUuid != "" {
-		NewJobService().DeleteJobEntityBySpaceUuId(spaceUuid)
-	}
-
-	var jobEntity = new(models.JobEntity)
-	jobEntity.Source = jobData.StorageSource
-	jobEntity.SpaceUuid = spaceUuid
-	jobEntity.TaskUuid = jobData.TaskUUID
-	jobEntity.SourceUrl = jobData.JobSourceURI
-	jobEntity.ResultUrl = jobData.JobResultURI
-	jobEntity.RealUrl = jobData.JobRealUri
-	jobEntity.BuildLog = jobData.BuildLog
-	jobEntity.ContainerLog = jobData.ContainerLog
-	jobEntity.Duration = jobData.Duration
-	jobEntity.DeployStatus = models.DEPLOY_RECEIVE_JOB
-	jobEntity.CreateTime = time.Now().Unix()
-	NewJobService().SaveJobEntity(jobEntity)
+	jobData.JobRealUri = fmt.Sprintf("https://%s", hostName)
 
 	go func() {
+		spaceUuid := jobData.JobSourceURI[strings.LastIndex(jobData.JobSourceURI, "/")+1:]
+		job, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
+		if err != nil {
+			logs.GetLogger().Errorf("get job failed, error: %+v", err)
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, err.Error()))
+			return
+		}
+		if job.SpaceUuid != "" {
+			NewJobService().DeleteJobEntityBySpaceUuId(spaceUuid)
+		}
+
+		var jobEntity = new(models.JobEntity)
+		jobEntity.Source = jobData.StorageSource
+		jobEntity.SpaceUuid = spaceUuid
+		jobEntity.TaskUuid = jobData.TaskUUID
+		jobEntity.SourceUrl = jobData.JobSourceURI
+		jobEntity.RealUrl = jobData.JobRealUri
+		jobEntity.BuildLog = jobData.BuildLog
+		jobEntity.ContainerLog = jobData.ContainerLog
+		jobEntity.Duration = jobData.Duration
+		jobEntity.DeployStatus = models.DEPLOY_RECEIVE_JOB
+		jobEntity.CreateTime = time.Now().Unix()
+		NewJobService().SaveJobEntity(jobEntity)
+
+		go func() {
+			var resultMcsUrl string
+			for i := 0; i < 5; i++ {
+				if resultMcsUrl, err = submitJob(&jobData); err != nil {
+					logs.GetLogger().Errorf("upload job data to MCS failed, jobUuid: %s, spaceUuid: %s, error: %v",
+						jobData.UUID, spaceUuid, err)
+					continue
+				}
+				break
+			}
+			jobEntity.ResultUrl = resultMcsUrl
+			NewJobService().UpdateJobEntityByJobUuid(jobEntity)
+			logs.GetLogger().Infof("jobuuid: %s successfully uploaded to MCS", jobData.UUID)
+		}()
+
 		DeploySpaceTask(jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName)
 	}()
 
@@ -324,10 +332,7 @@ func ReNewJob(c *gin.Context) {
 
 	leftTime := jobEntity.ExpireTime - time.Now().Unix()
 	if leftTime < 0 {
-		c.JSON(http.StatusOK, map[string]string{
-			"status":  "failed",
-			"message": "The job was terminated due to its expiration date",
-		})
+		c.JSON(http.StatusOK, util.CreateErrorResponse(util.BadParamError, "The job was terminated due to its expiration date"))
 		return
 	} else {
 		jobEntity.ExpireTime = time.Now().Unix() + leftTime + int64(jobData.Duration)

@@ -18,11 +18,10 @@ type ComputingProvider struct {
 }
 
 type JobData struct {
-	UUID     string `json:"uuid"`
-	Name     string `json:"name"`
-	Status   string `json:"status"`
-	Duration int    `json:"duration"`
-	//Hardware      string `json:"hardware"`
+	UUID                        string `json:"uuid"`
+	Name                        string `json:"name"`
+	Status                      string `json:"status"`
+	Duration                    int    `json:"duration"`
 	JobSourceURI                string `json:"job_source_uri"`
 	JobResultURI                string `json:"job_result_uri,omitempty"`
 	StorageSource               string `json:"storage_source,omitempty"`
