@@ -1140,7 +1140,10 @@ func verifySignatureForHub(pubKStr string, message string, signedMessage string)
 	hashedMessage := []byte("\x19Ethereum Signed Message:\n" + strconv.Itoa(len(message)) + message)
 	hash := crypto.Keccak256Hash(hashedMessage)
 
-	decodedMessage := hexutil.MustDecode(signedMessage)
+	decodedMessage, err := hexutil.Decode(signedMessage)
+	if err != nil {
+		return false, err
+	}
 
 	if decodedMessage[64] == 27 || decodedMessage[64] == 28 {
 		decodedMessage[64] -= 27
