@@ -175,21 +175,25 @@ func (*CpInfoEntity) TableName() string {
 }
 
 func (c *CpInfoEntity) BeforeSave(tx *gorm.DB) (err error) {
-	if multiAddrBytes, err := json.Marshal(c.MultiAddresses); err == nil {
-		c.MultiAddressesJSON = string(multiAddrBytes)
-	} else {
-		return err
+	if len(c.MultiAddresses) != 0 {
+		if multiAddrBytes, err := json.Marshal(c.MultiAddresses); err == nil {
+			c.MultiAddressesJSON = string(multiAddrBytes)
+		} else {
+			return err
+		}
 	}
 
-	intTaskTypes := make([]int, len(c.TaskTypes))
-	for i, v := range c.TaskTypes {
-		intTaskTypes[i] = int(v)
-	}
+	if len(c.TaskTypes) != 0 {
+		intTaskTypes := make([]int, len(c.TaskTypes))
+		for i, v := range c.TaskTypes {
+			intTaskTypes[i] = int(v)
+		}
 
-	if taskTypesBytes, err := json.Marshal(intTaskTypes); err == nil {
-		c.TaskTypesJSON = string(taskTypesBytes)
-	} else {
-		return err
+		if taskTypesBytes, err := json.Marshal(intTaskTypes); err == nil {
+			c.TaskTypesJSON = string(taskTypesBytes)
+		} else {
+			return err
+		}
 	}
 	return nil
 }
