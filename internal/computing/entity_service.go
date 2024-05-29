@@ -113,8 +113,8 @@ func (cpServ CpInfoService) GetCpInfoEntityByAccountAddress(accountAddress strin
 }
 
 func (cpServ CpInfoService) SaveCpInfoEntity(cp *models.CpInfoEntity) (err error) {
-	cpServ.Model(&models.CpInfoEntity{}).Where("node_id=?", cp.NodeId).Updates("delete_at=1")
-	return cpServ.Save(cp).Error
+	cpServ.Debug().Model(&models.CpInfoEntity{}).Where("node_id=?", cp.NodeId).Updates("delete_at=1")
+	return cpServ.Debug().Save(cp).Error
 }
 
 func (cpServ CpInfoService) UpdateCpInfoByNodeId(cp *models.CpInfoEntity) (err error) {
