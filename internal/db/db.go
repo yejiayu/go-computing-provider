@@ -23,7 +23,8 @@ func InitDb(cpRepoPath string) {
 
 	DB.AutoMigrate(
 		&models.TaskEntity{},
-		&models.JobEntity{})
+		&models.JobEntity{},
+		&models.CpInfoEntity{})
 }
 
 func NewDbService() *gorm.DB {
