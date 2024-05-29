@@ -945,7 +945,7 @@ func SyncCpAccountInfo() {
 		return
 	}
 
-	if cpInfoEntity.ContractAddress != "" {
+	if cpInfoEntity.ContractAddress == "" {
 		chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 		if err != nil {
 			logs.GetLogger().Errorf("get rpc url failed, error: %v", err)
