@@ -112,7 +112,7 @@ func (cpServ CpInfoService) SaveCpInfoEntity(cp *models.CpInfoEntity) (err error
 }
 
 func (cpServ CpInfoService) UpdateCpInfoByNodeId(cp *models.CpInfoEntity) (err error) {
-	return cpServ.Where("node_id=? and delete_at=0", cp.NodeId).Updates(cp).Error
+	return cpServ.Where("node_id =?", cp.NodeId).Updates(cp).Error
 }
 
 var taskSet = wire.NewSet(db.NewDbService, wire.Struct(new(TaskService), "*"))
