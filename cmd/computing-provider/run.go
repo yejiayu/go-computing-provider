@@ -720,6 +720,7 @@ var changeTaskTypesCmd = &cli.Command{
 			if tt != 1 && tt != 2 && tt != 3 {
 				return fmt.Errorf("TaskTypes supports 1, 2, 3")
 			}
+			taskTypesUint = append(taskTypesUint, uint8(tt))
 		}
 
 		cpRepoPath, ok := os.LookupEnv("CP_PATH")
