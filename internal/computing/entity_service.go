@@ -107,7 +107,7 @@ func (cpServ CpInfoService) GetCpInfoEntityByAccountAddress(accountAddress strin
 }
 
 func (cpServ CpInfoService) SaveCpInfoEntity(cp *models.CpInfoEntity) (err error) {
-	cpServ.Model(&models.CpInfoEntity{}).Delete("contract_address=?", cp.ContractAddress)
+	cpServ.Where("contract_address=?", cp.ContractAddress).Delete(&models.CpInfoEntity{})
 	return cpServ.Save(cp).Error
 }
 
