@@ -4,6 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-swan-lib/logs"
@@ -17,20 +26,13 @@ import (
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"github.com/swanchain/go-computing-provider/util"
 	"github.com/swanchain/go-computing-provider/wallet"
-	"io"
 	batchv1 "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 func DoUbiTaskForK8s(c *gin.Context) {
@@ -321,12 +323,36 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			logs.GetLogger().Errorf("Failed creating ubi task job: %v", err)
 			return
 		}
+		// TODO(yejiayu): Change it to the parameters you prefer or make it a configuration file.
+		err = wait.PollImmediate(2*time.Second, 60*time.Second, func() (bool, error) {
+			pods, err := k8sService.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
+				LabelSelector: fmt.Sprintf("job-name=%s", JobName),
+			})
+			if err != nil {
+				return false, err
+			}
 
-		time.Sleep(4 * time.Second)
+			for _, p := range pods.Items {
+				for _, condition := range p.Status.Conditions {
+					if condition.Type != coreV1.PodReady && condition.Status != coreV1.ConditionTrue {
+						return false, nil
+					}
+				}
+			}
+			return true, nil
+		})
+		if err != nil {
+			logs.GetLogger().Errorf("Failed waiting pods create: %v", err)
+			return
+		}
 
 		pods, err := k8sService.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
 			LabelSelector: fmt.Sprintf("job-name=%s", JobName),
 		})
+		if err != nil {
+			logs.GetLogger().Errorf("Failed list ubi pods: %v", err)
+			return
+		}
 
 		var podName string
 		for _, pod := range pods.Items {
