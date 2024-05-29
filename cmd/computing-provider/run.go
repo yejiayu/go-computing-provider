@@ -612,7 +612,7 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 
 		changeBeneficiaryAddressTx, err := cpStub.ChangeBeneficiary(common.HexToAddress(beneficiaryAddress))
 		if err != nil {
-			logs.GetLogger().Errorf("changeBeneficiaryAddress tx failed, error: %v,", err)
+			logs.GetLogger().Errorf("changeBeneficiaryAddress tx failed, error: %v", err)
 			return err
 		}
 
@@ -669,7 +669,7 @@ var changeWorkerAddressCmd = &cli.Command{
 
 		changeBeneficiaryAddressTx, err := cpStub.ChangeWorkerAddress(common.HexToAddress(workerAddress))
 		if err != nil {
-			logs.GetLogger().Errorf("changeWorkerAddress tx failed, error: %v,", err)
+			logs.GetLogger().Errorf("changeWorkerAddress tx failed, error: %v", err)
 			return err
 		}
 
@@ -738,7 +738,7 @@ var changeTaskTypesCmd = &cli.Command{
 
 		changeTaskTypesTx, err := cpStub.ChangeTaskTypes(taskTypesUint)
 		if err != nil {
-			logs.GetLogger().Errorf("changeTaskTypes tx failed, error: %v,", err)
+			logs.GetLogger().Errorf("changeTaskTypes tx failed, error: %v", err)
 			return err
 		}
 

@@ -755,19 +755,19 @@ func GetCpResource(c *gin.Context) {
 func submitUBIProof(c2Proof models.UbiC2Proof, task *models.TaskEntity) error {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
-		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+		logs.GetLogger().Errorf("get rpc url failed, error: %v", err)
 		return err
 	}
 	client, err := ethclient.Dial(chainUrl)
 	if err != nil {
-		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+		logs.GetLogger().Errorf("dial rpc connect failed, error: %v", err)
 		return err
 	}
 	client.Close()
 
 	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
 	if err != nil {
-		logs.GetLogger().Errorf("setup wallet failed, error: %v,", err)
+		logs.GetLogger().Errorf("setup wallet failed, error: %v", err)
 		return err
 	}
 
@@ -779,26 +779,26 @@ func submitUBIProof(c2Proof models.UbiC2Proof, task *models.TaskEntity) error {
 
 	ki, err := localWallet.FindKey(workerAddress)
 	if err != nil || ki == nil {
-		logs.GetLogger().Errorf("the address: %s, private key %v,", workerAddress, wallet.ErrKeyInfoNotFound)
+		logs.GetLogger().Errorf("the address: %s, private key %v", workerAddress, wallet.ErrKeyInfoNotFound)
 		return err
 	}
 
 	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(task.Contract), account.WithTaskPrivateKey(ki.PrivateKey))
 	if err != nil {
-		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v", err)
 		return err
 	}
 
 	taskInfo, err := taskStub.GetTaskInfo()
 	if err != nil {
-		logs.GetLogger().Errorf("get ubi task info failed, contract address: %s, error: %v,", task.Contract, err)
+		logs.GetLogger().Errorf("get ubi task info failed, contract address: %s, error: %v", task.Contract, err)
 		return err
 	}
 
 	deadlineTime := task.CreateTime + taskInfo.Deadline.Int64()*2 - time.Now().Unix()
 	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.Proof, deadlineTime)
 	if err != nil {
-		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
+		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v", err)
 		return err
 	}
 
@@ -939,72 +939,65 @@ func SyncCpAccountInfo() {
 		return
 	}
 
-	cpInfoEntity, err := NewCpInfoService().GetCpInfoEntityByAccountAddress(cpAccountAddress)
+	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
-		logs.GetLogger().Errorf("get cp info failed, account address: %s, error: %v", cpAccountAddress, err)
+		logs.GetLogger().Errorf("get rpc url failed, error: %v", err)
 		return
 	}
 
-	if cpInfoEntity.ContractAddress == "" {
-		chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
-		if err != nil {
-			logs.GetLogger().Errorf("get rpc url failed, error: %v", err)
-			return
-		}
+	client, err := ethclient.Dial(chainUrl)
+	if err != nil {
+		logs.GetLogger().Errorf("dial rpc connect failed, error: %v", err)
+		return
+	}
+	defer client.Close()
 
-		client, err := ethclient.Dial(chainUrl)
-		if err != nil {
-			logs.GetLogger().Errorf("dial rpc connect failed, error: %v", err)
-			return
-		}
-		defer client.Close()
+	cpStub, err := account.NewAccountStub(client)
+	if err != nil {
+		logs.GetLogger().Errorf("create account client failed, error: %v", err)
+		return
+	}
 
-		cpStub, err := account.NewAccountStub(client)
-		if err != nil {
-			logs.GetLogger().Errorf("create account client failed, error: %v", err)
-			return
-		}
+	cpAccount, err := cpStub.GetCpAccountInfo()
+	if err != nil {
+		logs.GetLogger().Errorf("get cpAccount failed, error: %v", err)
+		return
+	}
 
-		cpAccount, err := cpStub.GetCpAccountInfo()
-		if err != nil {
-			logs.GetLogger().Errorf("get cpAccount failed, error: %v", err)
-			return
-		}
-
-		var cpInfo = new(models.CpInfoEntity)
-		cpInfo.NodeId = cpAccount.NodeId
-		cpInfo.OwnerAddress = cpAccount.OwnerAddress
-		cpInfo.Beneficiary = cpAccount.Beneficiary
-		cpInfo.WorkerAddress = cpAccount.WorkerAddress
-		cpInfo.ContractAddress = cpAccountAddress
-		cpInfo.CreateAt = time.Now().Format("2006-01-02 15:04:05")
-		cpInfo.UpdateAt = time.Now().Format("2006-01-02 15:04:05")
-		cpInfo.MultiAddresses = cpAccount.MultiAddresses
-		cpInfo.TaskTypes = cpAccount.TaskTypes
-		if err = NewCpInfoService().SaveCpInfoEntity(cpInfo); err != nil {
-			logs.GetLogger().Errorf("save cp info to db failed, error: %v", err)
-			return
-		}
+	var cpInfo = new(models.CpInfoEntity)
+	cpInfo.NodeId = cpAccount.NodeId
+	cpInfo.OwnerAddress = cpAccount.OwnerAddress
+	cpInfo.Beneficiary = cpAccount.Beneficiary
+	cpInfo.WorkerAddress = cpAccount.WorkerAddress
+	cpInfo.ContractAddress = cpAccountAddress
+	cpInfo.CreateAt = time.Now().Format("2006-01-02 15:04:05")
+	cpInfo.UpdateAt = time.Now().Format("2006-01-02 15:04:05")
+	cpInfo.MultiAddresses = cpAccount.MultiAddresses
+	cpInfo.Version = cpAccount.Version
+	cpInfo.TaskTypes = cpAccount.TaskTypes
+	if err = NewCpInfoService().SaveCpInfoEntity(cpInfo); err != nil {
+		logs.GetLogger().Errorf("save cp info to db failed, error: %v", err)
+		return
 	}
 }
 
 func getReward(task *models.TaskEntity) error {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
-		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
+		logs.GetLogger().Errorf("get rpc url failed, error: %v", err)
 		return err
 	}
 
 	client, err := ethclient.Dial(chainUrl)
 	if err != nil {
-		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
+		logs.GetLogger().Errorf("dial rpc connect failed, error: %v", err)
 		return err
 	}
 	defer client.Close()
 
 	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(task.Contract))
 	if err != nil {
-		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v", err)
 		return err
 	}
 

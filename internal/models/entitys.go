@@ -163,7 +163,6 @@ type CpInfoEntity struct {
 	ContractAddress    string   `json:"contract_address" gorm:"contract_address"`
 	MultiAddressesJSON string   `gorm:"multi_addresses_json;type:text" json:"-"`
 	TaskTypesJSON      string   `gorm:"task_types_json; type:text" json:"-"`
-	DeleteAt           int8     `json:"delete_at" gorm:"column:delete_at;default:0"` // 1: deleted
 	CreateAt           string   `json:"create_at" gorm:"create_at"`
 	UpdateAt           string   `json:"update_at" gorm:"update_at"`
 	MultiAddresses     []string `json:"multi_addresses" gorm:"-"`
@@ -181,7 +180,13 @@ func (c *CpInfoEntity) BeforeSave(tx *gorm.DB) (err error) {
 	} else {
 		return err
 	}
-	if taskTypesBytes, err := json.Marshal(c.TaskTypes); err == nil {
+
+	intTaskTypes := make([]int, len(c.TaskTypes))
+	for i, v := range c.TaskTypes {
+		intTaskTypes[i] = int(v)
+	}
+
+	if taskTypesBytes, err := json.Marshal(intTaskTypes); err == nil {
 		c.TaskTypesJSON = string(taskTypesBytes)
 	} else {
 		return err

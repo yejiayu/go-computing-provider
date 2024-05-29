@@ -100,21 +100,15 @@ type CpInfoService struct {
 	*gorm.DB
 }
 
-func (cpServ CpInfoService) GetCpInfoEntityByNodeId(nodeId string) (models.CpInfoEntity, error) {
-	var cp models.CpInfoEntity
-	err := cpServ.Where("node_id=? and delete_at=0", nodeId).Find(&cp).Error
-	return cp, err
-}
-
 func (cpServ CpInfoService) GetCpInfoEntityByAccountAddress(accountAddress string) (*models.CpInfoEntity, error) {
 	var cp models.CpInfoEntity
-	err := cpServ.Where("contract_address=? and delete_at=0", accountAddress).Find(&cp).Error
+	err := cpServ.Where("contract_address=?", accountAddress).Find(&cp).Error
 	return &cp, err
 }
 
 func (cpServ CpInfoService) SaveCpInfoEntity(cp *models.CpInfoEntity) (err error) {
-	cpServ.Debug().Model(&models.CpInfoEntity{}).Where("node_id=?", cp.NodeId).Updates("delete_at=1")
-	return cpServ.Debug().Save(cp).Error
+	cpServ.Model(&models.CpInfoEntity{}).Delete("contract_address=?", cp.ContractAddress)
+	return cpServ.Save(cp).Error
 }
 
 func (cpServ CpInfoService) UpdateCpInfoByNodeId(cp *models.CpInfoEntity) (err error) {

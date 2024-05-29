@@ -49,11 +49,19 @@ func SetupWallet(dir string) (*LocalWallet, error) {
 		return nil, fmt.Errorf("load config file failed, error: %+v", err)
 	}
 
-	kstore, err := OpenOrInitKeystore(filepath.Join(cpPath, dir))
-	if err != nil {
-		return nil, err
+	for {
+		select {
+		case <-time.After(10 * time.Second):
+			return nil, fmt.Errorf("open wallet timeout")
+		default:
+			kstore, err := OpenOrInitKeystore(filepath.Join(cpPath, dir))
+			if err != nil {
+				time.Sleep(time.Second)
+				continue
+			}
+			return NewWallet(kstore), nil
+		}
 	}
-	return NewWallet(kstore), nil
 }
 
 type LocalWallet struct {
