@@ -14,6 +14,7 @@ import (
 	"math/big"
 	"strings"
 	"sync"
+	"time"
 )
 
 type TaskStub struct {
@@ -61,7 +62,7 @@ func NewTaskStub(client *ethclient.Client, options ...TaskOption) (*TaskStub, er
 	return stub, nil
 }
 
-func (s *TaskStub) SubmitUBIProof(proof string) (string, error) {
+func (s *TaskStub) SubmitUBIProof(proof string, timeOut int64) (string, error) {
 	publicAddress, err := s.privateKeyToPublicKey()
 	if err != nil {
 		return "", err
@@ -73,25 +74,37 @@ func (s *TaskStub) SubmitUBIProof(proof string) (string, error) {
 	}
 
 	var submitProofTxHash string
+	timeOutCh := time.After(time.Second * time.Duration(timeOut))
+outerLoop:
 	for {
-		txOptions, err := s.createTransactOpts(int64(s.nonceX))
-		if err != nil {
-			return "", fmt.Errorf("address: %s, task_stub create transaction opts failed, error: %+v", publicAddress, err)
-		}
-		transaction, err := s.task.SubmitProof(txOptions, proof)
-		if err != nil {
-			if err.Error() == "replacement transaction underpriced" {
-				s.IncrementNonce()
-			} else if strings.Contains(err.Error(), "next nonce") {
-				return "", s.getNonce()
+		select {
+		case <-timeOutCh:
+			err = fmt.Errorf("timeout, task_contract: %s", s.ContractAddress)
+			break outerLoop
+		default:
+			txOptions, err := s.createTransactOpts(int64(s.nonceX))
+			if err != nil {
+				return "", fmt.Errorf("address: %s, task_stub create transaction opts failed, error: %+v", publicAddress, err)
+			}
+			transaction, err := s.task.SubmitProof(txOptions, proof)
+			if err != nil {
+				if err.Error() == "replacement transaction underpriced" {
+					s.IncrementNonce()
+				} else if strings.Contains(err.Error(), "next nonce") {
+					return "", s.getNonce()
+				} else {
+					return "", err
+				}
+			}
+			if transaction != nil {
+				submitProofTxHash = transaction.Hash().String()
+				break outerLoop
 			} else {
-				return "", err
+				fmt.Printf("invoke task contract to submit proof, tx hash is nil,transaction: %v", transaction)
 			}
 		}
-		submitProofTxHash = transaction.Hash().String()
-		break
 	}
-	return submitProofTxHash, nil
+	return submitProofTxHash, err
 }
 
 func (s *TaskStub) GetTaskInfo() (ECPTaskTaskInfo, error) {

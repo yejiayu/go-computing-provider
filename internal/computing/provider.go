@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"io"
@@ -145,29 +144,17 @@ func hashPublicKey(publicKey *ecdsa.PublicKey) string {
 }
 
 func GetOwnerAddressAndWorkerAddress() (string, string, error) {
-	chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
+	cpAccountAddress, err := account.GetCpAccountAddress()
 	if err != nil {
-		logs.GetLogger().Errorf("get rpc link failed, error: %v", err)
-		return "", "", err
+		return "", "", fmt.Errorf("get cp account contract address failed, error: %v", err)
 	}
-	client, err := ethclient.Dial(chainRpc)
-	if err != nil {
-		logs.GetLogger().Errorf("connect to rpc failed, error: %v", err)
-		return "", "", err
-	}
-	defer client.Close()
 
-	cpStub, err := account.NewAccountStub(client)
+	cpInfoEntity, err := NewCpInfoService().GetCpInfoEntityByAccountAddress(cpAccountAddress)
 	if err != nil {
-		logs.GetLogger().Errorf("create account stub failed, error: %v", err)
-		return "", "", err
+		return "", "", fmt.Errorf("get cp info failed, account address: %s, error: %v", cpAccountAddress, err)
 	}
-	cpAccount, err := cpStub.GetCpAccountInfo()
-	if err != nil {
-		err = fmt.Errorf("get cpAccount failed, error: %v", err)
-		return "", "", err
-	}
-	ownerAddress := cpAccount.OwnerAddress
-	workerAddress := cpAccount.WorkerAddress
+
+	ownerAddress := cpInfoEntity.OwnerAddress
+	workerAddress := cpInfoEntity.WorkerAddress
 	return ownerAddress, workerAddress, nil
 }

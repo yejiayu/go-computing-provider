@@ -194,7 +194,8 @@ var daemonCmd = &cli.Command{
 			logs.GetLogger().Fatal(err)
 		}
 
-		computing.CleanDockerResource()
+		computing.SyncCpAccountInfo()
+		computing.CronTaskForEcp()
 
 		r := gin.Default()
 		r.Use(cors.Middleware(cors.Config{

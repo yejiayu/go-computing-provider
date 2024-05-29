@@ -36,7 +36,6 @@ const (
 
 var (
 	ErrKeyInfoNotFound = fmt.Errorf("key info not found")
-	ErrKeyExists       = fmt.Errorf("key already exists")
 )
 
 var reAddress = regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
@@ -58,15 +57,12 @@ func SetupWallet(dir string) (*LocalWallet, error) {
 }
 
 type LocalWallet struct {
-	keys     map[string]*KeyInfo
 	keystore KeyStore
-
-	lk sync.Mutex
+	lk       sync.Mutex
 }
 
 func NewWallet(keystore KeyStore) *LocalWallet {
 	w := &LocalWallet{
-		keys:     make(map[string]*KeyInfo),
 		keystore: keystore,
 	}
 	return w
@@ -98,16 +94,12 @@ func (w *LocalWallet) FindKey(addr string) (*KeyInfo, error) {
 	w.lk.Lock()
 	defer w.lk.Unlock()
 
-	k, ok := w.keys[addr]
-	if ok {
-		return k, nil
-	}
 	if w.keystore == nil {
 		log.Warn("FindKey didn't find the key in in-memory wallet")
 		return nil, nil
 	}
 
-	ki, err := w.tryFind(addr)
+	ki, err := w.keystore.Get(KNamePrefix + addr)
 	if err != nil {
 		if xerrors.Is(err, ErrKeyInfoNotFound) {
 			return nil, nil
@@ -115,21 +107,7 @@ func (w *LocalWallet) FindKey(addr string) (*KeyInfo, error) {
 		return nil, xerrors.Errorf("getting from keystore: %w", err)
 	}
 
-	w.keys[addr] = &ki
 	return &ki, nil
-}
-
-func (w *LocalWallet) tryFind(key string) (KeyInfo, error) {
-	ki, err := w.keystore.Get(KNamePrefix + key)
-	if err == nil {
-		return ki, err
-	}
-
-	if !xerrors.Is(err, ErrKeyInfoNotFound) {
-		return KeyInfo{}, err
-	}
-
-	return ki, nil
 }
 
 func (w *LocalWallet) WalletExport(ctx context.Context, addr string) (*KeyInfo, error) {
@@ -158,7 +136,7 @@ func (w *LocalWallet) WalletImport(ctx context.Context, ki *KeyInfo) (string, er
 
 	address := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
 
-	existAddress, err := w.tryFind(address)
+	existAddress, err := w.keystore.Get(KNamePrefix + address)
 	if err == nil && existAddress.PrivateKey != "" {
 		return "", xerrors.Errorf("This wallet address already exists")
 	}
@@ -259,20 +237,18 @@ func (w *LocalWallet) WalletNew(ctx context.Context) (string, error) {
 	if err := w.keystore.Put(KNamePrefix+address, keyInfo); err != nil {
 		return "", xerrors.Errorf("saving to keystore: %w", err)
 	}
-	w.keys[address] = &keyInfo
 
 	return address, nil
 }
 
 func (w *LocalWallet) walletDelete(ctx context.Context, addr string) error {
+	w.keystore.Close()
 	w.lk.Lock()
 	defer w.lk.Unlock()
 
 	if err := w.keystore.Delete(KNamePrefix + addr); err != nil {
 		return xerrors.Errorf("failed to delete key %s: %w", addr, err)
 	}
-
-	delete(w.keys, addr)
 
 	return nil
 }

@@ -1,5 +1,10 @@
 package models
 
+import (
+	"encoding/json"
+	"gorm.io/gorm"
+)
+
 const (
 	SOURCE_TYPE_CPU = 0
 	SOURCE_TYPE_GPU = 1
@@ -78,7 +83,7 @@ type TaskEntity struct {
 	SlashTx      string `json:"slash_tx"`
 	Status       int    `json:"status" gorm:"status"`
 	RewardStatus int    `json:"reward_status" gorm:"status"` // 0: unclaimed; 1: challenged; 2: slashed; 3: claimed
-	Reward       string `json:"reward" gorm:"reward; default:0"`
+	Reward       string `json:"reward" gorm:"column:reward; default:0"`
 	CreateTime   int64  `json:"create_time" gorm:"create_time"`
 	EndTime      int64  `json:"end_time" gorm:"end_time"`
 	Error        string `json:"error" gorm:"error"`
@@ -118,7 +123,7 @@ func GetDeployStatusStr(deployStatus int) string {
 }
 
 type JobEntity struct {
-	Id              uint   `json:"id" gorm:"primaryKey;autoIncrement"`
+	Id              int64  `json:"id" gorm:"primaryKey;autoIncrement"`
 	Source          string `json:"source" gorm:"source"` // market name
 	Name            string `json:"name" gorm:"name"`
 	SpaceUuid       string `json:"space_uuid"`
@@ -146,4 +151,50 @@ type JobEntity struct {
 
 func (*JobEntity) TableName() string {
 	return "t_job"
+}
+
+type CpInfoEntity struct {
+	Id                 int64    `json:"id" gorm:"primaryKey;autoIncrement"`
+	NodeId             string   `json:"node_id" gorm:"node_id"`
+	OwnerAddress       string   `json:"owner_address" gorm:"owner_address"`
+	Beneficiary        string   `json:"beneficiary" gorm:"beneficiary"`
+	WorkerAddress      string   `json:"worker_address" gorm:"worker_address"`
+	Version            string   `json:"version" gorm:"version"`
+	ContractAddress    string   `json:"contract_address" gorm:"contract_address"`
+	MultiAddressesJSON string   `gorm:"multi_addresses_json;type:text" json:"-"`
+	TaskTypesJSON      string   `gorm:"task_types_json; type:text" json:"-"`
+	DeleteAt           int8     `json:"delete_at" gorm:"column:delete_at;default:0"` // 1: deleted
+	CreateAt           string   `json:"create_at" gorm:"create_at"`
+	UpdateAt           string   `json:"update_at" gorm:"update_at"`
+	MultiAddresses     []string `json:"multi_addresses" gorm:"-"`
+	TaskTypes          []uint8  `json:"task_types" gorm:"-"` // 1: Fil-C2 2: Aleo 3: AI (Space)
+
+}
+
+func (*CpInfoEntity) TableName() string {
+	return "t_cp_info"
+}
+
+func (c *CpInfoEntity) BeforeSave(tx *gorm.DB) (err error) {
+	if multiAddrBytes, err := json.Marshal(c.MultiAddresses); err == nil {
+		c.MultiAddressesJSON = string(multiAddrBytes)
+	} else {
+		return err
+	}
+	if taskTypesBytes, err := json.Marshal(c.TaskTypes); err == nil {
+		c.TaskTypesJSON = string(taskTypesBytes)
+	} else {
+		return err
+	}
+	return nil
+}
+
+func (c *CpInfoEntity) AfterFind(tx *gorm.DB) (err error) {
+	if err = json.Unmarshal([]byte(c.MultiAddressesJSON), &c.MultiAddresses); err != nil {
+		return err
+	}
+	if err = json.Unmarshal([]byte(c.TaskTypesJSON), &c.TaskTypes); err != nil {
+		return err
+	}
+	return nil
 }

@@ -54,12 +54,12 @@ var walletList = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "chain",
-			Usage: "specify the account to send funds from",
+			Usage: "Specify which rpc connection chain to use",
 			Value: conf.DefaultRpc,
 		},
 		&cli.BoolFlag{
 			Name:  "contract",
-			Usage: "specify the contract",
+			Usage: "Specify the token contract",
 			Value: false,
 		},
 	},
@@ -254,12 +254,12 @@ var walletSend = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "chain",
-			Usage: "specify the account to send funds from",
+			Usage: "Specify which rpc connection chain to use",
 			Value: conf.DefaultRpc,
 		},
 		&cli.StringFlag{
 			Name:  "from",
-			Usage: "optionally specify the account to send funds from",
+			Usage: "Optionally specify the account to send funds from",
 		},
 		&cli.Uint64Flag{
 			Name:  "nonce",
@@ -394,6 +394,13 @@ var collateralAddCmd = &cli.Command{
 var collateralInfoCmd = &cli.Command{
 	Name:  "info",
 	Usage: "View staking wallet details",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{
+			Name:     "fcp",
+			Usage:    "Check the fcp collateral",
+			Required: true,
+		},
+	},
 	Action: func(cctx *cli.Context) error {
 		ctx := reqContext(cctx)
 		chain := cctx.String("chain")
@@ -483,7 +490,7 @@ var collateralSendCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:     "from",
-			Usage:    "optionally specify the account to send funds from",
+			Usage:    "Optionally specify the account to send funds from",
 			Required: true,
 		},
 	},

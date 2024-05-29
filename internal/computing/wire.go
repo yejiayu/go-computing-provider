@@ -16,3 +16,8 @@ func NewJobService() JobService {
 	wire.Build(jobSet)
 	return JobService{}
 }
+
+func NewCpInfoService() CpInfoService {
+	wire.Build(cpInfoSet)
+	return CpInfoService{}
+}

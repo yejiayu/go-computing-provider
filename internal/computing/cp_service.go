@@ -58,7 +58,7 @@ func ReceiveJob(c *gin.Context) {
 
 	if conf.GetConfig().HUB.VerifySign {
 		if len(jobData.NodeIdJobSourceUriSignature) == 0 {
-			c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.SpaceSignatureError, "missing node_id_job_source_uri_signature field"))
+			c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing node_id_job_source_uri_signature field"))
 			return
 		}
 		cpRepoPath, _ := os.LookupEnv("CP_PATH")
@@ -67,7 +67,7 @@ func ReceiveJob(c *gin.Context) {
 		signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobData.JobSourceURI), jobData.NodeIdJobSourceUriSignature)
 		if err != nil {
 			logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
-			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "verify sign data failed"))
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "verify sign data failed"))
 			return
 		}
 

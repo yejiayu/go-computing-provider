@@ -5,25 +5,10 @@ import (
 )
 
 type BasicResponse struct {
-	Status   string      `json:"status"`
-	Code     int         `json:"code"`
-	Data     interface{} `json:"data,omitempty"`
-	Message  string      `json:"message,omitempty"`
-	PageInfo *PageInfo   `json:"page_info,omitempty"`
-}
-
-type PageInfo struct {
-	PageNumber       string `json:"page_number"`
-	PageSize         string `json:"page_size"`
-	TotalRecordCount string `json:"total_record_count"`
-}
-
-type MixedResponse struct {
-	BasicResponse
-	MixData struct {
-		Success interface{} `json:"success"`
-		Fail    interface{} `json:"fail"`
-	} `json:"mix_data"`
+	Status  string      `json:"status"`
+	Code    int         `json:"code"`
+	Data    interface{} `json:"data,omitempty"`
+	Message string      `json:"message,omitempty"`
 }
 
 func CreateSuccessResponse(_data interface{}) BasicResponse {
@@ -53,8 +38,9 @@ const (
 	JsonError   = 400
 	ServerError = 500
 
-	BadParamError           = 5001
-	SpaceSignatureError     = 6001
+	BadParamError       = 4040
+	SpaceSignatureError = 4041
+
 	SpaceDeployStatusError  = 6002
 	ProofParamError         = 7001
 	ProofReadLogError       = 7002

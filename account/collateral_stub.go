@@ -64,7 +64,7 @@ func (s *Stub) Deposit(cpAccountAddress string, amount *big.Int) (string, error)
 	}
 
 	if cpAccountAddress == "" {
-		cpAccountAddress, err = getCpAccountAddress()
+		cpAccountAddress, err = GetCpAccountAddress()
 		if err != nil {
 			return "", fmt.Errorf("get cp account contract address failed, error: %v", err)
 		}
@@ -89,7 +89,7 @@ func (s *Stub) Withdraw(cpAccountAddress string, amount *big.Int) (string, error
 	}
 
 	if cpAccountAddress == "" {
-		cpAccountAddress, err = getCpAccountAddress()
+		cpAccountAddress, err = GetCpAccountAddress()
 		if err != nil {
 			return "", fmt.Errorf("get cp account contract address failed, error: %v", err)
 		}
@@ -105,7 +105,7 @@ func (s *Stub) Withdraw(cpAccountAddress string, amount *big.Int) (string, error
 func (s *Stub) CpInfo() (models.CpCollateralInfo, error) {
 	var cpInfo models.CpCollateralInfo
 
-	cpAccountAddress, err := getCpAccountAddress()
+	cpAccountAddress, err := GetCpAccountAddress()
 	if err != nil {
 		return models.CpCollateralInfo{}, fmt.Errorf("get cp account contract address failed, error: %v", err)
 	}

@@ -7,24 +7,35 @@
 package computing
 
 import (
-	_ "embed"
-	db2 "github.com/swanchain/go-computing-provider/internal/db"
+	"github.com/swanchain/go-computing-provider/internal/db"
+)
+
+import (
+	_ "unsafe"
 )
 
 // Injectors from wire.go:
 
 func NewTaskService() TaskService {
-	db := db2.NewDbService()
+	gormDB := db.NewDbService()
 	taskService := TaskService{
-		DB: db,
+		DB: gormDB,
 	}
 	return taskService
 }
 
 func NewJobService() JobService {
-	db := db2.NewDbService()
+	gormDB := db.NewDbService()
 	jobService := JobService{
-		DB: db,
+		DB: gormDB,
 	}
 	return jobService
+}
+
+func NewCpInfoService() CpInfoService {
+	gormDB := db.NewDbService()
+	cpInfoService := CpInfoService{
+		DB: gormDB,
+	}
+	return cpInfoService
 }

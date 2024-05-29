@@ -44,7 +44,7 @@ func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, err
 	}
 
 	if stub.ContractAddress == "" {
-		cpAccountAddress, err := getCpAccountAddress()
+		cpAccountAddress, err := GetCpAccountAddress()
 		if err != nil {
 			return nil, fmt.Errorf("get cp account contract address failed, error: %v", err)
 		}
@@ -225,7 +225,7 @@ func (s *CpStub) createTransactOpts() (*bind.TransactOpts, error) {
 	return txOptions, nil
 }
 
-func getCpAccountAddress() (string, error) {
+func GetCpAccountAddress() (string, error) {
 	cpPath, exit := os.LookupEnv("CP_PATH")
 	if !exit {
 		return "", fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")

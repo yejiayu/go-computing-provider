@@ -379,19 +379,12 @@ func DoUbiTaskForK8s(c *gin.Context) {
 
 func ReceiveUbiProofForK8s(c *gin.Context) {
 	var c2Proof models.UbiC2Proof
-	var submitUBIProofTx string
 	var err error
 	if err := c.ShouldBindJSON(&c2Proof); err != nil {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
 	logs.GetLogger().Infof("task_id: %s, C2 proof out received: %+v", c2Proof.TaskId, c2Proof)
-	defer func() {
-		if strings.TrimSpace(c2Proof.NameSpace) != "" {
-			k8sService := NewK8sService()
-			k8sService.k8sClient.CoreV1().Namespaces().Delete(context.TODO(), c2Proof.NameSpace, metaV1.DeleteOptions{})
-		}
-	}()
 
 	taskId, err := strconv.Atoi(c2Proof.TaskId)
 	if err != nil {
@@ -404,23 +397,10 @@ func ReceiveUbiProofForK8s(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
-
-	retries := 3
-	for i := 0; i < retries; i++ {
-		submitUBIProofTx, err = submitUBIProof(c2Proof, ubiTask.Contract)
-		if err == nil {
-			break
-		}
-		time.Sleep(time.Second * 2)
-	}
-
-	if submitUBIProofTx != "" {
-		ubiTask.Status = models.TASK_SUCCESS_STATUS
-		ubiTask.TxHash = submitUBIProofTx
-		logs.GetLogger().Infof("submitUBIProofTx: %s", submitUBIProofTx)
-	} else if err != nil {
-		ubiTask.Status = models.TASK_FAILED_STATUS
-		logs.GetLogger().Errorf("submitUBIProofTx failed, error: %v", err)
+	err = submitUBIProof(c2Proof, ubiTask)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
 	}
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
@@ -712,7 +692,6 @@ func checkResourceForUbi(resource *models.TaskResource, gpuName string, resource
 }
 
 func ReceiveUbiProofForDocker(c *gin.Context) {
-	var submitUBIProofTx string
 	var err error
 	var c2Proof models.UbiC2Proof
 
@@ -733,26 +712,11 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 		return
 	}
 
-	retries := 3
-	for i := 0; i < retries; i++ {
-		submitUBIProofTx, err = submitUBIProof(c2Proof, ubiTask.Contract)
-		if err == nil {
-			break
-		}
-		time.Sleep(time.Second * 2)
-	}
-
-	if submitUBIProofTx != "" {
-		ubiTask.Status = models.TASK_SUCCESS_STATUS
-		ubiTask.TxHash = submitUBIProofTx
-		logs.GetLogger().Infof("submitUBIProofTx: %s", submitUBIProofTx)
-	}
+	err = submitUBIProof(c2Proof, ubiTask)
 	if err != nil {
-		ubiTask.Status = models.TASK_FAILED_STATUS
-		logs.GetLogger().Errorf("submitUBIProofTx failed, error: %v", err)
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		return
 	}
-	NewTaskService().SaveTaskEntity(ubiTask)
-
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
@@ -788,60 +752,65 @@ func GetCpResource(c *gin.Context) {
 	})
 }
 
-func submitUBIProof(c2Proof models.UbiC2Proof, contractAddress string) (string, error) {
+func submitUBIProof(c2Proof models.UbiC2Proof, task *models.TaskEntity) error {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
 		logs.GetLogger().Errorf("get rpc url failed, error: %v,", err)
-		return "", err
+		return err
 	}
 	client, err := ethclient.Dial(chainUrl)
 	if err != nil {
 		logs.GetLogger().Errorf("dial rpc connect failed, error: %v,", err)
-		return "", err
+		return err
 	}
 	client.Close()
-
-	cpStub, err := account.NewAccountStub(client)
-	if err != nil {
-		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
-		return "", err
-	}
-	cpAccount, err := cpStub.GetCpAccountInfo()
-	if err != nil {
-		logs.GetLogger().Errorf("get account info failed, error: %v,", err)
-		return "", err
-	}
 
 	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
 	if err != nil {
 		logs.GetLogger().Errorf("setup wallet failed, error: %v,", err)
-		return "", err
+		return err
 	}
 
 	_, workerAddress, err := GetOwnerAddressAndWorkerAddress()
 	if err != nil {
 		logs.GetLogger().Errorf("get worker address failed, error: %v", err)
-		return "", err
+		return err
 	}
 
 	ki, err := localWallet.FindKey(workerAddress)
 	if err != nil || ki == nil {
-		logs.GetLogger().Errorf("the address: %s, private key %v,", cpAccount.OwnerAddress, wallet.ErrKeyInfoNotFound)
-		return "", err
+		logs.GetLogger().Errorf("the address: %s, private key %v,", workerAddress, wallet.ErrKeyInfoNotFound)
+		return err
 	}
 
-	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(contractAddress), account.WithTaskPrivateKey(ki.PrivateKey))
+	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(task.Contract), account.WithTaskPrivateKey(ki.PrivateKey))
 	if err != nil {
 		logs.GetLogger().Errorf("create ubi task client failed, error: %v,", err)
-		return "", err
+		return err
 	}
 
-	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.Proof)
+	taskInfo, err := taskStub.GetTaskInfo()
+	if err != nil {
+		logs.GetLogger().Errorf("get ubi task info failed, contract address: %s, error: %v,", task.Contract, err)
+		return err
+	}
+
+	deadlineTime := task.CreateTime + taskInfo.Deadline.Int64()*2 - time.Now().Unix()
+	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.Proof, deadlineTime)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v,", err)
-		return "", err
+		return err
 	}
-	return submitUBIProofTx, nil
+
+	if submitUBIProofTx != "" {
+		task.Status = models.TASK_SUCCESS_STATUS
+		task.TxHash = submitUBIProofTx
+		logs.GetLogger().Infof("submitUBIProofTx: %s", submitUBIProofTx)
+	} else if err != nil {
+		task.Status = models.TASK_FAILED_STATUS
+		logs.GetLogger().Errorf("submitUBIProofTx failed, error: %v", err)
+	}
+	return NewTaskService().SaveTaskEntity(task)
 }
 
 func reportClusterResourceForDocker() {
@@ -903,7 +872,7 @@ func reportClusterResourceForDocker() {
 		nodeResource.Cpu.Free, nodeResource.Memory.Free, nodeResource.Storage.Free, freeGpuMap)
 }
 
-func CleanDockerResource() {
+func CronTaskForEcp() {
 	go func() {
 		ticker := time.NewTicker(10 * time.Minute)
 		for range ticker.C {
@@ -961,6 +930,62 @@ func CleanDockerResource() {
 			}
 		}
 	}()
+}
+
+func SyncCpAccountInfo() {
+	cpAccountAddress, err := account.GetCpAccountAddress()
+	if err != nil {
+		logs.GetLogger().Errorf("get cp account contract address failed, error: %v", err)
+		return
+	}
+
+	cpInfoEntity, err := NewCpInfoService().GetCpInfoEntityByAccountAddress(cpAccountAddress)
+	if err != nil {
+		logs.GetLogger().Errorf("get cp info failed, account address: %s, error: %v", cpAccountAddress, err)
+		return
+	}
+
+	if cpInfoEntity == nil {
+		chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
+		if err != nil {
+			logs.GetLogger().Errorf("get rpc url failed, error: %v", err)
+			return
+		}
+
+		client, err := ethclient.Dial(chainUrl)
+		if err != nil {
+			logs.GetLogger().Errorf("dial rpc connect failed, error: %v", err)
+			return
+		}
+		defer client.Close()
+
+		cpStub, err := account.NewAccountStub(client)
+		if err != nil {
+			logs.GetLogger().Errorf("create account client failed, error: %v", err)
+			return
+		}
+
+		cpAccount, err := cpStub.GetCpAccountInfo()
+		if err != nil {
+			logs.GetLogger().Errorf("get cpAccount failed, error: %v", err)
+			return
+		}
+
+		var cpInfo = new(models.CpInfoEntity)
+		cpInfo.NodeId = cpAccount.NodeId
+		cpInfo.OwnerAddress = cpAccount.OwnerAddress
+		cpInfo.Beneficiary = cpAccount.Beneficiary
+		cpInfo.WorkerAddress = cpAccount.WorkerAddress
+		cpInfo.ContractAddress = cpAccountAddress
+		cpInfo.CreateAt = time.Now().Format("2006-01-02 15:04:05")
+		cpInfo.UpdateAt = time.Now().Format("2006-01-02 15:04:05")
+		cpInfo.MultiAddresses = cpAccount.MultiAddresses
+		cpInfo.TaskTypes = cpAccount.TaskTypes
+		if err = NewCpInfoService().SaveCpInfoEntity(cpInfo); err != nil {
+			logs.GetLogger().Errorf("save cp info to db failed, error: %v", err)
+			return
+		}
+	}
 }
 
 func getReward(task *models.TaskEntity) error {
