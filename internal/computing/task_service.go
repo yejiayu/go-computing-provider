@@ -217,7 +217,7 @@ func watchExpiredTask() {
 
 					namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(jobMetadata.WalletAddress)
 
-					if len(strings.TrimSpace(jobMetadata.TaskUuid)) == 0 {
+					if len(strings.TrimSpace(jobMetadata.TaskUuid)) != 0 {
 						taskStatus, err := checkTaskStatusByHub(jobMetadata.TaskUuid, nodeId)
 						if err != nil {
 							logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
