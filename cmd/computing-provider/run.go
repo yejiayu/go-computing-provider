@@ -361,6 +361,11 @@ var taskInfoCmd = &cli.Command{
 			Usage: "Specify which rpc connection chain to use",
 			Value: conf.DefaultRpc,
 		},
+		&cli.BoolFlag{
+			Name:     "ecp",
+			Usage:    "Check ECP task on the chain",
+			Required: true,
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 
