@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
@@ -18,7 +19,9 @@ import (
 	"github.com/swanchain/go-computing-provider/util"
 	"github.com/swanchain/go-computing-provider/wallet"
 	"github.com/swanchain/go-computing-provider/wallet/contract/collateral"
+	"github.com/swanchain/go-computing-provider/wallet/contract/swan_token"
 	"github.com/urfave/cli/v2"
+	"math/big"
 	"os"
 	"strconv"
 	"strings"
@@ -216,24 +219,22 @@ var infoCmd = &cli.Command{
 
 var stateCmd = &cli.Command{
 	Name:  "state",
-	Usage: "Print computing-provider chain info",
+	Usage: "Print computing-provider info on the chain",
 	Subcommands: []*cli.Command{
 		stateInfoCmd,
+		taskInfoCmd,
 	},
 }
 
 var stateInfoCmd = &cli.Command{
-	Name:  "cp-info",
-	Usage: "Print computing-provider chain info",
+	Name:      "cp-info",
+	Usage:     "Print computing-provider chain info",
+	ArgsUsage: "[cp_account_contract_address]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "chain",
 			Usage: "Specify which rpc connection chain to use",
 			Value: conf.DefaultRpc,
-		},
-		&cli.StringFlag{
-			Name:  "cpAccount",
-			Usage: "Specify the cp account contract",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -264,7 +265,7 @@ var stateInfoCmd = &cli.Command{
 		var fcpCollateralBalance, fcpEscrowBalance, chainMultiAddress string
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 
-		cpStub, err := account.NewAccountStub(client, account.WithContractAddress(cctx.String("cpAccount")))
+		cpStub, err := account.NewAccountStub(client, account.WithContractAddress(cctx.Args().Get(0)))
 		if err == nil {
 			cpAccount, err := cpStub.GetCpAccountInfo()
 			if err != nil {
@@ -350,6 +351,150 @@ var stateInfoCmd = &cli.Command{
 	},
 }
 
+var taskInfoCmd = &cli.Command{
+	Name:      "task-info",
+	Usage:     "Print task info on the chain",
+	ArgsUsage: "[task_contract_address]",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:  "chain",
+			Usage: "Specify which rpc connection chain to use",
+			Value: conf.DefaultRpc,
+		},
+	},
+	Action: func(cctx *cli.Context) error {
+
+		taskContract := cctx.Args().Get(0)
+		if strings.TrimSpace(taskContract) == "" {
+			return fmt.Errorf("the task contract address is required")
+		}
+
+		cpRepoPath, ok := os.LookupEnv("CP_PATH")
+		if !ok {
+			return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+		}
+		if err := conf.InitConfig(cpRepoPath, true); err != nil {
+			return fmt.Errorf("load config file failed, error: %+v", err)
+		}
+
+		chain := cctx.String("chain")
+		if strings.TrimSpace(chain) == "" {
+			return fmt.Errorf("the chain is required")
+		}
+
+		chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
+		if err != nil {
+			return err
+		}
+		client, err := ethclient.Dial(chainRpc)
+		if err != nil {
+			return err
+		}
+		defer client.Close()
+
+		taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(taskContract))
+		if err != nil {
+			logs.GetLogger().Errorf("create ubi task client failed, error: %v", err)
+			return err
+		}
+
+		var taskInfo account.ECPTaskTaskInfo
+	loopTask:
+		for {
+			select {
+			case <-time.After(10 * time.Second):
+				logs.GetLogger().Errorf("get ubi task info, contract address: %s, timeout", taskContract)
+				break loopTask
+			default:
+				taskInfo, err = taskStub.GetTaskInfo()
+				if err != nil {
+					logs.GetLogger().Warnf("get ubi task info failed, contract address: %s, retrying", taskContract)
+					time.Sleep(time.Second)
+					continue
+				} else {
+					break loopTask
+				}
+			}
+		}
+
+		var lockFundTx, unlockFundTx, rewardTx, challengeTx, slashTx, reward string
+		if taskInfo.LockFundTx != "" {
+			lockFundTx = taskInfo.LockFundTx
+		} else {
+			lockFundTx = "-"
+		}
+		if taskInfo.UnlockFundTx != "" {
+			unlockFundTx = taskInfo.UnlockFundTx
+		} else {
+			unlockFundTx = "-"
+		}
+		if taskInfo.RewardTx != "" {
+			rewardTx = taskInfo.RewardTx
+		} else {
+			rewardTx = "-"
+		}
+		if taskInfo.ChallengeTx != "" {
+			challengeTx = taskInfo.ChallengeTx
+		} else {
+			challengeTx = "-"
+		}
+		if taskInfo.SlashTx != "" {
+			slashTx = taskInfo.SlashTx
+		} else {
+			slashTx = "-"
+		}
+
+		if taskInfo.RewardTx != "" {
+			receipt, err := client.TransactionReceipt(context.Background(), common.HexToHash(taskInfo.RewardTx))
+			if err == nil {
+				contractAbi, err := abi.JSON(strings.NewReader(swan_token.MainMetaData.ABI))
+				if err == nil {
+					for _, l := range receipt.Logs {
+						event := struct {
+							From  common.Address
+							To    common.Address
+							Value *big.Int
+						}{}
+						if err := contractAbi.UnpackIntoInterface(&event, "Transfer", l.Data); err != nil {
+							continue
+						}
+
+						if len(l.Topics) == 3 && l.Topics[0] == contractAbi.Events["Transfer"].ID {
+							balance := event.Value
+							if balance.String() == "0" {
+								reward = "0.000"
+							} else {
+								fbalance := new(big.Float)
+								fbalance.SetString(balance.String())
+								etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
+								reward = etherQuotient.Text('f', 3)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		var taskData [][]string
+		taskData = append(taskData, []string{"ZK Type:", models.TaskTypeStr(int(taskInfo.TaskType.Int64()))})
+		taskData = append(taskData, []string{"Resource Type:", models.GetSourceTypeStr(int(taskInfo.ResourceType.Int64()))})
+		taskData = append(taskData, []string{"Cp Account:", taskInfo.CpContractAddress.Hex()})
+		taskData = append(taskData, []string{"Task Status:", taskInfo.Status})
+		taskData = append(taskData, []string{"Deadline:", taskInfo.Deadline.String()})
+		taskData = append(taskData, []string{"Reward:", reward})
+		taskData = append(taskData, []string{"LockFund Tx Hash:", lockFundTx})
+		taskData = append(taskData, []string{"UnLockFund Tx Hash:", unlockFundTx})
+		taskData = append(taskData, []string{"Reward Tx Hash:", rewardTx})
+		taskData = append(taskData, []string{"Challenge Tx Hash:", challengeTx})
+		taskData = append(taskData, []string{"Slash Tx Hash:", slashTx})
+
+		header := []string{"Task Contract:", taskStub.ContractAddress}
+		NewVisualTable(header, taskData, []RowColor{}).Generate(false)
+		return nil
+
+	},
+}
+
 var initCmd = &cli.Command{
 	Name:  "init",
 	Usage: "Initialize a new cp",
@@ -418,7 +563,7 @@ var createAccountCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "task-types",
-			Usage: "Task types of CP (1:Fil-C2, 2:Aleo, 3:AI), separated by commas",
+			Usage: "Task types of CP (1:Fil-C2-512M, 2:Aleo, 3:AI, 4:Fil-C2-32G), separated by commas",
 		},
 	},
 	Action: func(cctx *cli.Context) error {
@@ -446,15 +591,15 @@ var createAccountCmd = &cli.Command{
 		if strings.Index(taskTypes, ",") > 0 {
 			for _, taskT := range strings.Split(taskTypes, ",") {
 				tt, _ := strconv.ParseUint(taskT, 10, 64)
-				if tt != 1 && tt != 2 && tt != 3 {
-					return fmt.Errorf("TaskTypes supports 1, 2, 3")
+				if tt != 1 && tt != 2 && tt != 3 && tt != 4 {
+					return fmt.Errorf("TaskTypes supports 1, 2, 3, 4")
 				}
 				taskTypesUint = append(taskTypesUint, uint8(tt))
 			}
 		} else {
 			tt, _ := strconv.ParseUint(taskTypes, 10, 64)
-			if tt != 1 && tt != 2 && tt != 3 {
-				return fmt.Errorf("TaskTypes supports 1, 2, 3")
+			if tt != 1 && tt != 2 && tt != 3 && tt != 4 {
+				return fmt.Errorf("TaskTypes supports 1, 2, 3, 4")
 			}
 		}
 

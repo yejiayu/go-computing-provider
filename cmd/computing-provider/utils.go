@@ -111,7 +111,7 @@ func createAccount(cpRepoPath, ownerAddress, beneficiaryAddress string, workerAd
 
 	fmt.Printf("Contract deployed! Address: %s\n", cpAccountAddress)
 	fmt.Printf("Transaction hash: %s\n", tx.Hash().Hex())
-	fmt.Println("computing-provider account successfully created, you can now start it with 'computing-provider run' or 'computing-provider ubi daemon'")
+	fmt.Println("computing-provider account is created successfully! You can now start it with 'computing-provider run' or 'computing-provider ubi daemon'")
 	return nil
 }
 

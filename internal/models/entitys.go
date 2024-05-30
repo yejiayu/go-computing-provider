@@ -11,6 +11,28 @@ const (
 )
 
 const (
+	Task_TYPE_FIL_C2_512 = iota + 1
+	Task_TYPE_ALEO
+	Task_TYPE_AI        = iota + 1
+	Task_TYPE_FIL_C2_32 = iota + 1
+)
+
+func TaskTypeStr(taskType int) string {
+	var typeStr string
+	switch taskType {
+	case Task_TYPE_FIL_C2_512:
+		typeStr = "Fil-C2-512M"
+	case Task_TYPE_ALEO:
+		typeStr = "Aleo"
+	case Task_TYPE_AI:
+		typeStr = "AI"
+	case Task_TYPE_FIL_C2_32:
+		typeStr = "Fil-C2-32G"
+	}
+	return typeStr
+}
+
+const (
 	ZK_TYPE_FIL_32  = "fil-c2-32G"
 	ZK_TYPE_FIL_512 = "fil-c2-512M"
 	ZK_TYPE_ALEO    = "aleo_proof"
@@ -54,21 +76,6 @@ const (
 	REWARD_SLASHED
 	REWARD_CLAIMED
 )
-
-func GetRewardStr(status int) string {
-	var statusStr string
-	switch status {
-	case REWARD_UNCLAIMED:
-		statusStr = "unclaimed"
-	case REWARD_CHALLENGED:
-		statusStr = "challenged"
-	case REWARD_SLASHED:
-		statusStr = "slashed"
-	case REWARD_CLAIMED:
-		statusStr = "claimed"
-	}
-	return statusStr
-}
 
 type TaskEntity struct {
 	Id           int64  `json:"id" gorm:"primaryKey;id"`

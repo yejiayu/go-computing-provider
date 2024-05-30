@@ -82,6 +82,7 @@ outerLoop:
 			err = fmt.Errorf("timeout, task_contract: %s", s.ContractAddress)
 			break outerLoop
 		default:
+			time.Sleep(time.Second)
 			txOptions, err := s.createTransactOpts(int64(s.nonceX))
 			if err != nil {
 				return "", fmt.Errorf("address: %s, task_stub create transaction opts failed, error: %+v", publicAddress, err)
@@ -99,8 +100,6 @@ outerLoop:
 			if transaction != nil {
 				submitProofTxHash = transaction.Hash().String()
 				break outerLoop
-			} else {
-				fmt.Printf("invoke task contract to submit proof, tx hash is nil,transaction: %v", transaction)
 			}
 		}
 	}

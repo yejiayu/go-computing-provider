@@ -43,7 +43,7 @@ func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, err
 		option(stub)
 	}
 
-	if stub.ContractAddress == "" {
+	if stub.ContractAddress == "" || len(strings.TrimSpace(stub.ContractAddress)) == 0 {
 		cpAccountAddress, err := GetCpAccountAddress()
 		if err != nil {
 			return nil, fmt.Errorf("get cp account contract address failed, error: %v", err)

@@ -184,12 +184,12 @@ func (s *Stub) createTransactOpts(amount *big.Int, isDeposit bool) (*bind.Transa
 func balanceToStr(balance *big.Int) string {
 	var ethValue string
 	if balance.String() == "0" {
-		ethValue = "0.0"
+		ethValue = "0.000"
 	} else {
 		fbalance := new(big.Float)
 		fbalance.SetString(balance.String())
 		etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
-		ethValue = etherQuotient.Text('f', 5)
+		ethValue = etherQuotient.Text('f', 3)
 	}
 	return ethValue
 }
