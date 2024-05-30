@@ -48,6 +48,7 @@ const (
 	ProofReadLogError       = 7002
 	ProofError              = 7003
 	UbiTaskParamError       = 8001
+	UbiTaskContractError    = 8004
 	UbiTaskReadLogError     = 8002
 	UbiTaskError            = 8003
 	CheckResourcesError     = 9001
@@ -61,8 +62,9 @@ var codeMsg = map[int]string{
 	SpaceSignatureError:    "Verify signature failed",
 	SpaceDeployStatusError: "Check deploy status failed",
 
-	ProofReadLogError: "An error occurred while read the log of proof",
-	ProofError:        "An error occurred while executing the calculation task",
+	ProofReadLogError:    "An error occurred while read the log of proof",
+	ProofError:           "An error occurred while executing the calculation task",
+	UbiTaskContractError: "Not found this task contract on the chain",
 
 	CheckResourcesError:      "An error occurred while check resources available",
 	CheckAvailableResources:  "No resources available",

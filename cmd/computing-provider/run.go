@@ -382,39 +382,14 @@ var taskInfoCmd = &cli.Command{
 			return fmt.Errorf("the chain is required")
 		}
 
-		chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
+		chainRpc, err := conf.GetRpcByName(chain)
 		if err != nil {
-			return err
-		}
-		client, err := ethclient.Dial(chainRpc)
-		if err != nil {
-			return err
-		}
-		defer client.Close()
-
-		taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(taskContract))
-		if err != nil {
-			logs.GetLogger().Errorf("create ubi task client failed, error: %v", err)
 			return err
 		}
 
-		var taskInfo account.ECPTaskTaskInfo
-	loopTask:
-		for {
-			select {
-			case <-time.After(10 * time.Second):
-				logs.GetLogger().Errorf("get ubi task info, contract address: %s, timeout", taskContract)
-				break loopTask
-			default:
-				taskInfo, err = taskStub.GetTaskInfo()
-				if err != nil {
-					logs.GetLogger().Warnf("get ubi task info failed, contract address: %s, retrying", taskContract)
-					time.Sleep(time.Second)
-					continue
-				} else {
-					break loopTask
-				}
-			}
+		taskInfo, err := computing.GetTaskInfoOnChain(chain, taskContract)
+		if err != nil {
+			return fmt.Errorf("get task info on the chain failed, error: %v", err)
 		}
 
 		var lockFundTx, unlockFundTx, rewardTx, challengeTx, slashTx, reward string
@@ -445,29 +420,33 @@ var taskInfoCmd = &cli.Command{
 		}
 
 		if taskInfo.RewardTx != "" {
-			receipt, err := client.TransactionReceipt(context.Background(), common.HexToHash(taskInfo.RewardTx))
+			client, err := ethclient.Dial(chainRpc)
 			if err == nil {
-				contractAbi, err := abi.JSON(strings.NewReader(swan_token.MainMetaData.ABI))
+				defer client.Close()
+				receipt, err := client.TransactionReceipt(context.Background(), common.HexToHash(taskInfo.RewardTx))
 				if err == nil {
-					for _, l := range receipt.Logs {
-						event := struct {
-							From  common.Address
-							To    common.Address
-							Value *big.Int
-						}{}
-						if err := contractAbi.UnpackIntoInterface(&event, "Transfer", l.Data); err != nil {
-							continue
-						}
+					contractAbi, err := abi.JSON(strings.NewReader(swan_token.MainMetaData.ABI))
+					if err == nil {
+						for _, l := range receipt.Logs {
+							event := struct {
+								From  common.Address
+								To    common.Address
+								Value *big.Int
+							}{}
+							if err := contractAbi.UnpackIntoInterface(&event, "Transfer", l.Data); err != nil {
+								continue
+							}
 
-						if len(l.Topics) == 3 && l.Topics[0] == contractAbi.Events["Transfer"].ID {
-							balance := event.Value
-							if balance.String() == "0" {
-								reward = "0.000"
-							} else {
-								fbalance := new(big.Float)
-								fbalance.SetString(balance.String())
-								etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
-								reward = etherQuotient.Text('f', 3)
+							if len(l.Topics) == 3 && l.Topics[0] == contractAbi.Events["Transfer"].ID {
+								balance := event.Value
+								if balance.String() == "0" {
+									reward = "0.000"
+								} else {
+									fbalance := new(big.Float)
+									fbalance.SetString(balance.String())
+									etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
+									reward = etherQuotient.Text('f', 3)
+								}
 							}
 						}
 					}
@@ -488,7 +467,7 @@ var taskInfoCmd = &cli.Command{
 		taskData = append(taskData, []string{"Challenge Tx Hash:", challengeTx})
 		taskData = append(taskData, []string{"Slash Tx Hash:", slashTx})
 
-		header := []string{"Task Contract:", taskStub.ContractAddress}
+		header := []string{"Task Contract:", taskContract}
 		NewVisualTable(header, taskData, []RowColor{}).Generate(false)
 		return nil
 

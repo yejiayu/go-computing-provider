@@ -35,8 +35,14 @@ var listCmd = &cli.Command{
 			Name:  "show-failed",
 			Usage: "show failed/failing ubi tasks",
 		},
+		&cli.BoolFlag{
+			Name:    "verbose",
+			Usage:   "--verbose",
+			Aliases: []string{"v"},
+		},
 	},
 	Action: func(cctx *cli.Context) error {
+		fullFlag := cctx.Bool("verbose")
 		cpRepoPath, _ := os.LookupEnv("CP_PATH")
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			return fmt.Errorf("load config file failed, error: %+v", err)
@@ -60,31 +66,62 @@ var listCmd = &cli.Command{
 			}
 		}
 
-		for i, task := range taskList {
-			createTime := time.Unix(task.CreateTime, 0).Format("2006-01-02 15:04:05")
-			taskData = append(taskData,
-				[]string{strconv.Itoa(int(task.Id)), models.GetSourceTypeStr(task.ResourceType), task.ZkType, task.TxHash, models.TaskStatusStr(task.Status),
-					fmt.Sprintf("%s", task.Reward), createTime})
+		if fullFlag {
+			for i, task := range taskList {
+				createTime := time.Unix(task.CreateTime, 0).Format("2006-01-02 15:04:05")
+				taskData = append(taskData,
+					[]string{strconv.Itoa(int(task.Id)), task.Contract, models.GetSourceTypeStr(task.ResourceType), task.ZkType, task.TxHash, models.TaskStatusStr(task.Status),
+						fmt.Sprintf("%s", task.Reward), createTime})
 
-			var rowColor []tablewriter.Colors
-			if task.Status == models.TASK_RECEIVED_STATUS {
-				rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgWhiteColor}}
-			} else if task.Status == models.TASK_RUNNING_STATUS {
-				rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgCyanColor}}
-			} else if task.Status == models.TASK_SUCCESS_STATUS {
-				rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
-			} else if task.Status == models.TASK_FAILED_STATUS {
-				rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgRedColor}}
+				var rowColor []tablewriter.Colors
+				if task.Status == models.TASK_RECEIVED_STATUS {
+					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgWhiteColor}}
+				} else if task.Status == models.TASK_RUNNING_STATUS {
+					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgCyanColor}}
+				} else if task.Status == models.TASK_SUCCESS_STATUS {
+					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
+				} else if task.Status == models.TASK_FAILED_STATUS {
+					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgRedColor}}
+				}
+
+				rowColorList = append(rowColorList, RowColor{
+					row:    i,
+					column: []int{5},
+					color:  rowColor,
+				})
 			}
 
-			rowColorList = append(rowColorList, RowColor{
-				row:    i,
-				column: []int{4},
-				color:  rowColor,
-			})
+		} else {
+			for i, task := range taskList {
+				createTime := time.Unix(task.CreateTime, 0).Format("2006-01-02 15:04:05")
+				contract := shortenAddress(task.Contract)
+				proofHash := shortenAddress(task.TxHash)
+
+				taskData = append(taskData,
+					[]string{strconv.Itoa(int(task.Id)), contract, models.GetSourceTypeStr(task.ResourceType), task.ZkType, proofHash, models.TaskStatusStr(task.Status),
+						fmt.Sprintf("%s", task.Reward), createTime})
+
+				var rowColor []tablewriter.Colors
+				if task.Status == models.TASK_RECEIVED_STATUS {
+					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgWhiteColor}}
+				} else if task.Status == models.TASK_RUNNING_STATUS {
+					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgCyanColor}}
+				} else if task.Status == models.TASK_SUCCESS_STATUS {
+					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgGreenColor}}
+				} else if task.Status == models.TASK_FAILED_STATUS {
+					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgRedColor}}
+				}
+
+				rowColorList = append(rowColorList, RowColor{
+					row:    i,
+					column: []int{5},
+					color:  rowColor,
+				})
+			}
+
 		}
 
-		header := []string{"TASK ID", "TASK TYPE", "ZK TYPE", "PROOF HASH", "STATUS", "REWARD", "CREATE TIME"}
+		header := []string{"TASK ID", "Task Contract", "TASK TYPE", "ZK TYPE", "PROOF HASH", "STATUS", "REWARD", "CREATE TIME"}
 		NewVisualTable(header, taskData, rowColorList).Generate(true)
 
 		return nil
@@ -148,4 +185,11 @@ var daemonCmd = &cli.Command{
 
 		return nil
 	},
+}
+
+func shortenAddress(address string) string {
+	if len(address) <= 12 {
+		return address
+	}
+	return address[:7] + "...." + address[len(address)-7:]
 }

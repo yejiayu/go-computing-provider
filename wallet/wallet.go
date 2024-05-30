@@ -369,10 +369,20 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 			}
 		}
 	} else {
+
+		cpStub, err := account.NewAccountStub(client, account.WithContractAddress(cpAccountAddress))
+		if err == nil {
+			return "", err
+		}
+		if _, err = cpStub.GetCpAccountInfo(); err != nil {
+			return "", fmt.Errorf("cp account: %s does not exist on the chain", cpAccountAddress)
+		}
+
 		zkCollateral, err := account.NewCollateralStub(client, account.WithPrivateKey(ki.PrivateKey))
 		if err != nil {
 			return "", err
 		}
+
 		collateralTxHash, err := zkCollateral.Deposit(cpAccountAddress, sendAmount)
 		if err != nil {
 			return "", err

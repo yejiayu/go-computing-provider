@@ -448,6 +448,11 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		return
 	}
 
+	if _, err := GetTaskInfoOnChain(conf.DefaultRpc, ubiTask.ContractAddr); err != nil {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskContractError))
+		return
+	}
+
 	cpRepoPath, _ := os.LookupEnv("CP_PATH")
 	nodeID := GetNodeId(cpRepoPath)
 
@@ -833,6 +838,48 @@ loopTask:
 		logs.GetLogger().Errorf("submitUBIProofTx failed, error: %v", err)
 	}
 	return NewTaskService().SaveTaskEntity(task)
+}
+
+func GetTaskInfoOnChain(rpcName string, taskContract string) (account.ECPTaskTaskInfo, error) {
+	var taskInfo account.ECPTaskTaskInfo
+
+	chainRpc, err := conf.GetRpcByName(rpcName)
+	if err != nil {
+		return taskInfo, err
+	}
+	client, err := ethclient.Dial(chainRpc)
+	if err != nil {
+		return taskInfo, err
+	}
+	defer client.Close()
+
+	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(taskContract))
+	if err != nil {
+		logs.GetLogger().Errorf("create ubi task client failed, error: %v", err)
+		return taskInfo, err
+	}
+
+loopTask:
+	for {
+		select {
+		case <-time.After(10 * time.Second):
+			logs.GetLogger().Errorf("get ubi task info, contract address: %s, timeout", taskContract)
+			break loopTask
+		default:
+			taskInfo, err = taskStub.GetTaskInfo()
+			if err != nil {
+				logs.GetLogger().Warnf("get ubi task info failed, contract address: %s, retrying", taskContract)
+				time.Sleep(time.Second)
+				continue
+			} else {
+				break loopTask
+			}
+		}
+	}
+	if taskInfo.InputParam != "" {
+		return taskInfo, nil
+	}
+	return taskInfo, err
 }
 
 func reportClusterResourceForDocker() {
