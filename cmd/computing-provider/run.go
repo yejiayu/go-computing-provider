@@ -29,7 +29,7 @@ var runCmd = &cli.Command{
 	Name:  "run",
 	Usage: "Start a cp process",
 	Action: func(cctx *cli.Context) error {
-		logs.GetLogger().Info("Start in computing provider mode.")
+		logs.GetLogger().Info("Start a computing provider client.")
 
 		cpRepoPath, ok := os.LookupEnv("CP_PATH")
 		if !ok {

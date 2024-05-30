@@ -360,16 +360,16 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		}
 		defer podLogs.Close()
 
-		ubiLogFileName := filepath.Join(cpRepoPath, "ubi.log")
+		ubiLogFileName := filepath.Join(cpRepoPath, "ubi-fcp.log")
 		logFile, err := os.OpenFile(ubiLogFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			logs.GetLogger().Errorf("opening ubi log file failed, error: %v", err)
+			logs.GetLogger().Errorf("opening ubi-fcp log file failed, error: %v", err)
 			return
 		}
 		defer logFile.Close()
 
 		if _, err = io.Copy(logFile, podLogs); err != nil {
-			logs.GetLogger().Errorf("write ubi log to file failed, error: %v", err)
+			logs.GetLogger().Errorf("write ubi-fcp log to file failed, error: %v", err)
 			return
 		}
 	}()
@@ -609,16 +609,16 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		}
 		defer containerLogStream.Close()
 
-		ubiLogFileName := filepath.Join(cpRepoPath, "ubi.log")
+		ubiLogFileName := filepath.Join(cpRepoPath, "ubi-ecp.log")
 		logFile, err := os.OpenFile(ubiLogFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			logs.GetLogger().Errorf("opening ubi log file failed, error: %v", err)
+			logs.GetLogger().Errorf("opening ubi-ecp log file failed, error: %v", err)
 			return
 		}
 		defer logFile.Close()
 
 		if _, err = io.Copy(logFile, containerLogStream); err != nil {
-			logs.GetLogger().Errorf("write ubi log to file failed, error: %v", err)
+			logs.GetLogger().Errorf("write ubi-ecp log to file failed, error: %v", err)
 			return
 		}
 	}()
@@ -738,7 +738,10 @@ func GetCpResource(c *gin.Context) {
 
 	var nodeResource models.NodeResource
 	if err := json.Unmarshal([]byte(containerLogStr), &nodeResource); err != nil {
-		logs.GetLogger().Error("hardware info parse to json failed, error: %+v", err)
+		logs.GetLogger().Warnf("hardware info parse to json failed, restarting resource-exporter")
+		if err = RestartResourceExporter(); err != nil {
+			logs.GetLogger().Errorf("restartResourceExporter failed, error: %v", err)
+		}
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.JsonError))
 		return
 	}
@@ -789,13 +792,32 @@ func submitUBIProof(c2Proof models.UbiC2Proof, task *models.TaskEntity) error {
 		return err
 	}
 
-	taskInfo, err := taskStub.GetTaskInfo()
-	if err != nil {
-		logs.GetLogger().Errorf("get ubi task info failed, contract address: %s, error: %v", task.Contract, err)
-		return err
+	var taskInfo account.ECPTaskTaskInfo
+
+loopTask:
+	for {
+		select {
+		case <-time.After(10 * time.Second):
+			logs.GetLogger().Errorf("get ubi task info, contract address: %s, timeout", task.Contract)
+			break loopTask
+		default:
+			taskInfo, err = taskStub.GetTaskInfo()
+			if err != nil {
+				logs.GetLogger().Warnf("get ubi task info failed, contract address: %s, retrying", task.Contract)
+				time.Sleep(time.Second)
+				continue
+			} else {
+				break loopTask
+			}
+		}
 	}
 
 	deadlineTime := task.CreateTime + taskInfo.Deadline.Int64()*2 - time.Now().Unix()
+	if deadlineTime < 0 {
+		logs.GetLogger().Warnf(", contract address: %s, retrying", task.Contract)
+		task.Status = models.TASK_FAILED_STATUS
+		return NewTaskService().SaveTaskEntity(task)
+	}
 	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.Proof, deadlineTime)
 	if err != nil {
 		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v", err)
@@ -818,42 +840,16 @@ func reportClusterResourceForDocker() {
 	containerLogStr, err := dockerService.ContainerLogs("resource-exporter")
 	if err != nil {
 		logs.GetLogger().Errorf("collect host hardware resource failed, error: %v", err)
-		resourceExporterContainerName := "resource-exporter"
-		err = dockerService.RemoveImageByName(resourceExporterContainerName)
-		if err != nil {
-			logs.GetLogger().Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
-			return
-		}
-
-		dockerService.PullImage(build.UBIResourceExporterDockerImage)
-		if err = dockerService.ContainerCreateAndStart(&container.Config{
-			Image:        build.UBIResourceExporterDockerImage,
-			AttachStdout: true,
-			AttachStderr: true,
-			Tty:          true,
-		}, nil, resourceExporterContainerName); err != nil {
-			logs.GetLogger().Errorf("create resource-exporter container failed, error: %v", err)
+		if err = RestartResourceExporter(); err != nil {
+			logs.GetLogger().Errorf("restartResourceExporter failed, error: %v", err)
 		}
 		return
 	}
 
 	var nodeResource models.NodeResource
 	if err := json.Unmarshal([]byte(containerLogStr), &nodeResource); err != nil {
-		logs.GetLogger().Warnf("hardware info parse to json failed, restarting resource-exporter")
-		resourceExporterContainerName := "resource-exporter"
-		err = NewDockerService().RemoveImageByName(resourceExporterContainerName)
-		if err != nil {
-			logs.GetLogger().Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
-			return
-		}
-		dockerService.PullImage(build.UBIResourceExporterDockerImage)
-		if err = dockerService.ContainerCreateAndStart(&container.Config{
-			Image:        build.UBIResourceExporterDockerImage,
-			AttachStdout: true,
-			AttachStderr: true,
-			Tty:          true,
-		}, nil, resourceExporterContainerName); err != nil {
-			logs.GetLogger().Errorf("create resource-exporter container failed, error: %v", err)
+		if err = RestartResourceExporter(); err != nil {
+			logs.GetLogger().Errorf("restartResourceExporter failed, error: %v", err)
 		}
 		return
 	}
@@ -979,6 +975,32 @@ func SyncCpAccountInfo() {
 		logs.GetLogger().Errorf("save cp info to db failed, error: %v", err)
 		return
 	}
+}
+
+func RestartResourceExporter() error {
+	logs.GetLogger().Warnf("hardware info parse to json failed, restarting resource-exporter")
+
+	resourceExporterContainerName := "resource-exporter"
+	dockerService := NewDockerService()
+	err := dockerService.RemoveImageByName(resourceExporterContainerName)
+	if err != nil {
+		return fmt.Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
+	}
+	err = dockerService.PullImage(build.UBIResourceExporterDockerImage)
+	if err != nil {
+		return fmt.Errorf("pull %s image failed, error: %v", build.UBIResourceExporterDockerImage, err)
+	}
+
+	err = dockerService.ContainerCreateAndStart(&container.Config{
+		Image:        build.UBIResourceExporterDockerImage,
+		AttachStdout: true,
+		AttachStderr: true,
+		Tty:          true,
+	}, nil, resourceExporterContainerName)
+	if err != nil {
+		return fmt.Errorf("create resource-exporter container failed, error: %v", err)
+	}
+	return nil
 }
 
 func getReward(task *models.TaskEntity) error {

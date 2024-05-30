@@ -35,11 +35,13 @@ func CreateErrorResponse(code int, errMsg ...string) BasicResponse {
 
 const (
 	SuccessCode = 200
-	JsonError   = 400
 	ServerError = 500
 
-	BadParamError       = 4040
-	SpaceSignatureError = 4041
+	JsonError                = 4000
+	BadParamError            = 4001
+	SpaceSignatureError      = 4002
+	SpaceCheckResourcesError = 4003
+	SpaceCheckWhiteListError = 4004
 
 	SpaceDeployStatusError  = 6002
 	ProofParamError         = 7001
@@ -50,7 +52,6 @@ const (
 	UbiTaskError            = 8003
 	CheckResourcesError     = 9001
 	CheckAvailableResources = 9002
-	CheckWhiteListError     = 9003
 )
 
 var codeMsg = map[int]string{
@@ -63,7 +64,7 @@ var codeMsg = map[int]string{
 	ProofReadLogError: "An error occurred while read the log of proof",
 	ProofError:        "An error occurred while executing the calculation task",
 
-	CheckResourcesError:     "An error occurred while check resources available",
-	CheckAvailableResources: "No resources available",
-	CheckWhiteListError:     "This cp does not accept tasks from wallet addresses outside the whitelist",
+	CheckResourcesError:      "An error occurred while check resources available",
+	CheckAvailableResources:  "No resources available",
+	SpaceCheckWhiteListError: "This cp does not accept tasks from wallet addresses outside the whitelist",
 }
