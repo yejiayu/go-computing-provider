@@ -147,7 +147,7 @@ func (task *CronTask) watchExpiredTask() {
 		var deleteSpaceIds []string
 		for _, job := range jobList {
 			namespace := constants.K8S_NAMESPACE_NAME_PREFIX + strings.ToLower(job.WalletAddress)
-			if len(strings.TrimSpace(job.TaskUuid)) == 0 {
+			if len(strings.TrimSpace(job.TaskUuid)) != 0 {
 				taskStatus, err := checkTaskStatusByHub(job.TaskUuid, task.nodeId)
 				if err != nil {
 					logs.GetLogger().Errorf("Failed check task status by Orchestrator service, error: %+v", err)
