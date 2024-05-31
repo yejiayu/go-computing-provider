@@ -489,7 +489,7 @@ var initCmd = &cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:  "multi-address",
-			Usage: "The multiAddress for libp2p(public ip)",
+			Usage: "The multiAddress for libp2p(example: /ip4/<PUBLIC_IP>/tcp/<PORT>)",
 		},
 		&cli.StringFlag{
 			Name:  "node-name",
