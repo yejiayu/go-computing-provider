@@ -419,11 +419,13 @@ func GetJobStatus(c *gin.Context) {
 	jobUuId := c.Param("job_uuid")
 	if jobUuId == "" {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: job_uuid"))
+		return
 	}
 
 	signatureMsg := c.Query("signature")
 	if signatureMsg == "" {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: signature"))
+		return
 	}
 
 	cpRepoPath, _ := os.LookupEnv("CP_PATH")
@@ -444,6 +446,7 @@ func GetJobStatus(c *gin.Context) {
 	jobEntity, err := NewJobService().GetJobEntityByJobUuid(jobUuId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.FoundJobEntityError))
+		return
 	}
 
 	var jobResult struct {
