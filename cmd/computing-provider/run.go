@@ -571,6 +571,18 @@ var createAccountCmd = &cli.Command{
 			beneficiaryAddress = ownerAddress
 		}
 
+		if !isValidWalletAddress(ownerAddress) {
+			return fmt.Errorf("the ownerAddress is invalid wallet address")
+		}
+
+		if !isValidWalletAddress(workerAddress) {
+			return fmt.Errorf("the workerAddress is invalid wallet address")
+		}
+
+		if !isValidWalletAddress(beneficiaryAddress) {
+			return fmt.Errorf("the beneficiaryAddress is invalid wallet address")
+		}
+
 		taskTypes := strings.TrimSpace(cctx.String("task-types"))
 		if strings.TrimSpace(taskTypes) == "" {
 			return fmt.Errorf("taskTypes is not empty")

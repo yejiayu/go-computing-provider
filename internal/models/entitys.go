@@ -33,12 +33,6 @@ func TaskTypeStr(taskType int) string {
 }
 
 const (
-	ZK_TYPE_FIL_32  = "fil-c2-32G"
-	ZK_TYPE_FIL_512 = "fil-c2-512M"
-	ZK_TYPE_ALEO    = "aleo_proof"
-)
-
-const (
 	TASK_RECEIVED_STATUS = iota + 1
 	TASK_RUNNING_STATUS
 	TASK_SUCCESS_STATUS
