@@ -639,7 +639,7 @@ var changeMultiAddressCmd = &cli.Command{
 		defer client.Close()
 
 		newMultiAddress := []string{multiAddr}
-		submitUBIProofTx, err := cpStub.ChangeMultiAddress(newMultiAddress)
+		changeMultiAddressTx, err := cpStub.ChangeMultiAddress(newMultiAddress)
 		if err != nil {
 			return fmt.Errorf("changeMultiAddress tx failed, error: %v", err)
 		}
@@ -648,8 +648,9 @@ var changeMultiAddressCmd = &cli.Command{
 		if err = computing.NewCpInfoService().UpdateCpInfoByNodeId(&models.CpInfoEntity{NodeId: nodeId, MultiAddresses: newMultiAddress}); err != nil {
 			return fmt.Errorf("update multi_addresses of cp to db failed, error: %v", err)
 		}
+		fmt.Printf("changeMultiAddress Transaction hash: %s\n", changeMultiAddressTx)
+		fmt.Printf("Multi-Address is changed successfully! please manually update the `MultiAddress` in the config.toml file \n")
 
-		fmt.Printf("changeMultiAddress Transaction hash: %s\n", submitUBIProofTx)
 		return nil
 	},
 }

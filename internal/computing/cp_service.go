@@ -422,11 +422,13 @@ func GetJobStatus(c *gin.Context) {
 	}
 
 	var jobResult struct {
-		Uuid   string
-		Status string
+		Uuid      string
+		Status    string
+		ResultUrl string
 	}
 	jobResult.Uuid = jobEntity.JobUuid
 	jobResult.Status = models.GetDeployStatusStr(jobEntity.DeployStatus)
+	jobResult.ResultUrl = jobEntity.ResultUrl
 
 	c.JSON(http.StatusOK, util.CreateSuccessResponse(jobResult))
 }
