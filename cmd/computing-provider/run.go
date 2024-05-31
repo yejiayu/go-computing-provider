@@ -23,6 +23,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"math/big"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -619,6 +620,10 @@ var changeMultiAddressCmd = &cli.Command{
 			return fmt.Errorf("ownerAddress is required")
 		}
 
+		if !isValidWalletAddress(ownerAddress) {
+			return fmt.Errorf("the ownerAddress is invalid wallet address")
+		}
+
 		multiAddr := cctx.Args().Get(0)
 		if strings.TrimSpace(multiAddr) == "" {
 			return fmt.Errorf("multiAddress is required")
@@ -658,7 +663,7 @@ var changeMultiAddressCmd = &cli.Command{
 var changeOwnerAddressCmd = &cli.Command{
 	Name:      "changeOwnerAddress",
 	Usage:     "Update OwnerAddress of CP",
-	ArgsUsage: "[newOwnerAddress]",
+	ArgsUsage: "[the target newOwnerAddress]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:     "ownerAddress",
@@ -672,9 +677,17 @@ var changeOwnerAddressCmd = &cli.Command{
 			return fmt.Errorf("ownerAddress is required")
 		}
 
+		if !isValidWalletAddress(ownerAddress) {
+			return fmt.Errorf("the ownerAddress is invalid wallet address")
+		}
+
 		newOwnerAddr := cctx.Args().Get(0)
 		if strings.TrimSpace(newOwnerAddr) == "" {
-			return fmt.Errorf("a new owner address is required")
+			return fmt.Errorf("the target newOwnerAddress is required")
+		}
+
+		if !isValidWalletAddress(ownerAddress) {
+			return fmt.Errorf("the target newOwnerAddress is invalid wallet address")
 		}
 
 		cpRepoPath, ok := os.LookupEnv("CP_PATH")
@@ -725,9 +738,17 @@ var changeBeneficiaryAddressCmd = &cli.Command{
 			return fmt.Errorf("ownerAddress is not empty")
 		}
 
+		if !isValidWalletAddress(ownerAddress) {
+			return fmt.Errorf("the ownerAddress is invalid wallet address")
+		}
+
 		beneficiaryAddress := cctx.Args().Get(0)
 		if strings.TrimSpace(beneficiaryAddress) == "" {
-			return fmt.Errorf("failed to parse target address: %s", beneficiaryAddress)
+			return fmt.Errorf("failed to parse target beneficiary address: %s", beneficiaryAddress)
+		}
+
+		if !isValidWalletAddress(ownerAddress) {
+			return fmt.Errorf("the target beneficiary address is invalid wallet address")
 		}
 
 		cpRepoPath, ok := os.LookupEnv("CP_PATH")
@@ -778,13 +799,17 @@ var changeWorkerAddressCmd = &cli.Command{
 			return fmt.Errorf("ownerAddress is not empty")
 		}
 
-		if cctx.NArg() != 1 {
-			return fmt.Errorf(" Requires a beneficiaryAddress")
+		if !isValidWalletAddress(ownerAddress) {
+			return fmt.Errorf("the ownerAddress is invalid wallet address")
 		}
 
 		workerAddress := cctx.Args().Get(0)
 		if strings.TrimSpace(workerAddress) == "" {
-			return fmt.Errorf("failed to parse target address: %s", workerAddress)
+			return fmt.Errorf("failed to parse target worker address: %s", workerAddress)
+		}
+
+		if !isValidWalletAddress(workerAddress) {
+			return fmt.Errorf("the target worker address is invalid wallet address")
 		}
 
 		cpRepoPath, ok := os.LookupEnv("CP_PATH")
@@ -833,6 +858,10 @@ var changeTaskTypesCmd = &cli.Command{
 		ownerAddress := cctx.String("ownerAddress")
 		if strings.TrimSpace(ownerAddress) == "" {
 			return fmt.Errorf("ownerAddress is not empty")
+		}
+
+		if !isValidWalletAddress(ownerAddress) {
+			return fmt.Errorf("the ownerAddress is invalid wallet address")
 		}
 
 		taskTypes := strings.TrimSpace(cctx.Args().Get(0))
@@ -885,4 +914,9 @@ var changeTaskTypesCmd = &cli.Command{
 		fmt.Printf("changeTaskTypes Transaction hash: %s \n", changeTaskTypesTx)
 		return nil
 	},
+}
+
+func isValidWalletAddress(address string) bool {
+	re := regexp.MustCompile(`^0x[0-9a-fA-F]{40}$`)
+	return re.MatchString(address)
 }

@@ -12,9 +12,9 @@ const (
 
 const (
 	Task_TYPE_FIL_C2_512 = iota + 1
-	Task_TYPE_FIL_C2_32
 	Task_TYPE_ALEO
 	Task_TYPE_AI
+	Task_TYPE_FIL_C2_32
 )
 
 func TaskTypeStr(taskType int) string {
