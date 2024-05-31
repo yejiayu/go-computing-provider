@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/filswan/go-swan-lib/logs"
 	"github.com/swanchain/go-computing-provider/wallet/contract/swan_token"
 	"math/big"
 	"strings"
@@ -63,12 +64,7 @@ func NewTaskStub(client *ethclient.Client, options ...TaskOption) (*TaskStub, er
 }
 
 func (s *TaskStub) SubmitUBIProof(proof string, timeOut int64) (string, error) {
-	publicAddress, err := s.privateKeyToPublicKey()
-	if err != nil {
-		return "", err
-	}
-
-	err = s.getNonce()
+	err := s.getNonce()
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +81,7 @@ outerLoop:
 			time.Sleep(time.Second)
 			txOptions, err := s.createTransactOpts(int64(s.nonceX))
 			if err != nil {
-				return "", fmt.Errorf("address: %s, task_stub create transaction opts failed, error: %+v", publicAddress, err)
+				return "", fmt.Errorf("task contract: %s, task_stub create transaction opts failed, error: %+v", s.ContractAddress, err)
 			}
 			transaction, err := s.task.SubmitProof(txOptions, proof)
 			if err != nil {
@@ -94,12 +90,15 @@ outerLoop:
 				} else if strings.Contains(err.Error(), "next nonce") {
 					return "", s.getNonce()
 				} else {
+					logs.GetLogger().Warnf("task contract: %s SubmitUBIProof failed, error: %v", s.ContractAddress, err)
 					return "", err
 				}
 			}
 			if transaction != nil {
 				submitProofTxHash = transaction.Hash().String()
 				break outerLoop
+			} else {
+				logs.GetLogger().Warnf("task contract: %s submitProofTxHash is nil, retrying", s.ContractAddress)
 			}
 		}
 	}

@@ -763,37 +763,37 @@ func GetCpResource(c *gin.Context) {
 func submitUBIProof(c2Proof models.UbiC2Proof, task *models.TaskEntity) error {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
-		logs.GetLogger().Errorf("get rpc url failed, error: %v", err)
+		logs.GetLogger().Errorf("get rpc url failed, taskId: %s, error: %v", c2Proof.TaskId, err)
 		return err
 	}
 	client, err := ethclient.Dial(chainUrl)
 	if err != nil {
-		logs.GetLogger().Errorf("dial rpc connect failed, error: %v", err)
+		logs.GetLogger().Errorf("dial rpc connect failed, taskId: %s, error: %v", c2Proof.TaskId, err)
 		return err
 	}
 	client.Close()
 
 	localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
 	if err != nil {
-		logs.GetLogger().Errorf("setup wallet failed, error: %v", err)
+		logs.GetLogger().Errorf("setup wallet failed, taskId: %s,error: %v", c2Proof.TaskId, err)
 		return err
 	}
 
 	_, workerAddress, err := GetOwnerAddressAndWorkerAddress()
 	if err != nil {
-		logs.GetLogger().Errorf("get worker address failed, error: %v", err)
+		logs.GetLogger().Errorf("get worker address failed, taskId: %s,error: %v", c2Proof.TaskId, err)
 		return err
 	}
 
 	ki, err := localWallet.FindKey(workerAddress)
 	if err != nil || ki == nil {
-		logs.GetLogger().Errorf("the address: %s, private key %v", workerAddress, wallet.ErrKeyInfoNotFound)
+		logs.GetLogger().Errorf("taskId: %s,the address: %s, private key %v", c2Proof.TaskId, workerAddress, wallet.ErrKeyInfoNotFound)
 		return err
 	}
 
 	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(task.Contract), account.WithTaskPrivateKey(ki.PrivateKey))
 	if err != nil {
-		logs.GetLogger().Errorf("create ubi task client failed, error: %v", err)
+		logs.GetLogger().Errorf("create ubi task client failed,  taskId: %s, contract: %s, error: %v", c2Proof.TaskId, task.Contract, err)
 		return err
 	}
 
@@ -803,12 +803,12 @@ loopTask:
 	for {
 		select {
 		case <-time.After(10 * time.Second):
-			logs.GetLogger().Errorf("get ubi task info, contract address: %s, timeout", task.Contract)
+			logs.GetLogger().Errorf("get ubi task info, taskId: %s, contract: %s, timeout", c2Proof.TaskId, task.Contract)
 			break loopTask
 		default:
 			taskInfo, err = taskStub.GetTaskInfo()
 			if err != nil {
-				logs.GetLogger().Warnf("get ubi task info failed, contract address: %s, retrying", task.Contract)
+				logs.GetLogger().Warnf("get ubi task info failed, taskId: %s, retrying, msg: %s", task.Contract, err.Error())
 				time.Sleep(time.Second)
 				continue
 			} else {
@@ -819,7 +819,7 @@ loopTask:
 
 	deadlineTime := task.CreateTime + taskInfo.Deadline.Int64()*2 - time.Now().Unix()
 	if deadlineTime < 0 {
-		logs.GetLogger().Warnf(", contract address: %s, retrying", task.Contract)
+		logs.GetLogger().Warnf("taskId: %s, contract address: %s, retrying", c2Proof.TaskId, task.Contract)
 		task.Status = models.TASK_FAILED_STATUS
 		return NewTaskService().SaveTaskEntity(task)
 	}
