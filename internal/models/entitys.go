@@ -90,7 +90,7 @@ type TaskEntity struct {
 	SlashTx      string `json:"slash_tx"`
 	Status       int    `json:"status" gorm:"status"`
 	RewardStatus int    `json:"reward_status" gorm:"status"` // 0: unclaimed; 1: challenged; 2: slashed; 3: claimed
-	Reward       string `json:"reward" gorm:"column:reward; default:0"`
+	Reward       string `json:"reward" gorm:"column:reward; default:0.000"`
 	CreateTime   int64  `json:"create_time" gorm:"create_time"`
 	EndTime      int64  `json:"end_time" gorm:"end_time"`
 	Error        string `json:"error" gorm:"error"`

@@ -121,12 +121,13 @@ var infoCmd = &cli.Command{
 		var ecpCollateralBalance, ecpEscrowBalance, ownerBalance, workerBalance string
 		var fcpCollateralBalance, fcpEscrowBalance string
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
+		var cpAccount models.Account
 
 		cpStub, err := account.NewAccountStub(client)
 		if err == nil {
-			cpAccount, err := cpStub.GetCpAccountInfo()
+			cpAccount, err = cpStub.GetCpAccountInfo()
 			if err != nil {
-				err = fmt.Errorf("get cpAccount failed, error: %v", err)
+				err = fmt.Errorf("get cpAccount info on the chain failed, error: %v", err)
 			}
 
 			for _, taskType := range cpAccount.TaskTypes {
@@ -210,6 +211,9 @@ var infoCmd = &cli.Command{
 		}
 		header := []string{"CP Account Info:"}
 		NewVisualTable(header, taskData, rowColorList).Generate(false)
+		if err != nil {
+			return err
+		}
 		if localNodeId != chainNodeId {
 			fmt.Printf("NodeId mismatch, local node id: %s, chain node id: %s.\n", localNodeId, chainNodeId)
 		}
