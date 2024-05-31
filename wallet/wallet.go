@@ -600,6 +600,6 @@ func GetFrozenCollateral(walletAddress string) (string, error) {
 	fbalance := new(big.Float)
 	fbalance.SetString(frozenResp.Data.FrozenCollateral.String())
 	etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
-	ethValue := etherQuotient.Text('f', 5)
+	ethValue := etherQuotient.Text('f', 3)
 	return ethValue, nil
 }
