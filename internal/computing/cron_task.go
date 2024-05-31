@@ -343,7 +343,7 @@ func (task *CronTask) updateUbiTaskReward() {
 
 		taskList, err := NewTaskService().GetTaskListNoReward()
 		if err != nil {
-			logs.GetLogger().Errorf("Failed get task list, error: %+v", err)
+			logs.GetLogger().Errorf("get task list failed, error: %+v", err)
 			return
 		}
 
@@ -351,7 +351,7 @@ func (task *CronTask) updateUbiTaskReward() {
 			ubiTask := entity
 			err = getReward(ubiTask)
 			if err != nil {
-				logs.GetLogger().Errorf("get ubi task reward failed, taskId: %d, error: %v", ubiTask.Id, err)
+				logs.GetLogger().Errorf("taskId: %d, %v", ubiTask.Id, err)
 				continue
 			}
 		}

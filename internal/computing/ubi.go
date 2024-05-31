@@ -959,7 +959,7 @@ func CronTaskForEcp() {
 		for range ticker.C {
 			taskList, err := NewTaskService().GetTaskListNoReward()
 			if err != nil {
-				logs.GetLogger().Errorf("Failed get task list, error: %+v", err)
+				logs.GetLogger().Errorf("get task list failed, error: %+v", err)
 				return
 			}
 
@@ -967,7 +967,7 @@ func CronTaskForEcp() {
 				ubiTask := entity
 				err = getReward(ubiTask)
 				if err != nil {
-					logs.GetLogger().Errorf("get ubi task reward failed, taskId: %d, error: %v", ubiTask.Id, err)
+					logs.GetLogger().Errorf("taskId: %d, %v", ubiTask.Id, err)
 					continue
 				}
 			}
@@ -1053,26 +1053,23 @@ func RestartResourceExporter() error {
 func getReward(task *models.TaskEntity) error {
 	chainUrl, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
-		logs.GetLogger().Errorf("get rpc url failed, error: %v", err)
-		return err
+		return fmt.Errorf("get rpc url failed, error: %s", err.Error())
 	}
 
 	client, err := ethclient.Dial(chainUrl)
 	if err != nil {
-		logs.GetLogger().Errorf("dial rpc connect failed, error: %v", err)
-		return err
+		return fmt.Errorf("dial rpc connect failed, error: %s", err.Error())
 	}
 	defer client.Close()
 
 	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(task.Contract))
 	if err != nil {
-		logs.GetLogger().Errorf("create ubi task client failed, error: %v", err)
-		return err
+		return fmt.Errorf("create ubi task client failed, error: %s", err.Error())
 	}
 
 	status, rewardTx, challengeTx, slashTx, reward, err := taskStub.GetReward()
 	if err != nil {
-		return err
+		return fmt.Errorf("use task contract to get reward failed, error: %s", err.Error())
 	}
 	if status != models.REWARD_UNCLAIMED {
 		task.Reward = reward
@@ -1082,6 +1079,5 @@ func getReward(task *models.TaskEntity) error {
 		task.SlashTx = slashTx
 		return NewTaskService().SaveTaskEntity(task)
 	}
-
 	return nil
 }
