@@ -167,7 +167,7 @@ type CpInfoEntity struct {
 	CreateAt           string   `json:"create_at" gorm:"create_at"`
 	UpdateAt           string   `json:"update_at" gorm:"update_at"`
 	MultiAddresses     []string `json:"multi_addresses" gorm:"-"`
-	TaskTypes          []uint8  `json:"task_types" gorm:"-"` // 1: Fil-C2 2: Aleo 3: AI (Space)
+	TaskTypes          []uint8  `json:"task_types" gorm:"-"` // 1:Fil-C2-512M, 2:Aleo, 3: AI, 4:Fil-C2-32G
 
 }
 

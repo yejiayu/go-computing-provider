@@ -132,14 +132,7 @@ var infoCmd = &cli.Command{
 			}
 
 			for _, taskType := range cpAccount.TaskTypes {
-				switch taskType {
-				case 1:
-					taskTypes += "Fil-C2,"
-				case 2:
-					taskTypes += "Aleo,"
-				case 3:
-					taskTypes += "AI,"
-				}
+				taskTypes += models.TaskTypeStr(int(taskType)) + ","
 			}
 			if taskTypes != "" {
 				taskTypes = taskTypes[:len(taskTypes)-1]
@@ -278,14 +271,7 @@ var stateInfoCmd = &cli.Command{
 			}
 
 			for _, taskType := range cpAccount.TaskTypes {
-				switch taskType {
-				case 1:
-					taskTypes += "Fil-C2,"
-				case 2:
-					taskTypes += "Aleo,"
-				case 3:
-					taskTypes += "AI,"
-				}
+				taskTypes += models.TaskTypeStr(int(taskType)) + ","
 			}
 			if taskTypes != "" {
 				taskTypes = taskTypes[:len(taskTypes)-1]
@@ -856,7 +842,7 @@ var changeWorkerAddressCmd = &cli.Command{
 
 var changeTaskTypesCmd = &cli.Command{
 	Name:      "changeTaskTypes",
-	Usage:     "Update taskTypes of CP (1:Fil-C2, 2:Aleo, 3: AI), separated by commas",
+	Usage:     "Update taskTypes of CP (1:Fil-C2-512M, 2:Aleo, 3: AI, 4:Fil-C2-32G), separated by commas",
 	ArgsUsage: "[TaskTypes]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -885,15 +871,15 @@ var changeTaskTypesCmd = &cli.Command{
 		if strings.Index(taskTypes, ",") > 0 {
 			for _, taskT := range strings.Split(taskTypes, ",") {
 				tt, _ := strconv.ParseUint(taskT, 10, 64)
-				if tt != 1 && tt != 2 && tt != 3 {
-					return fmt.Errorf("TaskTypes supports 1, 2, 3")
+				if tt != 1 && tt != 2 && tt != 3 && tt != 4 {
+					return fmt.Errorf("TaskTypes supports 1, 2, 3, 4")
 				}
 				taskTypesUint = append(taskTypesUint, uint8(tt))
 			}
 		} else {
 			tt, _ := strconv.ParseUint(taskTypes, 10, 64)
-			if tt != 1 && tt != 2 && tt != 3 {
-				return fmt.Errorf("TaskTypes supports 1, 2, 3")
+			if tt != 1 && tt != 2 && tt != 3 && tt != 4 {
+				return fmt.Errorf("TaskTypes supports 1, 2, 3, 4")
 			}
 			taskTypesUint = append(taskTypesUint, uint8(tt))
 		}
