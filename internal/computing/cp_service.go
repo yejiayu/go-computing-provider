@@ -67,13 +67,13 @@ func ReceiveJob(c *gin.Context) {
 		signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobData.JobSourceURI), jobData.NodeIdJobSourceUriSignature)
 		if err != nil {
 			logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
-			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "verify sign data failed"))
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SignatureError, "verify sign data occur error"))
 			return
 		}
 
 		if !signature {
 			logs.GetLogger().Errorf("space job sign verifing, task_id: %s, verify: %v", jobData.TaskUUID, signature)
-			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SignatureError, "signature verify failed"))
 			return
 		}
 	}
@@ -81,7 +81,7 @@ func ReceiveJob(c *gin.Context) {
 	spaceDetail, err := getSpaceDetail(jobData.JobSourceURI)
 	if err != nil {
 		logs.GetLogger().Errorln(err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError, "Failed to retrieve resource configuration"))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceParseResourceUriError))
 		return
 	}
 
@@ -94,7 +94,7 @@ func ReceiveJob(c *gin.Context) {
 
 	if !available {
 		logs.GetLogger().Warnf(" task id: %s, name: %s, not found a resources available", jobData.TaskUUID, jobData.Name)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.NoAvailableResourcesError))
 		return
 	}
 
@@ -158,7 +158,7 @@ func ReceiveJob(c *gin.Context) {
 
 		DeploySpaceTask(jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName)
 	}()
-	c.JSON(http.StatusOK, jobData)
+	c.JSON(http.StatusOK, util.CreateSuccessResponse(jobData))
 }
 
 func submitJob(jobData *models.JobData) (string, error) {
@@ -196,7 +196,8 @@ func RedeployJob(c *gin.Context) {
 	var jobData models.JobData
 
 	if err := c.ShouldBindJSON(&jobData); err != nil {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.ServerError, err.Error()))
+		logs.GetLogger().Errorln(err)
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
 	logs.GetLogger().Infof("redeploy Job received: %+v", jobData)
@@ -204,7 +205,7 @@ func RedeployJob(c *gin.Context) {
 	spaceDetail, err := getSpaceDetail(jobData.JobSourceURI)
 	if err != nil {
 		logs.GetLogger().Errorln(err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError, "Failed to retrieve resource configuration"))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceParseResourceUriError))
 		return
 	}
 
@@ -217,7 +218,7 @@ func RedeployJob(c *gin.Context) {
 
 	if !available {
 		logs.GetLogger().Warnf(" task id: %s, name: %s, not found a resources available", jobData.TaskUUID, jobData.Name)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.NoAvailableResourcesError))
 		return
 	}
 
@@ -260,7 +261,6 @@ func RedeployJob(c *gin.Context) {
 		job, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
 		if err != nil {
 			logs.GetLogger().Errorf("get job failed, error: %+v", err)
-			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, err.Error()))
 			return
 		}
 		if job.SpaceUuid != "" {
@@ -308,7 +308,7 @@ func ReNewJob(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&jobData); err != nil {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError, err.Error()))
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
 	logs.GetLogger().Infof("renew Job received: %+v", jobData)
@@ -326,7 +326,7 @@ func ReNewJob(c *gin.Context) {
 	jobEntity, err := NewJobService().GetJobEntityByTaskUuid(jobData.TaskUuid)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get job from db, taskUuid: %s, error: %+v", jobData.TaskUuid, err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "query data failed"))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.FoundJobEntityError))
 		return
 	}
 
@@ -339,7 +339,7 @@ func ReNewJob(c *gin.Context) {
 		err = NewJobService().SaveJobEntity(&jobEntity)
 		if err != nil {
 			logs.GetLogger().Errorf("update job expireTime failed, taskUuid: %s, error: %+v", jobData.TaskUuid, err)
-			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "query data failed"))
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SaveJobEntityError))
 			return
 		}
 	}
@@ -355,7 +355,7 @@ func CancelJob(c *gin.Context) {
 
 	nodeIdAndTaskUuidSignature := c.Query("node_id_task_uuid_signature")
 	if len(nodeIdAndTaskUuidSignature) == 0 {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.SpaceSignatureError, "missing node_id_task_uuid_signature field"))
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.SignatureError, "missing node_id_task_uuid_signature field"))
 		return
 	}
 
@@ -373,7 +373,7 @@ func CancelJob(c *gin.Context) {
 
 		if !signature {
 			logs.GetLogger().Errorf("space job sign verifing, task_id: %s,  verify: %v", taskUuid, signature)
-			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceSignatureError, "signature verify failed"))
+			c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SignatureError, "signature verify failed"))
 			return
 		}
 	}
@@ -381,7 +381,7 @@ func CancelJob(c *gin.Context) {
 	jobEntity, err := NewJobService().GetJobEntityByTaskUuid(taskUuid)
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get job from db, taskUuid: %s, error: %+v", taskUuid, err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "query data failed"))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.FoundJobEntityError))
 		return
 	}
 
@@ -406,7 +406,12 @@ func CancelJob(c *gin.Context) {
 
 func WhiteList(c *gin.Context) {
 	walletWhiteListUrl := conf.GetConfig().API.WalletWhiteList
-	list, _ := getWhiteList(walletWhiteListUrl)
+	list, err := getWhiteList(walletWhiteListUrl)
+	if err != nil {
+		logs.GetLogger().Errorf("Failed get whiteList, error: %+v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.FoundWhiteListError))
+		return
+	}
 	c.JSON(http.StatusOK, util.CreateSuccessResponse(list))
 }
 
@@ -416,19 +421,39 @@ func GetJobStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: job_uuid"))
 	}
 
+	signatureMsg := c.Query("signature")
+	if signatureMsg == "" {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: signature"))
+	}
+
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	nodeID := GetNodeId(cpRepoPath)
+	signature, err := verifySignatureForHub(conf.GetConfig().HUB.OrchestratorPk, fmt.Sprintf("%s%s", nodeID, jobUuId), signatureMsg)
+	if err != nil {
+		logs.GetLogger().Errorf("verifySignature for space job failed, error: %+v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SignatureError, "verify sign data occur error"))
+		return
+	}
+
+	if !signature {
+		logs.GetLogger().Errorf("get job status sign verifing, jobUuid: %s, verify: %t", jobUuId, signature)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SignatureError))
+		return
+	}
+
 	jobEntity, err := NewJobService().GetJobEntityByJobUuid(jobUuId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SpaceDeployStatusError))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.FoundJobEntityError))
 	}
 
 	var jobResult struct {
-		Uuid      string
-		Status    string
-		ResultUrl string
+		JobUuid      string `json:"job_uuid"`
+		JobStatus    string `json:"job_status"`
+		JobResultUrl string `json:"job_result_url"`
 	}
-	jobResult.Uuid = jobEntity.JobUuid
-	jobResult.Status = models.GetDeployStatusStr(jobEntity.DeployStatus)
-	jobResult.ResultUrl = jobEntity.ResultUrl
+	jobResult.JobUuid = jobEntity.JobUuid
+	jobResult.JobStatus = models.GetDeployStatusStr(jobEntity.DeployStatus)
+	jobResult.JobResultUrl = jobEntity.ResultUrl
 
 	c.JSON(http.StatusOK, util.CreateSuccessResponse(jobResult))
 }
@@ -482,7 +507,7 @@ func GetSpaceLog(c *gin.Context) {
 	jobEntity, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
 	if err != nil {
 		logs.GetLogger().Error(err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.ServerError, "query data failed"))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.FoundJobEntityError))
 		return
 	}
 

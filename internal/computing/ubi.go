@@ -131,7 +131,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		taskEntity.Status = models.TASK_FAILED_STATUS
 		NewTaskService().SaveTaskEntity(taskEntity)
 		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.ResourceType))
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.NoAvailableResourcesError))
 		return
 	}
 
@@ -459,13 +459,13 @@ func DoUbiTaskForDocker(c *gin.Context) {
 	signature, err := verifySignature(conf.GetConfig().UBI.UbiEnginePk, fmt.Sprintf("%s%s", nodeID, ubiTask.ContractAddr), ubiTask.Signature)
 	if err != nil {
 		logs.GetLogger().Errorf("verifySignature for ubi task failed, error: %+v", err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "sign data failed"))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SignatureError, "verify sign data occur error"))
 		return
 	}
 
 	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, verify: %v", ubiTask.ID, signature)
 	if !signature {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SignatureError, "signature verify failed"))
 		return
 	}
 
@@ -486,6 +486,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 	err = NewTaskService().SaveTaskEntity(taskEntity)
 	if err != nil {
 		logs.GetLogger().Errorf("save task entity failed, error: %v", err)
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.SaveTaskEntityError))
 		return
 	}
 
@@ -508,7 +509,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		taskEntity.Status = models.TASK_FAILED_STATUS
 		NewTaskService().SaveTaskEntity(taskEntity)
 		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.ResourceType))
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckAvailableResources))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.NoAvailableResourcesError))
 		return
 	}
 
@@ -523,11 +524,6 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		if gpuFlag == "1" {
 			ubiTaskImage = build.UBITaskImageIntelGpu
 		}
-	}
-
-	if err := NewDockerService().PullImage(ubiTaskImage); err != nil {
-		logs.GetLogger().Errorf("pull %s image failed, error: %v", ubiTaskImage, err)
-		return
 	}
 
 	go func() {
@@ -550,6 +546,11 @@ func DoUbiTaskForDocker(c *gin.Context) {
 				NewTaskService().SaveTaskEntity(ubiTaskRun)
 			}
 		}()
+
+		if err := NewDockerService().PullImage(ubiTaskImage); err != nil {
+			logs.GetLogger().Errorf("pull %s image failed, error: %v", ubiTaskImage, err)
+			return
+		}
 
 		multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 		receiveUrl := fmt.Sprintf("http://%s:%s/api/v1/computing/cp/docker/receive/ubi", multiAddressSplit[2], multiAddressSplit[4])
@@ -713,13 +714,15 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 	}
 	ubiTask, err := NewTaskService().GetTaskEntity(int64(taskId))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		logs.GetLogger().Warnf("ubi task id: %d, get task info failed, error: %v", taskId, err)
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.FoundTaskEntityError))
 		return
 	}
 
 	err = submitUBIProof(c2Proof, ubiTask)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
+		logs.GetLogger().Warnf("ubi task id: %d, submit proof failed, error: %v", taskId, err)
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.SubmitProofError))
 		return
 	}
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
