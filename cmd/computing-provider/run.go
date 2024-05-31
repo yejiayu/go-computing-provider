@@ -466,15 +466,15 @@ var taskInfoCmd = &cli.Command{
 		var taskData [][]string
 		taskData = append(taskData, []string{"ZK Type:", models.TaskTypeStr(int(taskInfo.TaskType.Int64()))})
 		taskData = append(taskData, []string{"Resource Type:", models.GetSourceTypeStr(int(taskInfo.ResourceType.Int64()))})
-		taskData = append(taskData, []string{"Cp Account:", taskInfo.CpContractAddress.Hex()})
+		taskData = append(taskData, []string{"CP Account:", taskInfo.CpContractAddress.Hex()})
 		taskData = append(taskData, []string{"Task Status:", taskInfo.Status})
 		taskData = append(taskData, []string{"Deadline:", taskInfo.Deadline.String()})
 		taskData = append(taskData, []string{"Reward(SWAN):", reward})
-		taskData = append(taskData, []string{"LockFund Tx Hash:", lockFundTx})
-		taskData = append(taskData, []string{"UnLockFund Tx Hash:", unlockFundTx})
-		taskData = append(taskData, []string{"Reward Tx Hash:", rewardTx})
-		taskData = append(taskData, []string{"Challenge Tx Hash:", challengeTx})
-		taskData = append(taskData, []string{"Slash Tx Hash:", slashTx})
+		taskData = append(taskData, []string{"LockFund TxHash:", lockFundTx})
+		taskData = append(taskData, []string{"UnLockFund TxHash:", unlockFundTx})
+		taskData = append(taskData, []string{"Reward TxHash:", rewardTx})
+		taskData = append(taskData, []string{"Challenge TxHash:", challengeTx})
+		taskData = append(taskData, []string{"Slash TxHash:", slashTx})
 
 		header := []string{"Task Contract:", taskContract}
 		NewVisualTable(header, taskData, []RowColor{}).Generate(false)
