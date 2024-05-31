@@ -427,6 +427,7 @@ func GetJobStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: signature"))
 		return
 	}
+	logs.GetLogger().Infof("signatureMsg: %s", signatureMsg)
 
 	cpRepoPath, _ := os.LookupEnv("CP_PATH")
 	nodeID := GetNodeId(cpRepoPath)
