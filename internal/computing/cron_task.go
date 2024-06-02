@@ -4,18 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"math"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/gomodule/redigo/redis"
 	"github.com/robfig/cron/v3"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
-	"io"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"math"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type CronTask struct {
@@ -71,6 +72,11 @@ func (task *CronTask) checkCollateralBalance() {
 		err = json.Unmarshal(body, &collateral)
 		if err != nil {
 			logs.GetLogger().Errorf("json conversion failed: %+v", err)
+			return
+		}
+
+		if collateral.Status != "success" {
+			logs.GetLogger().Errorf("check collateral balance failed. status: %s, message: %s", collateral.Status, collateral.Message)
 			return
 		}
 
