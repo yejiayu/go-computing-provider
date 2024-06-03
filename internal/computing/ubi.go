@@ -547,6 +547,10 @@ func DoUbiTaskForDocker(c *gin.Context) {
 			}
 		}()
 
+		if ubiTaskImage == "" {
+			logs.GetLogger().Errorf("please check the log output of the resource-exporter container")
+		}
+
 		if err := NewDockerService().PullImage(ubiTaskImage); err != nil {
 			logs.GetLogger().Errorf("pull %s image failed, error: %v", ubiTaskImage, err)
 			return

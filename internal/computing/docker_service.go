@@ -338,16 +338,8 @@ func (ds *DockerService) CleanResource() {
 	ctx := context.Background()
 	danglingFilters := filters.NewArgs()
 	danglingFilters.Add("dangling", "true")
-	_, err = ds.c.ImagesPrune(ctx, danglingFilters)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed delete dangling image, error: %+v", err)
-		return
-	}
-
-	if _, err = ds.c.ContainersPrune(ctx, filters.NewArgs()); err != nil {
-		logs.GetLogger().Errorf("Failed delete unused container, error: %+v", err)
-		return
-	}
+	ds.c.ImagesPrune(ctx, danglingFilters)
+	ds.c.ContainersPrune(ctx, filters.NewArgs())
 }
 
 func (ds *DockerService) PullImage(imagesName string) error {
