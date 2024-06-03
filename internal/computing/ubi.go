@@ -713,12 +713,13 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 
 	taskId, err := strconv.Atoi(c2Proof.TaskId)
 	if err != nil {
+		logs.GetLogger().Errorf("ubi task id: %s str parse to int failed, error: %v", c2Proof.TaskId, err)
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.JsonError))
 		return
 	}
 	ubiTask, err := NewTaskService().GetTaskEntity(int64(taskId))
 	if err != nil {
-		logs.GetLogger().Warnf("ubi task id: %d, get task info failed, error: %v", taskId, err)
+		logs.GetLogger().Errorf("ubi task id: %d, get task info failed, error: %v", taskId, err)
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.FoundTaskEntityError))
 		return
 	}
@@ -833,10 +834,6 @@ loopTask:
 		return NewTaskService().SaveTaskEntity(task)
 	}
 	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.Proof, deadlineTime)
-	if err != nil {
-		logs.GetLogger().Errorf("submit ubi proof tx failed, error: %v", err)
-		return err
-	}
 
 	if submitUBIProofTx != "" {
 		task.Status = models.TASK_SUCCESS_STATUS
