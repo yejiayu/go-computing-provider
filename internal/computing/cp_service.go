@@ -171,6 +171,7 @@ func submitJob(jobData *models.JobData) (string, error) {
 	os.MkdirAll(filepath.Join(fileCachePath, folderPath), os.ModePerm)
 	taskDetailFilePath := filepath.Join(fileCachePath, jobDetailFile)
 
+	jobData.JobResultURI = jobData.JobRealUri
 	bytes, err := json.Marshal(jobData)
 	if err != nil {
 		return "", fmt.Errorf(" parse to json failed, error: %v", err)
