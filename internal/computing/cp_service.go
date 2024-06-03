@@ -880,21 +880,6 @@ func downloadModelUrl(namespace, spaceUuid, serviceIp string, podCmd []string) {
 }
 
 func updateJobStatus(jobUuid string, jobStatus int, url ...string) {
-	go func() {
-		if len(url) > 0 {
-			deployingChan <- models.Job{
-				Uuid:   jobUuid,
-				Status: jobStatus,
-				Url:    url[0],
-			}
-		} else {
-			deployingChan <- models.Job{
-				Uuid:   jobUuid,
-				Status: jobStatus,
-				Url:    "",
-			}
-		}
-	}()
 }
 
 func getSpaceDetail(jobSourceURI string) (models.SpaceJSON, error) {

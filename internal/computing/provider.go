@@ -1,91 +1,19 @@
 package computing
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"github.com/swanchain/go-computing-provider/account"
-	"github.com/swanchain/go-computing-provider/internal/models"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
-	"github.com/swanchain/go-computing-provider/conf"
 )
-
-func Reconnect(nodeID string) string {
-	updateProviderInfo(nodeID, models.ActiveStatus)
-	return nodeID
-}
-
-func updateProviderInfo(nodeID string, status string) {
-	updateURL := conf.GetConfig().HUB.ServerUrl + "/cp"
-
-	var cpName string
-	if conf.GetConfig().API.NodeName != "" {
-		cpName = conf.GetConfig().API.NodeName
-	} else {
-		cpName, _ = os.Hostname()
-	}
-
-	ownerAddress, _, err := GetOwnerAddressAndWorkerAddress()
-	if err != nil {
-		return
-	}
-
-	// Verify that required fields are not empty before sending them
-	if nodeID == "" || status == "" {
-		logs.GetLogger().Error("Required fields are missing: ensure NodeID, WalletAddress, and Status are provided")
-		return
-	}
-
-	provider := models.ComputingProvider{
-		PublicAddress: ownerAddress,
-		Name:          cpName,
-		NodeId:        nodeID,
-		MultiAddress:  conf.GetConfig().API.MultiAddress,
-		Status:        status,
-		Autobid:       1,
-	}
-
-	jsonData, err := json.Marshal(provider)
-	if err != nil {
-		logs.GetLogger().Errorf("Error marshaling provider data: %v", err)
-		return
-	}
-
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", updateURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		logs.GetLogger().Errorf("Error creating request: %v", err)
-		return
-	}
-
-	// Set the content type and API token in the request header
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		logs.GetLogger().Errorf("Error sending request to update provider info: %v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		responseBody := string(bodyBytes)
-		logs.GetLogger().Errorf("Failed to update provider info, status code: %d, response: %s", resp.StatusCode, responseBody)
-	}
-}
 
 func InitComputingProvider(cpRepoPath string) string {
 	nodeID, peerID, address := GenerateNodeID(cpRepoPath)

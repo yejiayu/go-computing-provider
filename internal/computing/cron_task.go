@@ -1,7 +1,6 @@
 package computing
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -17,12 +16,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
 var deployingChan = make(chan models.Job)
-var TaskMap sync.Map
 
 type CronTask struct {
 	nodeId       string
@@ -47,33 +44,12 @@ func NewCronTask(nodeId string) *CronTask {
 
 func (task *CronTask) RunTask() {
 	addNodeLabel()
-	checkJobStatus(task.ownerAddress)
 	task.checkCollateralBalance()
 	task.cleanAbnormalDeployment()
 	task.setFailedUbiTaskStatus()
 	task.watchNameSpaceForDeleted()
 	task.updateUbiTaskReward()
 	task.reportClusterResourceToHub()
-}
-
-func checkJobStatus(ownerAddress string) {
-	go func() {
-		for {
-			select {
-			case job := <-deployingChan:
-				TaskMap.Store(job.Uuid, &job)
-			case <-time.After(3 * time.Second):
-				TaskMap.Range(func(key, value any) bool {
-					jobUuid := key.(string)
-					job := value.(*models.Job)
-					if reportJobStatus(jobUuid, job.Status, ownerAddress) && job.Status == models.DEPLOY_TO_K8S {
-						TaskMap.Delete(jobUuid)
-					}
-					return true
-				})
-			}
-		}
-	}()
 }
 
 func (task *CronTask) reportClusterResourceToHub() {
@@ -91,7 +67,6 @@ func (task *CronTask) reportClusterResourceToHub() {
 			logs.GetLogger().Errorf("Failed k8s statistical sources, error: %+v", err)
 			return
 		}
-		reportClusterResource(task.location, task.nodeId, task.ownerAddress, statisticalSources)
 		checkClusterProviderStatus(statisticalSources)
 	})
 	c.Start()
@@ -391,44 +366,6 @@ func addNodeLabel() {
 	}
 }
 
-func reportClusterResource(location, nodeId, ownerAddress string, nodeResources []*models.NodeResource) {
-	clusterSource := models.ClusterResource{
-		NodeId:        nodeId,
-		Region:        location,
-		ClusterInfo:   nodeResources,
-		PublicAddress: ownerAddress,
-	}
-
-	payload, err := json.Marshal(clusterSource)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
-		return
-	}
-
-	client := &http.Client{}
-	url := conf.GetConfig().HUB.ServerUrl + "/cp/summary"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	if err != nil {
-		logs.GetLogger().Errorf("Error creating request: %v", err)
-		return
-	}
-	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		logs.GetLogger().Errorf("report cluster node resources failed, status code: %d", resp.StatusCode)
-		return
-	}
-
-}
-
 func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
 	url := fmt.Sprintf("%s/check_task_status_with_node_id/%s/%s", conf.GetConfig().HUB.ServerUrl, taskUuid, nodeId)
 	client := &http.Client{}
@@ -469,49 +406,4 @@ func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
 		return taskStatus.Message, nil
 	}
 	return taskStatus.Status, nil
-}
-
-func reportJobStatus(jobUuid string, deployStatus int, ownerAddress string) bool {
-	var job = new(models.JobEntity)
-	job.JobUuid = jobUuid
-	job.DeployStatus = deployStatus
-	if err := NewJobService().UpdateJobEntityByJobUuid(job); err != nil {
-		logs.GetLogger().Errorf("update job info by jobUuid failed, error: %v", err)
-	}
-
-	reqParam := map[string]interface{}{
-		"job_uuid":       jobUuid,
-		"status":         models.GetDeployStatusStr(deployStatus),
-		"public_address": ownerAddress,
-	}
-
-	payload, err := json.Marshal(reqParam)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed convert to json, error: %+v", err)
-		return false
-	}
-
-	client := &http.Client{}
-	url := conf.GetConfig().HUB.ServerUrl + "/job/status"
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
-	if err != nil {
-		logs.GetLogger().Errorf("Error creating request: %v", err)
-		return false
-	}
-	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
-	req.Header.Add("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed send a request, error: %+v", err)
-		return false
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return false
-	}
-
-	logs.GetLogger().Debugf("report job status successfully. uuid: %s, status: %s", jobUuid, models.GetDeployStatusStr(deployStatus))
-	return true
 }
