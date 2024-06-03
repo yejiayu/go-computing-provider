@@ -47,7 +47,7 @@ func NewCronTask(nodeId string) *CronTask {
 func (task *CronTask) RunTask() {
 	addNodeLabel()
 	checkJobStatus()
-	task.checkCollateralBalance()
+	//task.checkCollateralBalance()
 	task.cleanAbnormalDeployment()
 	task.setFailedUbiTaskStatus()
 	task.watchNameSpaceForDeleted()
