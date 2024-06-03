@@ -91,7 +91,7 @@ outerLoop:
 					return "", s.getNonce()
 				} else {
 					logs.GetLogger().Warnf("task contract: %s SubmitUBIProof failed, error: %v", s.ContractAddress, err)
-					return "", err
+					continue
 				}
 			}
 			if transaction != nil {
