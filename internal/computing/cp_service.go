@@ -427,7 +427,6 @@ func GetJobStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.BadParamError, "missing required field: signature"))
 		return
 	}
-	logs.GetLogger().Infof("signatureMsg: %s", signatureMsg)
 
 	cpRepoPath, _ := os.LookupEnv("CP_PATH")
 	nodeID := GetNodeId(cpRepoPath)
@@ -450,6 +449,7 @@ func GetJobStatus(c *gin.Context) {
 		return
 	}
 
+	logs.GetLogger().Infof("job_uuid: %s, status: %s", jobEntity.JobUuid, models.GetDeployStatusStr(jobEntity.DeployStatus))
 	var jobResult struct {
 		JobUuid      string `json:"job_uuid"`
 		JobStatus    string `json:"job_status"`
@@ -880,6 +880,21 @@ func downloadModelUrl(namespace, spaceUuid, serviceIp string, podCmd []string) {
 }
 
 func updateJobStatus(jobUuid string, jobStatus int, url ...string) {
+	go func() {
+		if len(url) > 0 {
+			deployingChan <- models.Job{
+				Uuid:   jobUuid,
+				Status: jobStatus,
+				Url:    url[0],
+			}
+		} else {
+			deployingChan <- models.Job{
+				Uuid:   jobUuid,
+				Status: jobStatus,
+				Url:    "",
+			}
+		}
+	}()
 }
 
 func getSpaceDetail(jobSourceURI string) (models.SpaceJSON, error) {

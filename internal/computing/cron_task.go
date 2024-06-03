@@ -16,10 +16,12 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
 var deployingChan = make(chan models.Job)
+var TaskMap sync.Map
 
 type CronTask struct {
 	nodeId       string
@@ -44,12 +46,33 @@ func NewCronTask(nodeId string) *CronTask {
 
 func (task *CronTask) RunTask() {
 	addNodeLabel()
-	//task.checkCollateralBalance()
+	checkJobStatus()
+	task.checkCollateralBalance()
 	task.cleanAbnormalDeployment()
 	task.setFailedUbiTaskStatus()
 	task.watchNameSpaceForDeleted()
 	task.updateUbiTaskReward()
 	task.reportClusterResourceToHub()
+}
+
+func checkJobStatus() {
+	go func() {
+		for {
+			select {
+			case job := <-deployingChan:
+				TaskMap.Store(job.Uuid, &job)
+			case <-time.After(3 * time.Second):
+				TaskMap.Range(func(key, value any) bool {
+					jobUuid := key.(string)
+					job := value.(*models.Job)
+					if reportJobStatus(jobUuid, job.Status) && job.Status == models.DEPLOY_TO_K8S {
+						TaskMap.Delete(jobUuid)
+					}
+					return true
+				})
+			}
+		}
+	}()
 }
 
 func (task *CronTask) reportClusterResourceToHub() {
@@ -406,4 +429,14 @@ func checkTaskStatusByHub(taskUuid, nodeId string) (string, error) {
 		return taskStatus.Message, nil
 	}
 	return taskStatus.Status, nil
+}
+
+func reportJobStatus(jobUuid string, deployStatus int) bool {
+	var job = new(models.JobEntity)
+	job.JobUuid = jobUuid
+	job.DeployStatus = deployStatus
+	if err := NewJobService().UpdateJobEntityByJobUuid(job); err != nil {
+		logs.GetLogger().Errorf("update job info by jobUuid failed, error: %v", err)
+	}
+	return true
 }
