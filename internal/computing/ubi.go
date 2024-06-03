@@ -816,6 +816,7 @@ loopTask:
 			logs.GetLogger().Errorf("get ubi task info, taskId: %s, contract: %s, timeout", c2Proof.TaskId, task.Contract)
 			break loopTask
 		default:
+			logs.GetLogger().Infof("task_id: %s, retrying", c2Proof.TaskId)
 			taskInfo, err = taskStub.GetTaskInfo()
 			if err != nil {
 				logs.GetLogger().Warnf("get ubi task info failed, taskId: %s, retrying, msg: %s", task.Contract, err.Error())
