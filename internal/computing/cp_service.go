@@ -190,6 +190,8 @@ func submitJob(jobData *models.JobData) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("get mcs ipfs gatewayUrl failed, error: %v", err)
 	}
+	fmt.Sprintf("mcsOssFile: %+v \n", mcsOssFile)
+
 	return *gatewayUrl + "/ipfs/" + mcsOssFile.PayloadCid, nil
 }
 
