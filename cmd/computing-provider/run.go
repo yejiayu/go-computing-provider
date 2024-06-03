@@ -503,7 +503,7 @@ var initCmd = &cli.Command{
 		if err := conf.InitConfig(cpRepoPath, true); err != nil {
 			logs.GetLogger().Fatal(err)
 		}
-		return conf.UpdateConfigFile(cpRepoPath, multiAddr, nodeName, port)
+		return conf.UpdateConfigFile(cpRepoPath, strings.TrimSpace(multiAddr), nodeName, port)
 	},
 }
 
@@ -641,7 +641,7 @@ var changeMultiAddressCmd = &cli.Command{
 		}
 		defer client.Close()
 
-		newMultiAddress := []string{multiAddr}
+		newMultiAddress := []string{strings.TrimSpace(multiAddr)}
 		changeMultiAddressTx, err := cpStub.ChangeMultiAddress(newMultiAddress)
 		if err != nil {
 			return fmt.Errorf("changeMultiAddress tx failed, error: %v", err)

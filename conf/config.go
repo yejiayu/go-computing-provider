@@ -220,7 +220,7 @@ func UpdateConfigFile(cpRepoPath string, multiAddress, nodeName string, port int
 		return err
 	}
 
-	if len(strings.TrimSpace(multiAddress)) != 0 && !strings.EqualFold(strings.TrimSpace(multiAddress), strings.TrimSpace(configTmpl.API.MultiAddress)) {
+	if len(multiAddress) != 0 && !strings.EqualFold(multiAddress, strings.TrimSpace(configTmpl.API.MultiAddress)) {
 		configTmpl.API.MultiAddress = multiAddress
 	}
 
