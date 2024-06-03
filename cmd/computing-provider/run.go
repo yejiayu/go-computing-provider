@@ -588,6 +588,7 @@ var createAccountCmd = &cli.Command{
 			if tt != 1 && tt != 2 && tt != 3 && tt != 4 {
 				return fmt.Errorf("TaskTypes supports 1, 2, 3, 4")
 			}
+			taskTypesUint = append(taskTypesUint, uint8(tt))
 		}
 
 		cpRepoPath, ok := os.LookupEnv("CP_PATH")
