@@ -366,6 +366,7 @@ func (ds *DockerService) RemoveUnRunningContainer(containerName string) (bool, e
 	}
 	containerRunning := false
 	for _, c := range containers {
+		fmt.Printf("name: %s", c.Image)
 		if c.State == "running" {
 			containerRunning = true
 			break
