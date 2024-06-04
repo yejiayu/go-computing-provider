@@ -361,7 +361,6 @@ func (ds *DockerService) CheckRunningContainer(containerName string) (bool, erro
 	containerRunning := false
 	for _, c := range containers {
 		for _, name := range c.Names {
-			fmt.Printf("id: %s,containerName: %s", c.ID, name)
 			if name == "/"+containerName || strings.Contains(name, containerName) {
 				if c.State == "running" {
 					containerRunning = true

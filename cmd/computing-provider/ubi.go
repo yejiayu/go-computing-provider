@@ -142,7 +142,6 @@ var daemonCmd = &cli.Command{
 		if err != nil {
 			return fmt.Errorf("check %s container failed, error: %v", resourceExporterContainerName, err)
 		}
-		fmt.Printf("rsExist: %t", rsExist)
 
 		if !rsExist {
 			if err = computing.RestartResourceExporter(); err != nil {
