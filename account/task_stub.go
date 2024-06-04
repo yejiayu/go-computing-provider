@@ -64,12 +64,10 @@ func NewTaskStub(client *ethclient.Client, options ...TaskOption) (*TaskStub, er
 }
 
 func (s *TaskStub) SubmitUBIProof(proof string, timeOut int64) (string, error) {
-	err := s.getNonce()
-	if err != nil {
-		return "", err
-	}
-
+	var err error
 	var submitProofTxHash string
+	var flag bool
+
 	timeOutCh := time.After(time.Second * time.Duration(timeOut))
 outerLoop:
 	for {
@@ -79,16 +77,31 @@ outerLoop:
 			break outerLoop
 		default:
 			time.Sleep(time.Second)
+			if !flag {
+				err = s.getNonce()
+				if err != nil {
+					logs.GetLogger().Warnf("task contract: %s, get nonce: %v, retrying", s.ContractAddress, err)
+					continue
+				}
+			}
+
 			txOptions, err := s.createTransactOpts(int64(s.nonceX))
 			if err != nil {
-				return "", fmt.Errorf("task contract: %s, task_stub create transaction opts failed, error: %+v", s.ContractAddress, err)
+				logs.GetLogger().Warnf("task contract: %s, create transaction opts failed, error: %+v", s.ContractAddress, err)
+				continue
 			}
 			transaction, err := s.task.SubmitProof(txOptions, proof)
 			if err != nil {
 				if err.Error() == "replacement transaction underpriced" {
 					s.IncrementNonce()
+					flag = true
 				} else if strings.Contains(err.Error(), "next nonce") {
-					return "", s.getNonce()
+					err = s.getNonce()
+					if err != nil {
+						logs.GetLogger().Warnf("task contract: %s, get nonce: %v, retrying", s.ContractAddress, err)
+						flag = false
+						continue
+					}
 				} else {
 					logs.GetLogger().Warnf("task contract: %s SubmitUBIProof failed, error: %v", s.ContractAddress, err)
 					continue
