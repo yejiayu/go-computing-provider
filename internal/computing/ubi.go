@@ -895,7 +895,6 @@ func reportClusterResourceForDocker() {
 	dockerService := NewDockerService()
 	containerLogStr, err := dockerService.ContainerLogs("resource-exporter")
 	if err != nil {
-		logs.GetLogger().Errorf("collect host hardware resource failed, error: %v", err)
 		if err = RestartResourceExporter(); err != nil {
 			logs.GetLogger().Errorf("restartResourceExporter failed, error: %v", err)
 		}
@@ -1036,11 +1035,8 @@ func SyncCpAccountInfo() {
 func RestartResourceExporter() error {
 	resourceExporterContainerName := "resource-exporter"
 	dockerService := NewDockerService()
-	err := dockerService.RemoveImageByName(resourceExporterContainerName)
-	if err != nil {
-		return fmt.Errorf("remove %s container failed, error: %v", resourceExporterContainerName, err)
-	}
-	err = dockerService.PullImage(build.UBIResourceExporterDockerImage)
+	dockerService.RemoveImageByName(resourceExporterContainerName)
+	err := dockerService.PullImage(build.UBIResourceExporterDockerImage)
 	if err != nil {
 		return fmt.Errorf("pull %s image failed, error: %v", build.UBIResourceExporterDockerImage, err)
 	}
