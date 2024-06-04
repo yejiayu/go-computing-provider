@@ -348,6 +348,7 @@ func (ds *DockerService) PullImage(imagesName string) error {
 		return err
 	}
 	defer resp.Close()
+	printOut(resp)
 	return nil
 }
 
