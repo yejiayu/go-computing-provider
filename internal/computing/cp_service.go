@@ -446,7 +446,7 @@ func GetJobStatus(c *gin.Context) {
 	}
 
 	if jobEntity.JobUuid == "" {
-		c.JSON(http.StatusOK, util.CreateErrorResponse(util.NotFoundJobEntityError))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.NotFoundJobEntityError))
 		return
 	}
 
