@@ -737,7 +737,77 @@ func ReceiveUbiProofForDocker(c *gin.Context) {
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 
+var resourceStr = `{
+"node_id": "0499ba4f91cc131e8adf223e4d1c94ff8b889cf39b2d3f796421eeabd5ef8cfa0757efd314a531b41858400b47ed28b450eeb7cb6d60faf3e8e6233236402de136",
+"region": "-",
+"cluster_info": [
+{
+"machine_id": "4c4c4544-0046-3510-8058-b1c04f504433",
+"cpu_name": "AMD",
+"cpu": {
+"total": "192",
+"used": "2",
+"free": "190"
+},
+"vcpu": {
+"total": "192",
+"used": "2",
+"free": "190"
+},
+"memory": {
+"total": "2003 GiB",
+"used": "66 GiB",
+"free": "1928 GiB"
+},
+"gpu": {
+"driver_version": "535.104.05",
+"cuda_version": "12020",
+"attached_gpus": 2,
+"details": [
+{
+"product_name": "NVIDIA 3080",
+"status": "available",
+"fb_memory_usage": {
+"total": "10240 MiB",
+"used": "235 MiB",
+"free": "10004 MiB"
+},
+"bar1_memory_usage": {
+"total": "256 MiB",
+"used": "2 MiB",
+"free": "253 MiB"
+}
+},
+{
+"product_name": "NVIDIA 3080",
+"status": "available",
+"fb_memory_usage": {
+"total": "10240 MiB",
+"used": "235 MiB",
+"free": "10004 MiB"
+},
+"bar1_memory_usage": {
+"total": "256 MiB",
+"used": "2 MiB",
+"free": "253 MiB"
+}
+}
+]
+},
+"storage": {
+"total": "878 GiB",
+"used": "456 GiB",
+"free": "456 GiB"
+}
+}
+],
+"node_name": "zk-demo-001"
+}
+`
+
 func GetCpResource(c *gin.Context) {
+	c.Data(http.StatusOK, "application/json", []byte(resourceStr))
+	return
 	location, err := getLocation()
 	if err != nil {
 		logs.GetLogger().Error(err)
