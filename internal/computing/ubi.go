@@ -495,7 +495,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		gpuName = convertGpuName(strings.TrimSpace(gpuConfig))
 	}
 
-	suffice, architecture, _, needMemory, err := checkResourceForUbi(ubiTask.Resource, gpuName, ubiTask.ResourceType)
+	_, architecture, _, needMemory, err := checkResourceForUbi(ubiTask.Resource, gpuName, ubiTask.ResourceType)
 	if err != nil {
 		taskEntity.Status = models.TASK_FAILED_STATUS
 		NewTaskService().SaveTaskEntity(taskEntity)
@@ -504,13 +504,13 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		return
 	}
 
-	if !suffice {
-		taskEntity.Status = models.TASK_FAILED_STATUS
-		NewTaskService().SaveTaskEntity(taskEntity)
-		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.ResourceType))
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.NoAvailableResourcesError))
-		return
-	}
+	//if !suffice {
+	//	taskEntity.Status = models.TASK_FAILED_STATUS
+	//	NewTaskService().SaveTaskEntity(taskEntity)
+	//	logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.ResourceType))
+	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.NoAvailableResourcesError))
+	//	return
+	//}
 
 	var ubiTaskImage string
 	if architecture == constants.CPU_AMD {
