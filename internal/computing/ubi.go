@@ -960,7 +960,7 @@ func CronTaskForEcp() {
 	}()
 
 	go func() {
-		ticker := time.NewTicker(3 * time.Minute)
+		ticker := time.NewTicker(2 * time.Hour)
 		for range ticker.C {
 			taskList, err := NewTaskService().GetTaskListNoReward()
 			if err != nil {
