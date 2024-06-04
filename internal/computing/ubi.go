@@ -1032,8 +1032,6 @@ func SyncCpAccountInfo() {
 }
 
 func RestartResourceExporter() error {
-	logs.GetLogger().Warnf("hardware info parse to json failed, restarting resource-exporter")
-
 	resourceExporterContainerName := "resource-exporter"
 	dockerService := NewDockerService()
 	err := dockerService.RemoveImageByName(resourceExporterContainerName)
