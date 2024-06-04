@@ -406,6 +406,8 @@ func ReceiveUbiProofForK8s(c *gin.Context) {
 }
 
 func DoUbiTaskForDocker(c *gin.Context) {
+	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
+	return
 
 	var ubiTask models.UBITaskReq
 	if err := c.ShouldBindJSON(&ubiTask); err != nil {
