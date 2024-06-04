@@ -1067,6 +1067,9 @@ var regionCache string
 
 func getLocation() (string, error) {
 	var err error
+	if regionCache != "" {
+		return regionCache, nil
+	}
 	regionCache, err = getRegionByIpInfo()
 	if err != nil {
 		regionCache, err = getRegionByIpApi()
