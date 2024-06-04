@@ -73,7 +73,7 @@ outerLoop:
 	for {
 		select {
 		case <-timeOutCh:
-			err = fmt.Errorf("timeout, task_contract: %s", s.ContractAddress)
+			err = fmt.Errorf("task_contract: %s, timeout", s.ContractAddress)
 			break outerLoop
 		default:
 			time.Sleep(3 * time.Second)
