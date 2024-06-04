@@ -445,7 +445,11 @@ func GetJobStatus(c *gin.Context) {
 		return
 	}
 
-	logs.GetLogger().Infof("job_uuid: %s, status: %s", jobEntity.JobUuid, models.GetDeployStatusStr(jobEntity.DeployStatus))
+	if jobEntity.JobUuid == "" {
+		c.JSON(http.StatusOK, util.CreateErrorResponse(util.NotFoundJobEntityError))
+		return
+	}
+
 	var jobResult struct {
 		JobUuid      string `json:"job_uuid"`
 		JobStatus    string `json:"job_status"`

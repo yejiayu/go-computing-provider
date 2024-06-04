@@ -45,8 +45,9 @@ const (
 	SpaceCheckWhiteListError   = 4005
 	NoAvailableResourcesError  = 4006
 	FoundJobEntityError        = 4007
-	SaveJobEntityError         = 4008
-	FoundWhiteListError        = 4009
+	NotFoundJobEntityError     = 4008
+	SaveJobEntityError         = 4009
+	FoundWhiteListError        = 4010
 
 	ProofParamError   = 7001
 	ProofReadLogError = 7002
@@ -69,6 +70,7 @@ var codeMsg = map[int]string{
 	SpaceCheckWhiteListError:   "This cp does not accept tasks from wallet addresses outside the whitelist",
 	NoAvailableResourcesError:  "No resources available",
 	FoundJobEntityError:        "An error occurred while get job info",
+	NotFoundJobEntityError:     "No found this Job",
 	SaveJobEntityError:         "An error occurred while save job info",
 	FoundWhiteListError:        "An error occurred while get whitelist",
 
