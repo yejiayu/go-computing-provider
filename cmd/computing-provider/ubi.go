@@ -138,7 +138,7 @@ var daemonCmd = &cli.Command{
 		cpRepoPath, _ := os.LookupEnv("CP_PATH")
 
 		resourceExporterContainerName := "resource-exporter"
-		rsExist, err := computing.NewDockerService().RemoveUnRunningContainer(resourceExporterContainerName)
+		rsExist, err := computing.NewDockerService().CheckRunningContainer(resourceExporterContainerName)
 		if err != nil {
 			return fmt.Errorf("check %s container failed, error: %v", resourceExporterContainerName, err)
 		}

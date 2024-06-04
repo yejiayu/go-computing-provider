@@ -496,7 +496,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		gpuName = convertGpuName(strings.TrimSpace(gpuConfig))
 	}
 
-	suffice, architecture, _, needMemory, err := checkResourceForUbi(ubiTask.Resource, gpuName, ubiTask.ResourceType)
+	suffice, architecture, _, _, err := checkResourceForUbi(ubiTask.Resource, gpuName, ubiTask.ResourceType)
 	if err != nil {
 		taskEntity.Status = models.TASK_FAILED_STATUS
 		NewTaskService().SaveTaskEntity(taskEntity)
@@ -526,112 +526,114 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		}
 	}
 
-	go func() {
-		defer func() {
-			ubiTaskRun, err := NewTaskService().GetTaskEntity(int64(ubiTask.ID))
-			if err != nil {
-				logs.GetLogger().Errorf("get ubi task detail from db failed, ubiTaskId: %d, error: %+v", ubiTask.ID, err)
-				return
-			}
-			if ubiTaskRun.Id == 0 {
-				ubiTaskRun = new(models.TaskEntity)
-				ubiTaskRun.Id = int64(ubiTask.ID)
-				ubiTaskRun.ZkType = ubiTask.ZkType
-				ubiTaskRun.Name = ubiTask.Name
-				ubiTaskRun.Contract = ubiTask.ContractAddr
-				ubiTaskRun.ResourceType = ubiTask.ResourceType
-				ubiTaskRun.InputParam = ubiTask.InputParam
-				ubiTaskRun.CreateTime = time.Now().Unix()
-				ubiTaskRun.Contract = ubiTask.ContractAddr
-				NewTaskService().SaveTaskEntity(ubiTaskRun)
-			}
-		}()
+	println(ubiTaskImage)
 
-		if ubiTaskImage == "" {
-			logs.GetLogger().Errorf("please check the log output of the resource-exporter container")
-		}
-
-		if err := NewDockerService().PullImage(ubiTaskImage); err != nil {
-			logs.GetLogger().Errorf("pull %s image failed, error: %v", ubiTaskImage, err)
-			return
-		}
-
-		multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
-		receiveUrl := fmt.Sprintf("http://%s:%s/api/v1/computing/cp/docker/receive/ubi", multiAddressSplit[2], multiAddressSplit[4])
-		execCommand := []string{"ubi-bench", "c2"}
-		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
-
-		var env = []string{"RECEIVE_PROOF_URL=" + receiveUrl}
-		env = append(env, "TASKID="+strconv.Itoa(ubiTask.ID))
-		env = append(env, "PARAM_URL="+ubiTask.InputParam)
-
-		var needResource container.Resources
-		if gpuFlag == "0" {
-			env = append(env, "BELLMAN_NO_GPU=1")
-			needResource = container.Resources{
-				Memory: needMemory * 1024 * 1024 * 1024,
-			}
-		} else {
-			gpuEnv, ok := os.LookupEnv("RUST_GPU_TOOLS_CUSTOM_GPU")
-			if ok {
-				env = append(env, "RUST_GPU_TOOLS_CUSTOM_GPU="+gpuEnv)
-			}
-			needResource = container.Resources{
-				Memory: needMemory * 1024 * 1024 * 1024,
-				DeviceRequests: []container.DeviceRequest{
-					{
-						Driver:       "nvidia",
-						Count:        -1,
-						Capabilities: [][]string{{"gpu"}},
-						Options:      nil,
-					},
-				},
-			}
-		}
-
-		filC2Param, ok := os.LookupEnv("FIL_PROOFS_PARAMETER_CACHE")
-		if !ok {
-			filC2Param = "/var/tmp/filecoin-proof-parameters"
-		}
-
-		hostConfig := &container.HostConfig{
-			Binds:     []string{fmt.Sprintf("%s:/var/tmp/filecoin-proof-parameters", filC2Param)},
-			Resources: needResource,
-		}
-		containerConfig := &container.Config{
-			Image:        ubiTaskImage,
-			Cmd:          execCommand,
-			Env:          env,
-			AttachStdout: true,
-			AttachStderr: true,
-			Tty:          true,
-		}
-
-		containerName := JobName + generateString(5)
-		dockerService := NewDockerService()
-		if err = dockerService.ContainerCreateAndStart(containerConfig, hostConfig, containerName); err != nil {
-			logs.GetLogger().Errorf("create ubi task container failed, error: %v", err)
-		}
-
-		containerLogStream, err := dockerService.GetContainerLogStream(containerName)
-		if err != nil {
-			logs.GetLogger().Errorf("get docker container log stream failed, error: %v", err)
-		}
-		defer containerLogStream.Close()
-
-		ubiLogFileName := filepath.Join(cpRepoPath, "ubi-ecp.log")
-		logFile, err := os.OpenFile(ubiLogFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			logs.GetLogger().Errorf("opening ubi-ecp log file failed, error: %v", err)
-			return
-		}
-		defer logFile.Close()
-
-		if _, err = io.Copy(logFile, containerLogStream); err != nil {
-			logs.GetLogger().Errorf("write ubi-ecp log to file failed, error: %v", err)
-			return
-		}
-	}()
+	//go func() {
+	//	defer func() {
+	//		ubiTaskRun, err := NewTaskService().GetTaskEntity(int64(ubiTask.ID))
+	//		if err != nil {
+	//			logs.GetLogger().Errorf("get ubi task detail from db failed, ubiTaskId: %d, error: %+v", ubiTask.ID, err)
+	//			return
+	//		}
+	//		if ubiTaskRun.Id == 0 {
+	//			ubiTaskRun = new(models.TaskEntity)
+	//			ubiTaskRun.Id = int64(ubiTask.ID)
+	//			ubiTaskRun.ZkType = ubiTask.ZkType
+	//			ubiTaskRun.Name = ubiTask.Name
+	//			ubiTaskRun.Contract = ubiTask.ContractAddr
+	//			ubiTaskRun.ResourceType = ubiTask.ResourceType
+	//			ubiTaskRun.InputParam = ubiTask.InputParam
+	//			ubiTaskRun.CreateTime = time.Now().Unix()
+	//			ubiTaskRun.Contract = ubiTask.ContractAddr
+	//			NewTaskService().SaveTaskEntity(ubiTaskRun)
+	//		}
+	//	}()
+	//
+	//	if ubiTaskImage == "" {
+	//		logs.GetLogger().Errorf("please check the log output of the resource-exporter container")
+	//	}
+	//
+	//	if err := NewDockerService().PullImage(ubiTaskImage); err != nil {
+	//		logs.GetLogger().Errorf("pull %s image failed, error: %v", ubiTaskImage, err)
+	//		return
+	//	}
+	//
+	//	multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
+	//	receiveUrl := fmt.Sprintf("http://%s:%s/api/v1/computing/cp/docker/receive/ubi", multiAddressSplit[2], multiAddressSplit[4])
+	//	execCommand := []string{"ubi-bench", "c2"}
+	//	JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
+	//
+	//	var env = []string{"RECEIVE_PROOF_URL=" + receiveUrl}
+	//	env = append(env, "TASKID="+strconv.Itoa(ubiTask.ID))
+	//	env = append(env, "PARAM_URL="+ubiTask.InputParam)
+	//
+	//	var needResource container.Resources
+	//	if gpuFlag == "0" {
+	//		env = append(env, "BELLMAN_NO_GPU=1")
+	//		needResource = container.Resources{
+	//			Memory: needMemory * 1024 * 1024 * 1024,
+	//		}
+	//	} else {
+	//		gpuEnv, ok := os.LookupEnv("RUST_GPU_TOOLS_CUSTOM_GPU")
+	//		if ok {
+	//			env = append(env, "RUST_GPU_TOOLS_CUSTOM_GPU="+gpuEnv)
+	//		}
+	//		needResource = container.Resources{
+	//			Memory: needMemory * 1024 * 1024 * 1024,
+	//			DeviceRequests: []container.DeviceRequest{
+	//				{
+	//					Driver:       "nvidia",
+	//					Count:        -1,
+	//					Capabilities: [][]string{{"gpu"}},
+	//					Options:      nil,
+	//				},
+	//			},
+	//		}
+	//	}
+	//
+	//	filC2Param, ok := os.LookupEnv("FIL_PROOFS_PARAMETER_CACHE")
+	//	if !ok {
+	//		filC2Param = "/var/tmp/filecoin-proof-parameters"
+	//	}
+	//
+	//	hostConfig := &container.HostConfig{
+	//		Binds:     []string{fmt.Sprintf("%s:/var/tmp/filecoin-proof-parameters", filC2Param)},
+	//		Resources: needResource,
+	//	}
+	//	containerConfig := &container.Config{
+	//		Image:        ubiTaskImage,
+	//		Cmd:          execCommand,
+	//		Env:          env,
+	//		AttachStdout: true,
+	//		AttachStderr: true,
+	//		Tty:          true,
+	//	}
+	//
+	//	containerName := JobName + generateString(5)
+	//	dockerService := NewDockerService()
+	//	if err = dockerService.ContainerCreateAndStart(containerConfig, hostConfig, containerName); err != nil {
+	//		logs.GetLogger().Errorf("create ubi task container failed, error: %v", err)
+	//	}
+	//
+	//	containerLogStream, err := dockerService.GetContainerLogStream(containerName)
+	//	if err != nil {
+	//		logs.GetLogger().Errorf("get docker container log stream failed, error: %v", err)
+	//	}
+	//	defer containerLogStream.Close()
+	//
+	//	ubiLogFileName := filepath.Join(cpRepoPath, "ubi-ecp.log")
+	//	logFile, err := os.OpenFile(ubiLogFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	//	if err != nil {
+	//		logs.GetLogger().Errorf("opening ubi-ecp log file failed, error: %v", err)
+	//		return
+	//	}
+	//	defer logFile.Close()
+	//
+	//	if _, err = io.Copy(logFile, containerLogStream); err != nil {
+	//		logs.GetLogger().Errorf("write ubi-ecp log to file failed, error: %v", err)
+	//		return
+	//	}
+	//}()
 	c.JSON(http.StatusOK, util.CreateSuccessResponse("success"))
 }
 

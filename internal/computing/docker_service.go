@@ -352,26 +352,23 @@ func (ds *DockerService) PullImage(imagesName string) error {
 	return nil
 }
 
-func (ds *DockerService) RemoveUnRunningContainer(containerName string) (bool, error) {
-	filterArgs := filters.NewArgs()
-	filterArgs.Add("name", containerName)
-
-	containers, err := ds.c.ContainerList(context.Background(), container.ListOptions{
-		All:     true,
-		Filters: filterArgs,
-	})
+func (ds *DockerService) CheckRunningContainer(containerName string) (bool, error) {
+	containers, err := ds.c.ContainerList(context.Background(), container.ListOptions{})
 	if err != nil {
 		logs.GetLogger().Errorf("listing containers failed, error: %v", err)
 		return false, err
 	}
 	containerRunning := false
 	for _, c := range containers {
-		fmt.Printf("name: %s", c.Image)
-		if c.State == "running" {
-			containerRunning = true
-			break
+		for _, name := range c.Names {
+			fmt.Printf("id: %s,containerName: %s", c.ID, name)
+			if name == "/"+containerName || strings.Contains(name, containerName) {
+				if c.State == "running" {
+					containerRunning = true
+					break
+				}
+			}
 		}
-		ds.c.ContainerRemove(context.Background(), c.ID, container.RemoveOptions{Force: true})
 	}
 	if containerRunning {
 		return true, nil
