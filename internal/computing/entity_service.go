@@ -65,6 +65,10 @@ func (jobServ JobService) UpdateJobEntityByJobUuid(job *models.JobEntity) (err e
 	return jobServ.Debug().Where("job_uuid=?", job.JobUuid).Updates(job).Error
 }
 
+func (jobServ JobService) UpdateJobResultUrlByJobUuid(jobUuid string, resultUrl string) (err error) {
+	return jobServ.Debug().Model(&models.JobEntity{}).Where("job_uuid=?", jobUuid).Update("result_url", resultUrl).Error
+}
+
 func (jobServ JobService) GetJobEntityByTaskUuid(taskUuid string) (models.JobEntity, error) {
 	var job models.JobEntity
 	err := jobServ.Where("task_uuid=?", taskUuid).Find(&job).Error

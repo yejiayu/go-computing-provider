@@ -142,17 +142,10 @@ func ReceiveJob(c *gin.Context) {
 		NewJobService().SaveJobEntity(jobEntity)
 
 		go func() {
-			var resultMcsUrl string
-			for i := 0; i < 5; i++ {
-				if resultMcsUrl, err = submitJob(&jobData); err != nil {
-					logs.GetLogger().Errorf("upload job data to MCS failed, jobUuid: %s, spaceUuid: %s, error: %v",
-						jobData.UUID, spaceUuid, err)
-					continue
-				}
-				break
+			if err = submitJob(&jobData); err != nil {
+				logs.GetLogger().Errorf("upload job data to MCS failed, jobUuid: %s, spaceUuid: %s, error: %v", jobData.UUID, spaceUuid, err)
+				return
 			}
-			jobEntity.ResultUrl = resultMcsUrl
-			NewJobService().UpdateJobEntityByJobUuid(jobEntity)
 			logs.GetLogger().Infof("jobuuid: %s successfully uploaded to MCS", jobData.UUID)
 		}()
 
@@ -161,7 +154,7 @@ func ReceiveJob(c *gin.Context) {
 	c.JSON(http.StatusOK, util.CreateSuccessResponse(jobData))
 }
 
-func submitJob(jobData *models.JobData) (string, error) {
+func submitJob(jobData *models.JobData) error {
 	oldMask := syscall.Umask(0)
 	defer syscall.Umask(oldMask)
 
@@ -174,25 +167,30 @@ func submitJob(jobData *models.JobData) (string, error) {
 	jobData.JobResultURI = jobData.JobRealUri
 	bytes, err := json.Marshal(jobData)
 	if err != nil {
-		return "", fmt.Errorf(" parse to json failed, error: %v", err)
+		return fmt.Errorf(" parse to json failed, error: %v", err)
 	}
 	if err = os.WriteFile(taskDetailFilePath, bytes, os.ModePerm); err != nil {
-		return "", fmt.Errorf("write jobData to file failed, error: %v", err)
+		return fmt.Errorf("write jobData to file failed, error: %v", err)
 	}
 
-	storageService := NewStorageService()
-	mcsOssFile, err := storageService.UploadFileToBucket(jobDetailFile, taskDetailFilePath, true)
-	if err != nil {
-		return "", fmt.Errorf("upload file to bucket failed, error: %v", err)
-	}
+	var resultMcsUrl string
+	for i := 0; i < 5; i++ {
+		storageService := NewStorageService()
+		mcsOssFile, err := storageService.UploadFileToBucket(jobDetailFile, taskDetailFilePath, true)
+		if err != nil {
+			logs.GetLogger().Errorf("upload file to bucket failed, error: %v", err)
+			continue
+		}
 
-	gatewayUrl, err := storageService.GetGatewayUrl()
-	if err != nil {
-		return "", fmt.Errorf("get mcs ipfs gatewayUrl failed, error: %v", err)
+		gatewayUrl, err := storageService.GetGatewayUrl()
+		if err != nil {
+			logs.GetLogger().Errorf("get mcs ipfs gatewayUrl failed, error: %v", err)
+			continue
+		}
+		resultMcsUrl = *gatewayUrl + "/ipfs/" + mcsOssFile.PayloadCid
+		break
 	}
-	fmt.Sprintf("mcsOssFile: %+v \n", mcsOssFile)
-
-	return *gatewayUrl + "/ipfs/" + mcsOssFile.PayloadCid, nil
+	return NewJobService().UpdateJobResultUrlByJobUuid(jobData.UUID, resultMcsUrl)
 }
 
 func RedeployJob(c *gin.Context) {
@@ -284,17 +282,11 @@ func RedeployJob(c *gin.Context) {
 		NewJobService().SaveJobEntity(jobEntity)
 
 		go func() {
-			var resultMcsUrl string
-			for i := 0; i < 5; i++ {
-				if resultMcsUrl, err = submitJob(&jobData); err != nil {
-					logs.GetLogger().Errorf("upload job data to MCS failed, jobUuid: %s, spaceUuid: %s, error: %v",
-						jobData.UUID, spaceUuid, err)
-					continue
-				}
-				break
+			if err = submitJob(&jobData); err != nil {
+				logs.GetLogger().Errorf("upload job data to MCS failed, jobUuid: %s, spaceUuid: %s, error: %v",
+					jobData.UUID, spaceUuid, err)
+				return
 			}
-			jobEntity.ResultUrl = resultMcsUrl
-			NewJobService().UpdateJobEntityByJobUuid(jobEntity)
 			logs.GetLogger().Infof("jobuuid: %s successfully uploaded to MCS", jobData.UUID)
 		}()
 
