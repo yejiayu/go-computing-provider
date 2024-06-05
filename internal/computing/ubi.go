@@ -818,7 +818,7 @@ loopTask:
 			logs.GetLogger().Infof("task_id: %s, retrying", c2Proof.TaskId)
 			taskInfo, err = taskStub.GetTaskInfo()
 			if err != nil {
-				logs.GetLogger().Warnf("get ubi task info failed, taskId: %s, retrying, msg: %s", c2Proof.TaskId, err.Error())
+				logs.GetLogger().Warnf("get ubi task info failed, taskId: %s, msg: %s, retrying", c2Proof.TaskId, err.Error())
 				time.Sleep(3 * time.Second)
 				continue
 			} else {
