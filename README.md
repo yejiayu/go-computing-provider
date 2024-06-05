@@ -365,6 +365,70 @@ ZK_COLLATERAL_CONTRACT = "0x1d2557C9d14882D9eE291BB66eaC6c1C4a587054"     # The 
 ```
 *Note:*  Example WalletWhiteList hosted on GitHub can be found [here](https://raw.githubusercontent.com/swanchain/market-providers/main/clients/whitelist.txt).
 
+## Initialize a Wallet and Deposit Swan-ETH
+1.  Generate a new wallet address or import the previous wallet:
+
+	```bash
+    computing-provider wallet new
+    ```
+
+	Example output:
+
+	```
+    0x7791f48931DB81668854921fA70bFf0eB85B8211
+    ```
+ 
+	or import the previous wallet:
+	```bash
+	# export the wallet’s private key
+	computing-provider wallet export <YOUR_WALLET_ADDRESS>
+  
+	# import wallet using private key
+	computing-provider wallet import 
+ 	```
+
+2.  Deposit Swan-ETH to the generated wallet address as a gas fee:
+
+	```bash
+    computing-provider wallet send --from 0xFbc1d38a2127D81BFe3EA347bec7310a1cfa2373 0x7791f48931DB81668854921fA70bFf0eB85B8211 0.001
+    ```
+
+	Example output:
+
+	```
+    0xa255d9046eff7c7c7ef6f4b55efcf97b62c79aeece748ab2188de21da620f29b
+    ```
+
+	Note: Follow [this guide](https://docs.swanchain.io/swan-testnet/swan-saturn-testnet/before-you-get-started/claim-faucet-tokens) to claim Swan-ETH and bridge it to Swan Saturn Chain.
+
+## Initialization CP Account
+Deploy a contract with CP's basic info:
+```bash
+computing-provider account create --ownerAddress <YOUR_OWNER_WALLET_ADDRESS> \
+	--workerAddress <YOUR_WORKER_WALLET_ADDRESS> \
+	--beneficiaryAddress <YOUR_BENEFICIARY_WALLET_ADDRESS>  \
+	--task-types 3
+```
+
+_Output:_
+
+```
+Contract deployed! Address: 0x3091c9647Ea5248079273B52C3707c958a3f2658
+Transaction hash: 0xb8fd9cc9bfac2b2890230b4f14999b9d449e050339b252273379ab11fac15926
+```
+
+## Collateral Swan-ETH for FCP
+```bash
+ computing-provider collateral add --fcp --from <YOUR_OWNER_WALLET_ADDRESS>  0.1
+```
+
+## Start the Computing Provider
+You can run `computing-provider` using the following command
+```bash
+export CP_PATH=<YOUR CP_PATH>
+nohup computing-provider run >> cp.log 2>&1 & 
+```
+
 ## Install AI Inference Dependency
 It is necessary for Computing Provider to deploy the  AI inference endpoint. But if you do not want to support the feature, you can skip it.
 ```bash
@@ -395,58 +459,24 @@ export CP_PATH=<YOUR CP_PATH>
 * Adjust the value of `RUST_GPU_TOOLS_CUSTOM_GPU` based on the GPU used by the CP's Kubernetes cluster for fil-c2 tasks.
 * For more device choices, please refer to this page:[https://github.com/filecoin-project/bellperson](https://github.com/filecoin-project/bellperson)
 
-### Step 2: Initialize a Wallet and Deposit Swan-ETH
-
-1.  Generate a new wallet address:
-
-    ```bash
-    computing-provider wallet new
-    ```
-
-    Example output:
-
-    ```
-    0x7791f48931DB81668854921fA70bFf0eB85B8211
-    ```
-2.  Deposit Swan-ETH to the generated wallet address as a gas fee:
-
-    ```bash
-    computing-provider wallet send --from 0xFbc1d38a2127D81BFe3EA347bec7310a1cfa2373 0x7791f48931DB81668854921fA70bFf0eB85B8211 0.001
-    ```
-
-    Example output:
-
-    ```
-    0xa255d9046eff7c7c7ef6f4b55efcf97b62c79aeece748ab2188de21da620f29b
-    ```
-
-Note: Follow [this guide](https://docs.swanchain.io/swan-testnet/swan-saturn-testnet/before-you-get-started/claim-faucet-tokens) to claim Swan-ETH and bridge it to Swan Saturn Chain.
-
-### **Step 3: Initialization**
-
-1.  Deploy a contract with CP's basic info:
-
-    ```bash
-    computing-provider account create --ownerAddress <YOUR_OWNER_WALLET_ADDRESS> \
-		--workerAddress <YOUR_WORKER_WALLET_ADDRESS> \
-		--beneficiaryAddress <YOUR_BENEFICIARY_WALLET_ADDRESS>  \
-		--task-types 1,2,3,4
-    ```
-
-    _Output:_
-
-    ```
-    Contract deployed! Address: 0x3091c9647Ea5248079273B52C3707c958a3f2658
-    Transaction hash: 0xb8fd9cc9bfac2b2890230b4f14999b9d449e050339b252273379ab11fac15926
-    ```
-
-### **Step 4: Collateral Swan-ETH for ECP**
+### Step 2: Collateral Swan-ETH for receive Ubi Task
 
 ```bash
 computing-provider collateral add --ecp --from <YOUR_WALLET_ADDRESS>  0.1
 ```
 
-### **Step 5: Account Management**
+Example output:
+
+```
+0x7791f48931DB81668854921fA70bFf0eB85B8211
+```
+### Step 3: Add the type of ubi task
+
+```bash
+computing-provider account changeTaskTypes --ownerAddress <YOUR_OWNER_WALLET_ADDRESS> 1,2,3,4
+```
+
+### **Step 4: Account Management**
 
 Use `computing-provider account` subcommands to update CP details:
 
@@ -489,7 +519,7 @@ TASK ID TASK TYPE       ZK TYPE         TRANSACTION HASH                        
 238     CPU             fil-c2-512M     0xb8eb1f7b3cfc8210fa5546adc528f230241110e5cc9b4900725a9da28895aad9      success 2.0     2024-01-18 17:08:21
 ```
 
-## Start the Computing Provider
+## Restart the Computing Provider
 You can run `computing-provider` using the following command
 ```bash
 export CP_PATH=<YOUR CP_PATH>
