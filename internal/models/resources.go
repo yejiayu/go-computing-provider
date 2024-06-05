@@ -4,9 +4,8 @@ type ClusterResource struct {
 	NodeId        string          `json:"node_id,omitempty"`
 	Region        string          `json:"region,omitempty"`
 	ClusterInfo   []*NodeResource `json:"cluster_info"`
-	PublicAddress string          `json:"public_address,omitempty"`
-	MultiAddress  string          `json:"multi_address,omitempty"`
 	NodeName      string          `json:"node_name,omitempty"`
+	PublicAddress string          `json:"public_address,omitempty"`
 }
 
 type NodeResource struct {
@@ -38,9 +37,10 @@ type GpuDetail struct {
 }
 
 type Common struct {
-	Total string `json:"total"`
-	Used  string `json:"used"`
-	Free  string `json:"free"`
+	Total        string `json:"total"`
+	Used         string `json:"used"`
+	Free         string `json:"free"`
+	RemainderNum int64  `json:"-"`
 }
 
 type ResourceStatus struct {

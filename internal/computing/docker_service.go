@@ -320,33 +320,26 @@ func (ds *DockerService) CleanResource() {
 		return
 	}
 
-	for _, image := range images {
+	for _, img := range images {
 		var specialImage bool
-		for _, tag := range image.RepoTags {
-			if strings.HasPrefix(tag, "filswan/ubi-worker") || strings.HasPrefix(tag, "filswan/cpu-model-collector") {
+		for _, tag := range img.RepoTags {
+			if strings.HasPrefix(tag, "filswan/ubi-worker") || strings.HasPrefix(tag, "filswan/cpu-model-collector") ||
+				strings.HasPrefix(tag, "filswan/hardware-exporter") {
 				specialImage = true
 				break
 			}
 		}
 
 		if !specialImage {
-			ds.RemoveImage(image.ID)
+			ds.RemoveImage(img.ID)
 		}
 	}
 
 	ctx := context.Background()
 	danglingFilters := filters.NewArgs()
 	danglingFilters.Add("dangling", "true")
-	_, err = ds.c.ImagesPrune(ctx, danglingFilters)
-	if err != nil {
-		logs.GetLogger().Errorf("Failed delete dangling image, error: %+v", err)
-		return
-	}
-
-	if _, err = ds.c.ContainersPrune(ctx, filters.NewArgs()); err != nil {
-		logs.GetLogger().Errorf("Failed delete unused container, error: %+v", err)
-		return
-	}
+	ds.c.ImagesPrune(ctx, danglingFilters)
+	ds.c.ContainersPrune(ctx, filters.NewArgs())
 }
 
 func (ds *DockerService) PullImage(imagesName string) error {
@@ -357,6 +350,29 @@ func (ds *DockerService) PullImage(imagesName string) error {
 	defer resp.Close()
 	printOut(resp)
 	return nil
+}
+
+func (ds *DockerService) CheckRunningContainer(containerName string) (bool, error) {
+	containers, err := ds.c.ContainerList(context.Background(), container.ListOptions{})
+	if err != nil {
+		logs.GetLogger().Errorf("listing containers failed, error: %v", err)
+		return false, err
+	}
+	containerRunning := false
+	for _, c := range containers {
+		for _, name := range c.Names {
+			if name == "/"+containerName {
+				if c.State == "running" {
+					containerRunning = true
+					break
+				}
+			}
+		}
+	}
+	if containerRunning {
+		return true, nil
+	}
+	return false, nil
 }
 
 func (ds *DockerService) ContainerCreateAndStart(config *container.Config, hostConfig *container.HostConfig, containerName string) error {
