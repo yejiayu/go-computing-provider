@@ -502,7 +502,7 @@ OPTIONS:
 To check the ZK task list, use the following command:
 
 ```
-computing-provider ubi list
+computing-provider ubi list --show-failed
 ```
 
 Example output:
