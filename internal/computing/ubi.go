@@ -129,6 +129,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 
 	if nodeName == "" {
 		taskEntity.Status = models.TASK_FAILED_STATUS
+		taskEntity.Error = "No resources available"
 		NewTaskService().SaveTaskEntity(taskEntity)
 		logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.ResourceType))
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.NoAvailableResourcesError))
@@ -506,6 +507,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 
 	//if !suffice {
 	//	taskEntity.Status = models.TASK_FAILED_STATUS
+	//	taskEntity.Error = "No resources available"
 	//	NewTaskService().SaveTaskEntity(taskEntity)
 	//	logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.ResourceType))
 	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.NoAvailableResourcesError))
@@ -831,8 +833,9 @@ loopTask:
 	deadlineTime := finallyTime - receiveProofTime
 
 	if deadlineTime < 0 {
-		logs.GetLogger().Warnf("taskId: %s, receiveProofTime: %d, finallyTime: %d, deadlineTime: %d", c2Proof.TaskId, receiveProofTime, finallyTime, deadlineTime)
+		logs.GetLogger().Warnf("taskId: %s proof submission deadline has passed, receiveProofTime: %d, finallyTime: %d, deadlineTime: %d", c2Proof.TaskId, receiveProofTime, finallyTime, deadlineTime)
 		task.Status = models.TASK_FAILED_STATUS
+		task.Error = fmt.Sprintf("Proof submission deadline has passed")
 		return NewTaskService().SaveTaskEntity(task)
 	}
 	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.TaskId, c2Proof.Proof, deadlineTime)
@@ -843,6 +846,7 @@ loopTask:
 		logs.GetLogger().Infof("taskId: %s, submitUBIProofTx: %s", c2Proof.TaskId, submitUBIProofTx)
 	} else if err != nil {
 		task.Status = models.TASK_FAILED_STATUS
+		task.Error = fmt.Sprintf("%s", err.Error())
 		logs.GetLogger().Errorf("taskId: %s, submitUBIProofTx failed, error: %v", c2Proof.TaskId, err)
 	}
 	return NewTaskService().SaveTaskEntity(task)
