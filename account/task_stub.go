@@ -73,7 +73,7 @@ outerLoop:
 	for {
 		select {
 		case <-timeOutCh:
-			err = fmt.Errorf("taskId: %s, submit proof timeout", taskId)
+			err = fmt.Errorf("submit proof timeout")
 			break outerLoop
 		default:
 			time.Sleep(3 * time.Second)
