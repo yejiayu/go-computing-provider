@@ -107,7 +107,7 @@ type CacheSpaceDetail struct {
 type UBITaskReq struct {
 	ID           int           `json:"id"`
 	Name         string        `json:"name,omitempty"`
-	ZkType       string        `json:"zk_type"`
+	Type         int           `json:"type"`
 	InputParam   string        `json:"input_param"`
 	Signature    string        `json:"signature"`
 	Resource     *TaskResource `json:"resource"`

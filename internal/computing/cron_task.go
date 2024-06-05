@@ -318,7 +318,7 @@ func (task *CronTask) setFailedUbiTaskStatus() {
 			ubiTask := entity
 
 			if ubiTask.CreateTime < oneHourAgo {
-				JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(int(ubiTask.Id))
+				JobName := strings.ToLower(models.UbiTaskTypeStr(ubiTask.Type)) + "-" + strconv.Itoa(int(ubiTask.Id))
 				k8sNameSpace := "ubi-task-" + strconv.Itoa(int(ubiTask.Id))
 				NewK8sService().k8sClient.BatchV1().Jobs(k8sNameSpace).Delete(context.TODO(), JobName, metav1.DeleteOptions{})
 				ubiTask.Status = models.TASK_FAILED_STATUS

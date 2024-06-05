@@ -6,28 +6,23 @@ import (
 )
 
 const (
-	SOURCE_TYPE_CPU = 0
-	SOURCE_TYPE_GPU = 1
+	FIL_C2_CPU512 = 1
+	FIL_C2_CPU32G = 2
+	FIL_C2_GPU512 = 3
+	FIL_C2_GPU32G = 4
 )
 
-const (
-	Task_TYPE_FIL_C2_512 = iota + 1
-	Task_TYPE_ALEO
-	Task_TYPE_AI
-	Task_TYPE_FIL_C2_32
-)
-
-func TaskTypeStr(taskType int) string {
+func UbiTaskTypeStr(typeInt int) string {
 	var typeStr string
-	switch taskType {
-	case Task_TYPE_FIL_C2_512:
-		typeStr = "Fil-C2-512M"
-	case Task_TYPE_ALEO:
-		typeStr = "Aleo"
-	case Task_TYPE_AI:
-		typeStr = "AI"
-	case Task_TYPE_FIL_C2_32:
-		typeStr = "Fil-C2-32G"
+	switch typeInt {
+	case FIL_C2_CPU512:
+		typeStr = "fil-c2-512M"
+	case FIL_C2_CPU32G:
+		typeStr = "fil-c2-32G"
+	case FIL_C2_GPU512:
+		typeStr = "fil-c2-512M"
+	case FIL_C2_GPU32G:
+		typeStr = "fil-c2-32G"
 	}
 	return typeStr
 }
@@ -54,6 +49,11 @@ func TaskStatusStr(status int) string {
 	return statusStr
 }
 
+const (
+	SOURCE_TYPE_CPU = 0
+	SOURCE_TYPE_GPU = 1
+)
+
 func GetSourceTypeStr(resourceType int) string {
 	switch resourceType {
 	case SOURCE_TYPE_CPU:
@@ -73,7 +73,7 @@ const (
 
 type TaskEntity struct {
 	Id           int64  `json:"id" gorm:"primaryKey;id"`
-	ZkType       string `json:"zk_type" gorm:"zk_type"`
+	Type         int    `json:"type" gorm:"type"`
 	Name         string `json:"name" gorm:"name"`
 	Contract     string `json:"contract" gorm:"name"`
 	ResourceType int    `json:"resource_type" gorm:"resource_type"` // 1
@@ -152,6 +152,28 @@ type JobEntity struct {
 
 func (*JobEntity) TableName() string {
 	return "t_job"
+}
+
+const (
+	Task_TYPE_FIL_C2_512 = iota + 1
+	Task_TYPE_ALEO
+	Task_TYPE_AI
+	Task_TYPE_FIL_C2_32
+)
+
+func TaskTypeStr(taskType int) string {
+	var typeStr string
+	switch taskType {
+	case Task_TYPE_FIL_C2_512:
+		typeStr = "Fil-C2-512M"
+	case Task_TYPE_ALEO:
+		typeStr = "Aleo"
+	case Task_TYPE_AI:
+		typeStr = "AI"
+	case Task_TYPE_FIL_C2_32:
+		typeStr = "Fil-C2-32G"
+	}
+	return typeStr
 }
 
 type CpInfoEntity struct {

@@ -54,8 +54,8 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of resource_type is 0 or 1"))
 		return
 	}
-	if strings.TrimSpace(ubiTask.ZkType) == "" {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: zk_type"))
+	if ubiTask.Type == 0 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: type"))
 		return
 	}
 
@@ -83,7 +83,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 		return
 	}
 
-	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, type: %s, verify: %v", ubiTask.ID, ubiTask.ZkType, signature)
+	logs.GetLogger().Infof("ubi task sign verifing, task_id: %d, type: %s, verify: %v", ubiTask.ID, models.UbiTaskTypeStr(ubiTask.Type), signature)
 	if !signature {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.UbiTaskParamError, "signature verify failed"))
 		return
@@ -96,7 +96,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 
 	var taskEntity = new(models.TaskEntity)
 	taskEntity.Id = int64(ubiTask.ID)
-	taskEntity.ZkType = ubiTask.ZkType
+	taskEntity.Type = ubiTask.Type
 	taskEntity.Name = ubiTask.Name
 	taskEntity.Contract = ubiTask.ContractAddr
 	taskEntity.ResourceType = ubiTask.ResourceType
@@ -213,7 +213,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			if ubiTaskRun.Id == 0 {
 				ubiTaskRun = new(models.TaskEntity)
 				ubiTaskRun.Id = int64(ubiTask.ID)
-				ubiTaskRun.ZkType = ubiTask.ZkType
+				ubiTaskRun.Type = ubiTask.Type
 				ubiTaskRun.Name = ubiTask.Name
 				ubiTaskRun.Contract = ubiTask.ContractAddr
 				ubiTaskRun.ResourceType = ubiTask.ResourceType
@@ -250,7 +250,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 
 		receiveUrl := fmt.Sprintf("%s:%d/api/v1/computing/cp/receive/ubi", k8sService.GetAPIServerEndpoint(), conf.GetConfig().API.Port)
 		execCommand := []string{"ubi-bench", "c2"}
-		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
+		JobName := strings.ToLower(models.UbiTaskTypeStr(ubiTask.Type)) + "-" + strconv.Itoa(ubiTask.ID)
 		filC2Param := envVars["FIL_PROOFS_PARAMETER_CACHE"]
 		if gpuFlag == "0" {
 			delete(envVars, "RUST_GPU_TOOLS_CUSTOM_GPU")
@@ -439,7 +439,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 	}
 
 	logs.GetLogger().Infof("ubi task received: id: %d, type: %d, zk_type: %s, input_param: %s, signature: %s, contract: %s",
-		ubiTask.ID, ubiTask.ResourceType, ubiTask.ZkType, ubiTask.InputParam, ubiTask.Signature, ubiTask.ContractAddr)
+		ubiTask.ID, ubiTask.ResourceType, models.UbiTaskTypeStr(ubiTask.Type), ubiTask.InputParam, ubiTask.Signature, ubiTask.ContractAddr)
 
 	if ubiTask.ID == 0 {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: id"))
@@ -454,8 +454,8 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "the value of resource_type is 0 or 1"))
 		return
 	}
-	if strings.TrimSpace(ubiTask.ZkType) == "" {
-		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: zk_type"))
+	if ubiTask.Type == 0 {
+		c.JSON(http.StatusBadRequest, util.CreateErrorResponse(util.UbiTaskParamError, "missing required field: type"))
 		return
 	}
 
@@ -501,7 +501,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 
 	var taskEntity = new(models.TaskEntity)
 	taskEntity.Id = int64(ubiTask.ID)
-	taskEntity.ZkType = ubiTask.ZkType
+	taskEntity.Type = ubiTask.Type
 	taskEntity.Name = ubiTask.Name
 	taskEntity.Contract = ubiTask.ContractAddr
 	taskEntity.ResourceType = ubiTask.ResourceType
@@ -553,7 +553,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 			if ubiTaskRun.Id == 0 {
 				ubiTaskRun = new(models.TaskEntity)
 				ubiTaskRun.Id = int64(ubiTask.ID)
-				ubiTaskRun.ZkType = ubiTask.ZkType
+				ubiTaskRun.Type = ubiTask.Type
 				ubiTaskRun.Name = ubiTask.Name
 				ubiTaskRun.Contract = ubiTask.ContractAddr
 				ubiTaskRun.ResourceType = ubiTask.ResourceType
@@ -576,7 +576,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
 		receiveUrl := fmt.Sprintf("http://%s:%s/api/v1/computing/cp/docker/receive/ubi", multiAddressSplit[2], multiAddressSplit[4])
 		execCommand := []string{"ubi-bench", "c2"}
-		JobName := strings.ToLower(ubiTask.ZkType) + "-" + strconv.Itoa(ubiTask.ID)
+		JobName := strings.ToLower(models.UbiTaskTypeStr(ubiTask.Type)) + "-" + strconv.Itoa(ubiTask.ID)
 
 		var env = []string{"RECEIVE_PROOF_URL=" + receiveUrl}
 		env = append(env, "TASKID="+strconv.Itoa(ubiTask.ID))
