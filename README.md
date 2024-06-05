@@ -427,11 +427,10 @@ Note: Follow [this guide](https://docs.swanchain.io/swan-testnet/swan-saturn-tes
 1.  Deploy a contract with CP's basic info:
 
     ```bash
-    computing-provider account create \
-    	--ownerAddress 0xFbc1d38a2127D81BFe3EA347bec7310a1cfa2373 \ 
-    	--workerAddress 0xFbc1d38a2127D81BFe3EA347bec7310a1cfa2373 \
-    	--beneficiaryAddress 0xFbc1d38a2127D81BFe3EA347bec7310a1cfa2373 \ 
-    	--task-types 1,2,3,4
+    computing-provider account create --ownerAddress <YOUR_OWNER_WALLET_ADDRESS> \
+		--workerAddress <YOUR_WORKER_WALLET_ADDRESS> \
+		--beneficiaryAddress <YOUR_BENEFICIARY_WALLET_ADDRESS>  \
+		--task-types 1,2,3,4
     ```
 
     _Output:_
