@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -335,7 +336,27 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			return
 		}
 
-		time.Sleep(4 * time.Second)
+		err = wait.PollImmediate(2*time.Second, 60*time.Second, func() (bool, error) {
+			pods, err := k8sService.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
+				LabelSelector: fmt.Sprintf("job-name=%s", JobName),
+			})
+			if err != nil {
+				return false, err
+			}
+
+			for _, p := range pods.Items {
+				for _, condition := range p.Status.Conditions {
+					if condition.Type != coreV1.PodReady && condition.Status != coreV1.ConditionTrue {
+						return false, nil
+					}
+				}
+			}
+			return true, nil
+		})
+		if err != nil {
+			logs.GetLogger().Errorf("Failed waiting pods create: %v", err)
+			return
+		}
 
 		pods, err := k8sService.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
 			LabelSelector: fmt.Sprintf("job-name=%s", JobName),
@@ -504,15 +525,6 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.CheckResourcesError))
 		return
 	}
-
-	//if !suffice {
-	//	taskEntity.Status = models.TASK_FAILED_STATUS
-	//	taskEntity.Error = "No resources available"
-	//	NewTaskService().SaveTaskEntity(taskEntity)
-	//	logs.GetLogger().Warnf("ubi task id: %d, type: %s, not found a resources available", ubiTask.ID, models.GetSourceTypeStr(ubiTask.ResourceType))
-	//	c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.NoAvailableResourcesError))
-	//	return
-	//}
 
 	var ubiTaskImage string
 	if architecture == constants.CPU_AMD {

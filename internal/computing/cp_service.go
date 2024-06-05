@@ -29,7 +29,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -155,21 +154,29 @@ func ReceiveJob(c *gin.Context) {
 }
 
 func submitJob(jobData *models.JobData) error {
-	oldMask := syscall.Umask(0)
-	defer syscall.Umask(oldMask)
-
-	fileCachePath := conf.GetConfig().MCS.FileCachePath
-	folderPath := "jobs"
+	cpRepoPath, ok := os.LookupEnv("CP_PATH")
+	if !ok {
+		return fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
+	}
+	folderPath := "mcs_cache"
 	jobDetailFile := filepath.Join(folderPath, uuid.NewString()+".json")
-	os.MkdirAll(filepath.Join(fileCachePath, folderPath), os.ModePerm)
-	taskDetailFilePath := filepath.Join(fileCachePath, jobDetailFile)
+	os.MkdirAll(filepath.Join(cpRepoPath, folderPath), os.ModePerm)
+	taskDetailFilePath := filepath.Join(cpRepoPath, jobDetailFile)
 
 	jobData.JobResultURI = jobData.JobRealUri
 	bytes, err := json.Marshal(jobData)
 	if err != nil {
 		return fmt.Errorf(" parse to json failed, error: %v", err)
 	}
-	if err = os.WriteFile(taskDetailFilePath, bytes, os.ModePerm); err != nil {
+
+	f, err := os.OpenFile(taskDetailFilePath, os.O_RDWR|os.O_CREATE, 0777)
+	if err != nil {
+		logs.GetLogger().Errorf("Failed to open file, error: %v", err)
+		return err
+	}
+	defer f.Close()
+
+	if _, err = f.Write(bytes); err != nil {
 		return fmt.Errorf("write jobData to file failed, error: %v", err)
 	}
 
@@ -771,7 +778,8 @@ func DeploySpaceTask(jobSourceURI, hostName string, duration int, jobUuid string
 	deploy.WithSpaceInfo(spaceUuid, spaceName)
 	deploy.WithGpuProductName(gpuProductName)
 
-	spacePath := filepath.Join("build", walletAddress, "spaces", spaceName)
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	spacePath := filepath.Join(cpRepoPath, "build", walletAddress, "spaces", spaceName)
 	os.RemoveAll(spacePath)
 	updateJobStatus(jobUuid, models.DEPLOY_DOWNLOAD_SOURCE)
 	containsYaml, yamlPath, imagePath, modelsSettingFile, _, err := BuildSpaceTaskImage(spaceUuid, spaceDetail.Data.Files)

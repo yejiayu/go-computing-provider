@@ -24,7 +24,6 @@ VerifySign = true                                             # Verify that the 
 ApiKey = "<YOUR_Api_Key>"                     # Acquired from "https://www.multichain.storage" -> setting -> Create API Key
 BucketName = "<YOUR_Bucket_Name>"             # Acquired from "https://www.multichain.storage" -> bucket -> Add Bucket
 Network = "polygon.mainnet"                   # polygon.mainnet for mainnet, polygon.mumbai for testnet
-FileCachePath = "/tmp"                        # Cache directory of job data
 
 [Registry]
 ServerAddress = ""                            # The docker container image registry address, if only a single node, you can ignore
@@ -32,11 +31,11 @@ UserName = ""                                 # The login username, if only a si
 Password = ""                                 # The login password, if only a single node, you can ignore
 
 [RPC]
-SWAN_TESTNET ="https://rpc-proxima.swanchain.io"  # Swan testnet RPC
-SWAN_MAINNET= ""                                  # Swan mainnet RPC
+SWAN_TESTNET = "https://rpc-proxima.swanchain.io"  # Swan testnet RPC
+SWAN_MAINNET= ""                                   # Swan mainnet RPC
 
 [CONTRACT]
-SWAN_CONTRACT="0x91B25A65b295F0405552A4bbB77879ab5e38166c"              # Swan token's contract address
-SWAN_COLLATERAL_CONTRACT="0xfD9190027cd42Fc4f653Dfd9c4c45aeBAf0ae063"   # Swan's collateral address
-REGISTER_CP_CONTRACT = "0x0c5ff16ecac04d89413aaa3ebf904ac0ea440675"     # The CP registration contract address
-ZK_COLLATERAL_CONTRACT = "0x7cb131b22eca6ba9e38f9d9c1887e083a256e67e"   # The ZK task's collateral contract address
+SWAN_CONTRACT = "0x91B25A65b295F0405552A4bbB77879ab5e38166c"              # Swan token's contract address
+SWAN_COLLATERAL_CONTRACT = "0xfD9190027cd42Fc4f653Dfd9c4c45aeBAf0ae063"   # Swan's collateral address
+REGISTER_CP_CONTRACT = "0x6edf891b53ba2c6fade6ae373682ed48dea5af48"       # The CP registration contract address
+ZK_COLLATERAL_CONTRACT = "0x7cb131b22eca6ba9e38f9d9c1887e083a256e67e"     # The ZK task's collateral contract address

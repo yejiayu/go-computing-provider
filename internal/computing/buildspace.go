@@ -20,7 +20,8 @@ var NotFoundError = errors.New("not found resource")
 
 func BuildSpaceTaskImage(spaceUuid string, files []models.SpaceFile) (bool, string, string, string, string, error) {
 	var err error
-	buildFolder := "build/"
+	cpRepoPath, _ := os.LookupEnv("CP_PATH")
+	buildFolder := filepath.Join(cpRepoPath, "build")
 	if len(files) > 0 {
 		for _, file := range files {
 			dirPath := filepath.Dir(file.Name)

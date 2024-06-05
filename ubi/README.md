@@ -29,7 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/rel
 ## Install ECP and Init CP Account
 - Download `computing-provider`
 ```bash
-wget https://github.com/swanchain/go-computing-provider/releases/download/v0.4.7/computing-provider
+wget https://github.com/swanchain/go-computing-provider/releases/download/v0.5.0/computing-provider
 ```
 
 - Initialize ECP repo
@@ -60,7 +60,14 @@ Output:
 
 - Initialize ECP Account
 ```bash
-./computing-provider account create --ownerAddress <YOUR_WALLET_ADDRESS> --ubi-flag=true
+./computing-provider account create --ownerAddress <YOUR_OWNER_WALLET_ADDRESS> \
+  --workerAddress <YOUR_WORKER_WALLET_ADDRESS> \
+  --beneficiaryAddress <YOUR_BENEFICIARY_WALLET_ADDRESS>  \
+  --task-types 1,2,3,4
+```
+- Collateral Swan-ETH for ECP
+```bash
+    
 ```
 
 ## Start ECP service

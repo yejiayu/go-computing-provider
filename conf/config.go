@@ -54,11 +54,10 @@ type HUB struct {
 }
 
 type MCS struct {
-	ApiKey        string
-	AccessToken   string
-	BucketName    string
-	Network       string
-	FileCachePath string
+	ApiKey      string
+	AccessToken string
+	BucketName  string
+	Network     string
 }
 
 type Registry struct {
@@ -137,7 +136,6 @@ func requiredFieldsAreGiven(metaData toml.MetaData) bool {
 		{"MCS", "ApiKey"},
 		{"MCS", "BucketName"},
 		{"MCS", "Network"},
-		{"MCS", "FileCachePath"},
 
 		{"RPC", "SWAN_TESTNET"},
 
