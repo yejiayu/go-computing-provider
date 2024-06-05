@@ -68,7 +68,7 @@ Output:
 ```
 - Collateral Swan-ETH for ECP
 ```bash
-./computing-provider collateral add --ecp --from <YOUR_WALLET_ADDRESS>  0.1   
+./computing-provider collateral add --ecp --from <YOUR_WALLET_ADDRESS>  <AMOUNT>   
 ```
 
 ## Start ECP service
