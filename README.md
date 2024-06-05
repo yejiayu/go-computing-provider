@@ -378,31 +378,26 @@ ZK_COLLATERAL_CONTRACT = "0x1d2557C9d14882D9eE291BB66eaC6c1C4a587054"     # The 
     0x7791f48931DB81668854921fA70bFf0eB85B8211
     ```
  
-	or import the previous wallet:
+	or import your own wallet:
 	```bash
-	# export the wallet’s private key
-	computing-provider wallet export <YOUR_WALLET_ADDRESS>
-  
-	# import wallet using private key
-	computing-provider wallet import 
+	# Import wallet using private key
+	computing-provider wallet import <YOUR_PRIVATE_KEY_FILE>
  	```
 
 2.  Deposit Swan-ETH to the generated wallet address as a gas fee:
-
 	```bash
     computing-provider wallet send --from 0xFbc1d38a2127D81BFe3EA347bec7310a1cfa2373 0x7791f48931DB81668854921fA70bFf0eB85B8211 0.001
     ```
-
 	Example output:
 
 	```
     0xa255d9046eff7c7c7ef6f4b55efcf97b62c79aeece748ab2188de21da620f29b
     ```
 
-	Note: Follow [this guide](https://docs.swanchain.io/swan-testnet/swan-saturn-testnet/before-you-get-started/claim-faucet-tokens) to claim Swan-ETH and bridge it to Swan Saturn Chain.
+	**Note:** Follow [the guideline](https://docs.swanchain.io/swan-testnet/atom-accelerator-race/before-you-get-started/claim-sepoliaeth) to claim Swan-ETH and bridge it to Swan Proxima Chain.
 
 ## Initialization CP Account
-Deploy a contract with CP's basic info:
+Deploy a CP account contract:
 ```bash
 computing-provider account create --ownerAddress <YOUR_OWNER_WALLET_ADDRESS> \
 	--workerAddress <YOUR_WORKER_WALLET_ADDRESS> \
@@ -419,25 +414,25 @@ Transaction hash: 0xb8fd9cc9bfac2b2890230b4f14999b9d449e050339b252273379ab11fac1
 
 ## Collateral Swan-ETH for FCP
 ```bash
- computing-provider collateral add --fcp --from <YOUR_OWNER_WALLET_ADDRESS>  0.1
+ computing-provider collateral add --fcp --from <YOUR_OWNER_WALLET_ADDRESS>  <amount>
 ```
 
 ## Start the Computing Provider
 You can run `computing-provider` using the following command
 ```bash
-export CP_PATH=<YOUR CP_PATH>
+export CP_PATH=<YOUR_CP_PATH>
 nohup computing-provider run >> cp.log 2>&1 & 
 ```
 
-## Install AI Inference Dependency
+## [**OPTIONAL**]Install AI Inference Dependency
 It is necessary for Computing Provider to deploy the  AI inference endpoint. But if you do not want to support the feature, you can skip it.
 ```bash
-export CP_PATH=<YOUR CP_PATH>
+export CP_PATH=<YOUR_CP_PATH>
 ./install.sh
 ```
 
-## Config and Receive UBI Tasks
-### **Step 1: Prerequisites:** Perform Filecoin Commit2 (fil-c2) UBI tasks.
+## [**OPTIONAL**]Config and Receive UBI Tasks
+### **Step 1: Prerequisites:** Perform Filecoin Commit2 (fil-c2) ZK tasks.
 1. Download parameters (specify path with PARENT_PATH variable):
 	```bash
 	# At least 200G storage is needed
@@ -449,7 +444,7 @@ export CP_PATH=<YOUR CP_PATH>
 	# 32GiB parameters
 	curl -fsSL https://raw.githubusercontent.com/swanchain/go-computing-provider/releases/ubi/fetch-param-32.sh | bash
 	```
-2. Configure environment variables in `fil-c2.env` under CP repo ($CP_PATH):
+2. Configure environment variables in `fil-c2.env` under CP repo (`$CP_PATH`):
 
     ```bash
     FIL_PROOFS_PARAMETER_CACHE=$PARENT_PATH
@@ -459,10 +454,10 @@ export CP_PATH=<YOUR CP_PATH>
 * Adjust the value of `RUST_GPU_TOOLS_CUSTOM_GPU` based on the GPU used by the CP's Kubernetes cluster for fil-c2 tasks.
 * For more device choices, please refer to this page:[https://github.com/filecoin-project/bellperson](https://github.com/filecoin-project/bellperson)
 
-### Step 2: Collateral Swan-ETH for receive Ubi Task
+### Step 2: Collateral Swan-ETH for receive ZK Task
 
 ```bash
-computing-provider collateral add --ecp --from <YOUR_WALLET_ADDRESS>  0.1
+computing-provider collateral add --ecp --from <YOUR_WALLET_ADDRESS>  <amount>
 ```
 
 Example output:
@@ -501,9 +496,9 @@ OPTIONS:
    --help, -h  show help
 ```
 
-### Step 6: Check the Status of UBI-Task&#x20;
+### Step 6: Check the Status of ZK task;
 
-To check the UBI task list, use the following command:
+To check the ZK task list, use the following command:
 
 ```
 computing-provider ubi list
@@ -522,7 +517,7 @@ TASK ID TASK TYPE       ZK TYPE         TRANSACTION HASH                        
 ## Restart the Computing Provider
 You can run `computing-provider` using the following command
 ```bash
-export CP_PATH=<YOUR CP_PATH>
+export CP_PATH=<YOUR_CP_PATH>
 nohup computing-provider run >> cp.log 2>&1 & 
 ```
 
