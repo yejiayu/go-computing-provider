@@ -312,7 +312,8 @@ Then build the Computing provider follow the below steps:
 make clean && make
 make install
 ```
- - Update Configuration 
+ - Update Configuration
+
 The computing provider's configuration sample locate in `./go-computing-provider/config.toml.sample`
 
 ```
