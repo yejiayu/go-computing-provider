@@ -811,15 +811,15 @@ func submitUBIProof(c2Proof models.UbiC2Proof, task *models.TaskEntity) error {
 loopTask:
 	for {
 		select {
-		case <-time.After(10 * time.Second):
-			logs.GetLogger().Errorf("get ubi task info, taskId: %s, contract: %s, timeout", c2Proof.TaskId, task.Contract)
+		case <-time.After(30 * time.Second):
+			logs.GetLogger().Errorf("get ubi task info, taskId: %s timeout", c2Proof.TaskId)
 			break loopTask
 		default:
 			logs.GetLogger().Infof("task_id: %s, retrying", c2Proof.TaskId)
 			taskInfo, err = taskStub.GetTaskInfo()
 			if err != nil {
-				logs.GetLogger().Warnf("get ubi task info failed, taskId: %s, retrying, msg: %s", task.Contract, err.Error())
-				time.Sleep(time.Second)
+				logs.GetLogger().Warnf("get ubi task info failed, taskId: %s, retrying, msg: %s", c2Proof.TaskId, err.Error())
+				time.Sleep(3 * time.Second)
 				continue
 			} else {
 				break loopTask
@@ -827,21 +827,24 @@ loopTask:
 		}
 	}
 
-	deadlineTime := task.CreateTime + taskInfo.Deadline.Int64()*2 - time.Now().Unix()
+	receiveProofTime := time.Now().Unix()
+	finallyTime := task.CreateTime + taskInfo.Deadline.Int64()*2
+	deadlineTime := finallyTime - receiveProofTime
+
 	if deadlineTime < 0 {
-		logs.GetLogger().Warnf("taskId: %s, contract address: %s, retrying", c2Proof.TaskId, task.Contract)
+		logs.GetLogger().Warnf("taskId: %s, receiveProofTime: %d, finallyTime: %d, deadlineTime: %d", c2Proof.TaskId, receiveProofTime, finallyTime, deadlineTime)
 		task.Status = models.TASK_FAILED_STATUS
 		return NewTaskService().SaveTaskEntity(task)
 	}
-	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.Proof, deadlineTime)
+	submitUBIProofTx, err := taskStub.SubmitUBIProof(c2Proof.TaskId, c2Proof.Proof, deadlineTime)
 
 	if submitUBIProofTx != "" {
 		task.Status = models.TASK_SUCCESS_STATUS
 		task.TxHash = submitUBIProofTx
-		logs.GetLogger().Infof("submitUBIProofTx: %s", submitUBIProofTx)
+		logs.GetLogger().Infof("taskId: %s, submitUBIProofTx: %s", c2Proof.TaskId, submitUBIProofTx)
 	} else if err != nil {
 		task.Status = models.TASK_FAILED_STATUS
-		logs.GetLogger().Errorf("submitUBIProofTx failed, error: %v", err)
+		logs.GetLogger().Errorf("taskId: %s, submitUBIProofTx failed, error: %v", c2Proof.TaskId, err)
 	}
 	return NewTaskService().SaveTaskEntity(task)
 }

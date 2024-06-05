@@ -63,7 +63,7 @@ func NewTaskStub(client *ethclient.Client, options ...TaskOption) (*TaskStub, er
 	return stub, nil
 }
 
-func (s *TaskStub) SubmitUBIProof(proof string, timeOut int64) (string, error) {
+func (s *TaskStub) SubmitUBIProof(taskId, proof string, timeOut int64) (string, error) {
 	var err error
 	var submitProofTxHash string
 	var flag bool
@@ -73,21 +73,21 @@ outerLoop:
 	for {
 		select {
 		case <-timeOutCh:
-			err = fmt.Errorf("task_contract: %s, timeout", s.ContractAddress)
+			err = fmt.Errorf("taskId: %s, submit proof timeout", taskId)
 			break outerLoop
 		default:
 			time.Sleep(3 * time.Second)
 			if !flag {
 				err = s.getNonce()
 				if err != nil {
-					logs.GetLogger().Warnf("task contract: %s, get nonce: %s, retrying", s.ContractAddress, parseError(err))
+					logs.GetLogger().Warnf("taskId: %s, get nonce: %s, retrying", taskId, parseError(err))
 					continue
 				}
 			}
 
 			txOptions, err := s.createTransactOpts(int64(s.nonceX))
 			if err != nil {
-				logs.GetLogger().Warnf("task contract: %s, create transaction opts failed, error: %s", s.ContractAddress, parseError(err))
+				logs.GetLogger().Warnf("taskId: %s, create transaction opts failed, error: %s", taskId, parseError(err))
 				continue
 			}
 			transaction, err := s.task.SubmitProof(txOptions, proof)
@@ -98,12 +98,12 @@ outerLoop:
 				} else if strings.Contains(err.Error(), "next nonce") {
 					err = s.getNonce()
 					if err != nil {
-						logs.GetLogger().Warnf("task contract: %s, get nonce: %s, retrying", s.ContractAddress, parseError(err))
+						logs.GetLogger().Warnf("taskId: %s, get nonce: %s, retrying", taskId, parseError(err))
 						flag = false
 						continue
 					}
 				} else {
-					logs.GetLogger().Warnf("task contract: %s SubmitUBIProof failed, error: %s", s.ContractAddress, parseError(err))
+					logs.GetLogger().Warnf("taskId: %s SubmitUBIProof failed, error: %s", taskId, parseError(err))
 					continue
 				}
 			}
@@ -111,7 +111,7 @@ outerLoop:
 				submitProofTxHash = transaction.Hash().String()
 				break outerLoop
 			} else {
-				logs.GetLogger().Warnf("task contract: %s submitProofTxHash is nil, retrying", s.ContractAddress)
+				logs.GetLogger().Warnf("taskId: %s submitProofTxHash is nil, retrying", taskId)
 			}
 		}
 	}
