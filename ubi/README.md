@@ -61,9 +61,9 @@ Output:
 - Initialize ECP Account
 ```bash
 ./computing-provider account create \
-                    --ownerAddress 0x23C31c09d0686CF514eeF7E826FBa19173CE170B \
-                    --workerAddress 0x23C31c09d0686CF514eeF7E826FBa19173CE170B \
-                    --beneficiaryAddress 0x23C31c09d0686CF514eeF7E826FBa19173CE170B  \
+                    --ownerAddress <YOUR_OWNER_ADDRESS> \
+                    --workerAddress <YOUR_WORKER_ADDRESS> \
+                    --beneficiaryAddress <YOUR_BENEFICIAERY_ADDRESS  \
                     --task-types 1,4
 ```
 - Collateral Swan-ETH for ECP
