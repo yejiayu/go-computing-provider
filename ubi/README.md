@@ -63,7 +63,7 @@ Output:
 ./computing-provider account create --ownerAddress <YOUR_OWNER_WALLET_ADDRESS> \
   --workerAddress <YOUR_WORKER_WALLET_ADDRESS> \
   --beneficiaryAddress <YOUR_BENEFICIARY_WALLET_ADDRESS>  \
-  --task-types 1,2,3,4
+  --task-types 1,4
 ```
 - Collateral Swan-ETH for ECP
 ```bash
