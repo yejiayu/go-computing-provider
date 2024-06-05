@@ -338,7 +338,7 @@ var collateralAddCmd = &cli.Command{
 		},
 		&cli.StringFlag{
 			Name:  "from",
-			Usage: "Specify the wallet address",
+			Usage: "Specify the wallet address, if the fcp is true, --form must specify the owner wallet address",
 		},
 		&cli.StringFlag{
 			Name:  "account",

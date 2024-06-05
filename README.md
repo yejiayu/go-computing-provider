@@ -374,7 +374,7 @@ export CP_PATH=<YOUR CP_PATH>
 
 ## Config and Receive UBI Tasks
 ### **Step 1: Prerequisites:** Perform Filecoin Commit2 (fil-c2) UBI tasks.
-1. Download parameters (specify path with FIL_PROOFS_PARAMETER_CACHE variable):
+1. Download parameters (specify path with PARENT_PATH variable):
 	```bash
 	# At least 200G storage is needed
 	export PARENT_PATH="<V28_PARAMS_PATH>"
