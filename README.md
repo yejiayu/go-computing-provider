@@ -424,7 +424,7 @@ You can run `computing-provider` using the following command
 export CP_PATH=<YOUR_CP_PATH>
 nohup computing-provider run >> cp.log 2>&1 & 
 ```
-
+---
 ## [**OPTIONAL**]Install AI Inference Dependency
 It is necessary for Computing Provider to deploy the  AI inference endpoint. But if you do not want to support the feature, you can skip it.
 ```bash
@@ -466,7 +466,7 @@ Example output:
 ```
 0x7791f48931DB81668854921fA70bFf0eB85B8211
 ```
-### Step 3: Add the type of ubi task
+### Step 3: Add the type of ZK task
 
 ```bash
 computing-provider account changeTaskTypes --ownerAddress <YOUR_OWNER_WALLET_ADDRESS> 1,2,3,4
