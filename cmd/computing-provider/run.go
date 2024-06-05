@@ -578,15 +578,15 @@ var createAccountCmd = &cli.Command{
 		if strings.Index(taskTypes, ",") > 0 {
 			for _, taskT := range strings.Split(taskTypes, ",") {
 				tt, _ := strconv.ParseUint(taskT, 10, 64)
-				if tt != 1 && tt != 2 && tt != 3 && tt != 4 {
-					return fmt.Errorf("TaskTypes supports 1, 2, 3, 4")
+				if tt < 0 {
+					return fmt.Errorf("task-types must be int")
 				}
 				taskTypesUint = append(taskTypesUint, uint8(tt))
 			}
 		} else {
 			tt, _ := strconv.ParseUint(taskTypes, 10, 64)
-			if tt != 1 && tt != 2 && tt != 3 && tt != 4 {
-				return fmt.Errorf("TaskTypes supports 1, 2, 3, 4")
+			if tt < 0 {
+				return fmt.Errorf("task-types must be int")
 			}
 			taskTypesUint = append(taskTypesUint, uint8(tt))
 		}
@@ -872,15 +872,15 @@ var changeTaskTypesCmd = &cli.Command{
 		if strings.Index(taskTypes, ",") > 0 {
 			for _, taskT := range strings.Split(taskTypes, ",") {
 				tt, _ := strconv.ParseUint(taskT, 10, 64)
-				if tt != 1 && tt != 2 && tt != 3 && tt != 4 {
-					return fmt.Errorf("TaskTypes supports 1, 2, 3, 4")
+				if tt < 0 {
+					return fmt.Errorf("task-types must be int")
 				}
 				taskTypesUint = append(taskTypesUint, uint8(tt))
 			}
 		} else {
 			tt, _ := strconv.ParseUint(taskTypes, 10, 64)
-			if tt != 1 && tt != 2 && tt != 3 && tt != 4 {
-				return fmt.Errorf("TaskTypes supports 1, 2, 3, 4")
+			if tt < 0 {
+				return fmt.Errorf("task-types must be int")
 			}
 			taskTypesUint = append(taskTypesUint, uint8(tt))
 		}
