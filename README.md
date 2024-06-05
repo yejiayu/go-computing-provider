@@ -31,8 +31,8 @@ As a resource provider, you can run a **ECP**(Edge Computing Provider) and **FCP
  	- [Install and config the Nginx](#Install-the-Ingress-nginx-Controller)
  	- [Install the Hardware resource-exporter](#Install-the-Hardware-resource-exporter)
  	- [Build and config the Computing Provider](#Build-and-config-the-Computing-Provider)
- 	- [Install AI Inference Dependency(Optional)](#Install-AI-Inference-Dependency)
- 	- [Config and Receive UBI Tasks(optional)](#Config-and-Receive-UBI-Tasks)
+ 	- [Install AI Inference Dependency(Optional)](#optional-Install-AI-Inference-Dependency)
+ 	- [Config and Receive UBI Tasks(Optional)](#optional-Config-and-Receive-UBI-Tasks)
 	 - [Start the Computing Provider](#Start-the-Computing-Provider)
 	 - [CLI of Computing Provider](#CLI-of-Computing-Provider)
  
@@ -425,14 +425,14 @@ export CP_PATH=<YOUR_CP_PATH>
 nohup computing-provider run >> cp.log 2>&1 & 
 ```
 ---
-## [**OPTIONAL**]Install AI Inference Dependency
+## [**OPTIONAL**] Install AI Inference Dependency
 It is necessary for Computing Provider to deploy the  AI inference endpoint. But if you do not want to support the feature, you can skip it.
 ```bash
 export CP_PATH=<YOUR_CP_PATH>
 ./install.sh
 ```
 
-## [**OPTIONAL**]Config and Receive UBI Tasks
+## [**OPTIONAL**] Config and Receive UBI Tasks
 ### **Step 1: Prerequisites:** Perform Filecoin Commit2 (fil-c2) ZK tasks.
 1. Download parameters (specify path with PARENT_PATH variable):
 	```bash
