@@ -61,21 +61,32 @@ func (s *Stub) Deposit(amount *big.Int) (string, error) {
 
 	txOptions, err := s.createTransactOpts(amount, true)
 	if err != nil {
-		return "", fmt.Errorf("address: %s, collateral client create transaction, error: %+v", publicAddress, err)
+		return "", fmt.Errorf("address: %s, FCP collateral client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.collateral.Deposit(txOptions, publicAddress)
+	cpAccountAddress, err := contract.GetCpAccountAddress()
 	if err != nil {
-		return "", fmt.Errorf("address: %s, collateral client create deposit tx error: %+v", publicAddress, err)
+		return "", fmt.Errorf("get cp account contract address failed, error: %v", err)
+	}
+
+	transaction, err := s.collateral.Deposit(txOptions, common.HexToAddress(cpAccountAddress))
+	if err != nil {
+		return "", fmt.Errorf("address: %s, FCP collateral client create deposit tx error: %+v", publicAddress, err)
 	}
 	return transaction.Hash().String(), nil
 }
 
-func (s *Stub) CollateralInfo(cpAddress string) (models.FcpCollateralInfo, error) {
+func (s *Stub) CollateralInfo() (models.FcpCollateralInfo, error) {
 	var cpInfo models.FcpCollateralInfo
-	collateralInfo, err := s.collateral.CpInfo(&bind.CallOpts{}, common.HexToAddress(s.publicK))
+
+	cpAccountAddress, err := contract.GetCpAccountAddress()
 	if err != nil {
-		return cpInfo, fmt.Errorf("address: %s, get fpc collateral info error: %+v", cpAddress, err)
+		return cpInfo, fmt.Errorf("get cp account contract address failed, error: %v", err)
+	}
+
+	collateralInfo, err := s.collateral.CpInfo(&bind.CallOpts{}, common.HexToAddress(cpAccountAddress))
+	if err != nil {
+		return cpInfo, fmt.Errorf("address: %s, get FCP collateral info error: %+v", cpAccountAddress, err)
 	}
 
 	cpInfo.CpAddress = collateralInfo.CpAccount.Hex()
@@ -93,17 +104,17 @@ func (s *Stub) Withdraw(amount *big.Int) (string, error) {
 
 	txOptions, err := s.createTransactOpts(nil, false)
 	if err != nil {
-		return "", fmt.Errorf("address: %s, collateral client create transaction, error: %+v", publicAddress, err)
+		return "", fmt.Errorf("address: %s, FCP collateral client create transaction, error: %+v", publicAddress, err)
 	}
 
-	//cpAccountAddress, err := contract.GetCpAccountAddress()
-	//if err != nil {
-	//	return "", fmt.Errorf("get cp account contract address failed, error: %v", err)
-	//}
-
-	transaction, err := s.collateral.Withdraw(txOptions, publicAddress, amount)
+	cpAccountAddress, err := contract.GetCpAccountAddress()
 	if err != nil {
-		return "", fmt.Errorf("address: %s, fcp collateral withdraw tx error: %+v", publicAddress, err)
+		return "", fmt.Errorf("get cp account contract address failed, error: %v", err)
+	}
+
+	transaction, err := s.collateral.Withdraw(txOptions, common.HexToAddress(cpAccountAddress), amount)
+	if err != nil {
+		return "", fmt.Errorf("address: %s, FCP collateral withdraw tx error: %+v", publicAddress, err)
 	}
 	return transaction.Hash().String(), nil
 }

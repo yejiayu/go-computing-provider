@@ -149,9 +149,9 @@ var infoCmd = &cli.Command{
 
 		ownerBalance, err = wallet.Balance(context.TODO(), client, ownerAddress)
 		workerBalance, err = wallet.Balance(context.TODO(), client, workerAddress)
-		fcpCollateralStub, err := fcp.NewCollateralStub(client, fcp.WithPublicKey(ownerAddress))
+		fcpCollateralStub, err := fcp.NewCollateralStub(client)
 		if err == nil {
-			fcpCollateralInfo, err := fcpCollateralStub.CollateralInfo("")
+			fcpCollateralInfo, err := fcpCollateralStub.CollateralInfo()
 			if err == nil {
 				fcpCollateralBalance = fcpCollateralInfo.AvailableBalance
 				fcpEscrowBalance = fcpCollateralInfo.LockedCollateral
@@ -297,7 +297,7 @@ var stateInfoCmd = &cli.Command{
 		workerBalance, err = wallet.Balance(context.TODO(), client, workerAddress)
 		fcpCollateralStub, err := fcp.NewCollateralStub(client, fcp.WithPublicKey(ownerAddress))
 		if err == nil {
-			fcpCollateralInfo, err := fcpCollateralStub.CollateralInfo("")
+			fcpCollateralInfo, err := fcpCollateralStub.CollateralInfo()
 			if err == nil {
 				fcpCollateralBalance = fcpCollateralInfo.AvailableBalance
 				fcpEscrowBalance = fcpCollateralInfo.LockedCollateral

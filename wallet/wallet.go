@@ -2,7 +2,6 @@ package wallet
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum"
@@ -19,9 +18,7 @@ import (
 	"github.com/swanchain/go-computing-provider/internal/contract/token"
 	"github.com/swanchain/go-computing-provider/wallet/tablewriter"
 	"golang.org/x/xerrors"
-	"io"
 	"math/big"
-	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -421,9 +418,9 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string, coll
 		balance, err = Balance(ctx, client, addr)
 
 		if collateralType == "fcp" {
-			collateralStub, err := fcp.NewCollateralStub(client, fcp.WithPublicKey(addr))
+			collateralStub, err := fcp.NewCollateralStub(client)
 			if err == nil {
-				fcpCollateralInfo, err := collateralStub.CollateralInfo("")
+				fcpCollateralInfo, err := collateralStub.CollateralInfo()
 				if err == nil {
 					collateralBalance = fcpCollateralInfo.AvailableBalance
 					frozenCollateral = fcpCollateralInfo.LockedCollateral
@@ -567,43 +564,4 @@ func convertToWei(ethValue string) (*big.Int, error) {
 		return nil, fmt.Errorf("conversion to Wei failed")
 	}
 	return weiInt, nil
-}
-
-func GetFrozenCollateral(walletAddress string) (string, error) {
-	url := fmt.Sprintf("%s/check_holding_collateral/%s", conf.GetConfig().HUB.ServerUrl, walletAddress)
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return "", fmt.Errorf("create request failed: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("request failed: %v", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read response body: %v", err)
-	}
-
-	var frozenResp struct {
-		Data struct {
-			FrozenCollateral big.Int `json:"Frozen_Collateral"`
-		} `json:"data"`
-		Message string `json:"message"`
-		Status  string `json:"status"`
-	}
-
-	if err = json.Unmarshal(body, &frozenResp); err != nil {
-	}
-	fbalance := new(big.Float)
-	fbalance.SetString(frozenResp.Data.FrozenCollateral.String())
-	etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
-	ethValue := etherQuotient.Text('f', 3)
-	return ethValue, nil
 }

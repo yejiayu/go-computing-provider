@@ -420,11 +420,6 @@ func reportJobStatus(jobUuid string, deployStatus int) bool {
 }
 
 func checkFcpCollateralBalance() (string, error) {
-	ownerAddress, _, err := GetOwnerAddressAndWorkerAddress()
-	if err != nil {
-		logs.GetLogger().Errorf("check the collateral balance of fcp get owner address failed, error: %v", err)
-		return "", err
-	}
 
 	chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
 	if err != nil {
@@ -436,12 +431,12 @@ func checkFcpCollateralBalance() (string, error) {
 	}
 	defer client.Close()
 
-	fcpCollateralStub, err := fcp.NewCollateralStub(client, fcp.WithPublicKey(ownerAddress))
+	fcpCollateralStub, err := fcp.NewCollateralStub(client)
 	if err != nil {
 		return "", err
 	}
 
-	fcpCollateralInfo, err := fcpCollateralStub.CollateralInfo("")
+	fcpCollateralInfo, err := fcpCollateralStub.CollateralInfo()
 	if err != nil {
 		return "", err
 	}

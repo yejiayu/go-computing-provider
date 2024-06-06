@@ -45,7 +45,7 @@ func NewCollateralStub(client *ethclient.Client, options ...Option) (*Stub, erro
 	collateralAddress := common.HexToAddress(conf.GetConfig().CONTRACT.ZkCollateral)
 	collateralClient, err := NewCollaternal(collateralAddress, client)
 	if err != nil {
-		return nil, fmt.Errorf("create collateral contract client, error: %+v", err)
+		return nil, fmt.Errorf("ECP create collateral contract client, error: %+v", err)
 	}
 
 	stub.collateral = collateralClient
@@ -61,7 +61,7 @@ func (s *Stub) Deposit(cpAccountAddress string, amount *big.Int) (string, error)
 
 	txOptions, err := s.createTransactOpts(amount, true)
 	if err != nil {
-		return "", fmt.Errorf("address: %s, collateral client create transaction, error: %+v", publicAddress, err)
+		return "", fmt.Errorf("address: %s, ECP collateral client create transaction, error: %+v", publicAddress, err)
 	}
 
 	if cpAccountAddress == "" {
@@ -73,7 +73,7 @@ func (s *Stub) Deposit(cpAccountAddress string, amount *big.Int) (string, error)
 
 	transaction, err := s.collateral.Deposit(txOptions, common.HexToAddress(cpAccountAddress))
 	if err != nil {
-		return "", fmt.Errorf("address: %s, collateral client create deposit tx error: %+v", publicAddress, err)
+		return "", fmt.Errorf("address: %s, ECP collateral client create deposit tx error: %+v", publicAddress, err)
 	}
 	return transaction.Hash().String(), nil
 }
@@ -86,7 +86,7 @@ func (s *Stub) Withdraw(cpAccountAddress string, amount *big.Int) (string, error
 
 	txOptions, err := s.createTransactOpts(nil, false)
 	if err != nil {
-		return "", fmt.Errorf("address: %s, collateral client create transaction, error: %+v", publicAddress, err)
+		return "", fmt.Errorf("address: %s, ECP collateral client create transaction, error: %+v", publicAddress, err)
 	}
 
 	if cpAccountAddress == "" {
@@ -98,7 +98,7 @@ func (s *Stub) Withdraw(cpAccountAddress string, amount *big.Int) (string, error
 
 	transaction, err := s.collateral.Withdraw(txOptions, common.HexToAddress(cpAccountAddress), amount)
 	if err != nil {
-		return "", fmt.Errorf("address: %s, collateral client create withdraw tx error: %+v", publicAddress, err)
+		return "", fmt.Errorf("address: %s, ECP collateral client create withdraw tx error: %+v", publicAddress, err)
 	}
 	return transaction.Hash().String(), nil
 }
