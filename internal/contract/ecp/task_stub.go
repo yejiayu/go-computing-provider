@@ -1,4 +1,4 @@
-package account
+package ecp
 
 import (
 	"context"
@@ -11,7 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-swan-lib/logs"
-	"github.com/swanchain/go-computing-provider/wallet/contract/swan_token"
+	"github.com/swanchain/go-computing-provider/internal/contract"
+	"github.com/swanchain/go-computing-provider/internal/contract/token"
 	"math/big"
 	"strings"
 	"sync"
@@ -211,7 +212,7 @@ func (s *TaskStub) GetReward() (status int, rewardTx string, challengeTx string,
 		if err != nil {
 			return 0, "", "", "", reward, err
 		}
-		contractAbi, err := abi.JSON(strings.NewReader(swan_token.MainMetaData.ABI))
+		contractAbi, err := abi.JSON(strings.NewReader(token.MainMetaData.ABI))
 		if err != nil {
 			return 0, "", "", "", reward, err
 		}
@@ -227,7 +228,7 @@ func (s *TaskStub) GetReward() (status int, rewardTx string, challengeTx string,
 			}
 
 			if len(l.Topics) == 3 && l.Topics[0] == contractAbi.Events["Transfer"].ID {
-				reward = balanceToStr(event.Value)
+				reward = contract.BalanceToStr(event.Value)
 			}
 		}
 		return 3, taskInfo.RewardTx, "", "", reward, nil

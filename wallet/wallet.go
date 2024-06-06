@@ -12,10 +12,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/conf"
-	"github.com/swanchain/go-computing-provider/wallet/contract/collateral"
-	"github.com/swanchain/go-computing-provider/wallet/contract/swan_token"
+	account2 "github.com/swanchain/go-computing-provider/internal/contract/account"
+	"github.com/swanchain/go-computing-provider/internal/contract/ecp"
+	"github.com/swanchain/go-computing-provider/internal/contract/fcp"
+	"github.com/swanchain/go-computing-provider/internal/contract/token"
 	"github.com/swanchain/go-computing-provider/wallet/tablewriter"
 	"golang.org/x/xerrors"
 	"io"
@@ -181,7 +182,7 @@ func (w *LocalWallet) WalletList(ctx context.Context, chainName string, contract
 	for _, addr := range addressList {
 		var balance string
 		if contractFlag {
-			tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPublicKey(addr))
+			tokenStub, err := token.NewTokenStub(client, token.WithPublicKey(addr))
 			if err == nil {
 				balance, err = tokenStub.BalanceOf()
 			}
@@ -328,7 +329,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 	defer client.Close()
 
 	if collateralType == "fcp" {
-		tokenStub, err := swan_token.NewTokenStub(client, swan_token.WithPrivateKey(ki.PrivateKey))
+		tokenStub, err := token.NewTokenStub(client, token.WithPrivateKey(ki.PrivateKey))
 		if err != nil {
 			return "", err
 		}
@@ -354,7 +355,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 				}
 
 				if receipt != nil && receipt.Status == types.ReceiptStatusSuccessful {
-					collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPrivateKey(ki.PrivateKey))
+					collateralStub, err := fcp.NewCollateralStub(client, fcp.WithPrivateKey(ki.PrivateKey))
 					if err != nil {
 						return "", err
 					}
@@ -370,7 +371,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 		}
 	} else {
 
-		cpStub, err := account.NewAccountStub(client, account.WithContractAddress(cpAccountAddress))
+		cpStub, err := account2.NewAccountStub(client, account2.WithContractAddress(cpAccountAddress))
 		if err != nil {
 			return "", err
 		}
@@ -378,7 +379,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 			return "", fmt.Errorf("cp account: %s does not exist on the chain", cpAccountAddress)
 		}
 
-		zkCollateral, err := account.NewCollateralStub(client, account.WithPrivateKey(ki.PrivateKey))
+		zkCollateral, err := ecp.NewCollateralStub(client, ecp.WithPrivateKey(ki.PrivateKey))
 		if err != nil {
 			return "", err
 		}
@@ -420,11 +421,14 @@ func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string, coll
 		balance, err = Balance(ctx, client, addr)
 
 		if collateralType == "fcp" {
-			collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(addr))
+			collateralStub, err := fcp.NewCollateralStub(client, fcp.WithPublicKey(addr))
 			if err == nil {
-				collateralBalance, err = collateralStub.Balances()
+				fcpCollateralInfo, err := collateralStub.CollateralInfo("")
+				if err == nil {
+					collateralBalance = fcpCollateralInfo.AvailableBalance
+					frozenCollateral = fcpCollateralInfo.LockedCollateral
+				}
 			}
-			frozenCollateral, err = GetFrozenCollateral(addr)
 		}
 
 		var errmsg string
@@ -482,13 +486,13 @@ func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, 
 	defer client.Close()
 
 	if collateralType == "fcp" {
-		collateralStub, err := collateral.NewCollateralStub(client, collateral.WithPrivateKey(ki.PrivateKey))
+		collateralStub, err := fcp.NewCollateralStub(client, fcp.WithPrivateKey(ki.PrivateKey))
 		if err != nil {
 			return "", err
 		}
 		return collateralStub.Withdraw(withDrawAmount)
 	} else {
-		zkCollateral, err := account.NewCollateralStub(client, account.WithPrivateKey(ki.PrivateKey))
+		zkCollateral, err := ecp.NewCollateralStub(client, ecp.WithPrivateKey(ki.PrivateKey))
 		if err != nil {
 			return "", err
 		}
@@ -522,7 +526,7 @@ func (w *LocalWallet) CollateralSend(ctx context.Context, chainName, from, to st
 	}
 	defer client.Close()
 
-	collateralStub, err := swan_token.NewTokenStub(client, swan_token.WithPrivateKey(ki.PrivateKey))
+	collateralStub, err := token.NewTokenStub(client, token.WithPrivateKey(ki.PrivateKey))
 	if err != nil {
 		return "", err
 	}

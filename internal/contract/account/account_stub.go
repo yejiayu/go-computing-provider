@@ -8,10 +8,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/swanchain/go-computing-provider/internal/contract"
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"math/big"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -44,7 +43,7 @@ func NewAccountStub(client *ethclient.Client, options ...CpOption) (*CpStub, err
 	}
 
 	if stub.ContractAddress == "" || len(strings.TrimSpace(stub.ContractAddress)) == 0 {
-		cpAccountAddress, err := GetCpAccountAddress()
+		cpAccountAddress, err := contract.GetCpAccountAddress()
 		if err != nil {
 			return nil, fmt.Errorf("get cp account contract address failed, error: %v", err)
 		}
@@ -223,23 +222,4 @@ func (s *CpStub) createTransactOpts() (*bind.TransactOpts, error) {
 	txOptions.GasFeeCap = suggestGasPrice
 	txOptions.Context = context.Background()
 	return txOptions, nil
-}
-
-func GetCpAccountAddress() (string, error) {
-	cpPath, exit := os.LookupEnv("CP_PATH")
-	if !exit {
-		return "", fmt.Errorf("missing CP_PATH env, please set export CP_PATH=<YOUR CP_PATH>")
-	}
-
-	accountFileName := filepath.Join(cpPath, "account")
-	if _, err := os.Stat(accountFileName); err != nil {
-		return "", fmt.Errorf("please use the account create command to initialize the account of CP")
-	}
-
-	accountAddress, err := os.ReadFile(filepath.Join(cpPath, "account"))
-	if err != nil {
-		return "", fmt.Errorf("get cp account contract address failed, error: %v", err)
-	}
-
-	return string(accountAddress), err
 }

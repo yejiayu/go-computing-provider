@@ -6,7 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/swanchain/go-computing-provider/account"
+	"github.com/swanchain/go-computing-provider/internal/contract"
 	"log"
 	"os"
 	"path/filepath"
@@ -72,7 +72,7 @@ func hashPublicKey(publicKey *ecdsa.PublicKey) string {
 }
 
 func GetOwnerAddressAndWorkerAddress() (string, string, error) {
-	cpAccountAddress, err := account.GetCpAccountAddress()
+	cpAccountAddress, err := contract.GetCpAccountAddress()
 	if err != nil {
 		return "", "", fmt.Errorf("get cp account contract address failed, error: %v", err)
 	}

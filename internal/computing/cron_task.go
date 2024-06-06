@@ -9,8 +9,8 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
+	"github.com/swanchain/go-computing-provider/internal/contract/fcp"
 	"github.com/swanchain/go-computing-provider/internal/models"
-	"github.com/swanchain/go-computing-provider/wallet/contract/collateral"
 	"io"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -436,7 +436,7 @@ func checkFcpCollateralBalance() (string, error) {
 	}
 	defer client.Close()
 
-	fcpCollateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(ownerAddress))
+	fcpCollateralStub, err := fcp.NewCollateralStub(client, fcp.WithPublicKey(ownerAddress))
 	if err != nil {
 		return "", err
 	}

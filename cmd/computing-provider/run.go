@@ -11,15 +11,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/itsjamie/gin-cors"
 	"github.com/olekukonko/tablewriter"
-	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/internal/computing"
+	account2 "github.com/swanchain/go-computing-provider/internal/contract/account"
+	"github.com/swanchain/go-computing-provider/internal/contract/ecp"
+	"github.com/swanchain/go-computing-provider/internal/contract/fcp"
+	"github.com/swanchain/go-computing-provider/internal/contract/token"
 	"github.com/swanchain/go-computing-provider/internal/initializer"
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"github.com/swanchain/go-computing-provider/util"
 	"github.com/swanchain/go-computing-provider/wallet"
-	"github.com/swanchain/go-computing-provider/wallet/contract/collateral"
-	"github.com/swanchain/go-computing-provider/wallet/contract/swan_token"
 	"github.com/urfave/cli/v2"
 	"math/big"
 	"os"
@@ -124,7 +125,7 @@ var infoCmd = &cli.Command{
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 		var cpAccount models.Account
 
-		cpStub, err := account.NewAccountStub(client)
+		cpStub, err := account2.NewAccountStub(client)
 		if err == nil {
 			cpAccount, err = cpStub.GetCpAccountInfo()
 			if err != nil {
@@ -148,7 +149,7 @@ var infoCmd = &cli.Command{
 
 		ownerBalance, err = wallet.Balance(context.TODO(), client, ownerAddress)
 		workerBalance, err = wallet.Balance(context.TODO(), client, workerAddress)
-		fcpCollateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(ownerAddress))
+		fcpCollateralStub, err := fcp.NewCollateralStub(client, fcp.WithPublicKey(ownerAddress))
 		if err == nil {
 			fcpCollateralInfo, err := fcpCollateralStub.CollateralInfo("")
 			if err == nil {
@@ -157,9 +158,7 @@ var infoCmd = &cli.Command{
 			}
 		}
 
-		fcpEscrowBalance, err = wallet.GetFrozenCollateral(ownerAddress)
-
-		ecpCollateral, err := account.NewCollateralStub(client, account.WithPublicKey(ownerAddress))
+		ecpCollateral, err := ecp.NewCollateralStub(client, ecp.WithPublicKey(ownerAddress))
 		if err == nil {
 			cpCollateralInfo, err := ecpCollateral.CpInfo()
 			if err == nil {
@@ -267,7 +266,7 @@ var stateInfoCmd = &cli.Command{
 		var fcpCollateralBalance, fcpEscrowBalance, chainMultiAddress string
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 
-		cpStub, err := account.NewAccountStub(client, account.WithContractAddress(cctx.Args().Get(0)))
+		cpStub, err := account2.NewAccountStub(client, account2.WithContractAddress(cctx.Args().Get(0)))
 		if err == nil {
 			cpAccount, err := cpStub.GetCpAccountInfo()
 			if err != nil {
@@ -296,7 +295,7 @@ var stateInfoCmd = &cli.Command{
 
 		ownerBalance, err = wallet.Balance(context.TODO(), client, ownerAddress)
 		workerBalance, err = wallet.Balance(context.TODO(), client, workerAddress)
-		fcpCollateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(ownerAddress))
+		fcpCollateralStub, err := fcp.NewCollateralStub(client, fcp.WithPublicKey(ownerAddress))
 		if err == nil {
 			fcpCollateralInfo, err := fcpCollateralStub.CollateralInfo("")
 			if err == nil {
@@ -305,7 +304,7 @@ var stateInfoCmd = &cli.Command{
 			}
 		}
 
-		ecpCollateral, err := account.NewCollateralStub(client, account.WithPublicKey(ownerAddress))
+		ecpCollateral, err := ecp.NewCollateralStub(client, ecp.WithPublicKey(ownerAddress))
 		if err == nil {
 			cpCollateralInfo, err := ecpCollateral.CpInfo()
 			if err == nil {
@@ -313,8 +312,6 @@ var stateInfoCmd = &cli.Command{
 				ecpEscrowBalance = cpCollateralInfo.FrozenBalance
 			}
 		}
-
-		fcpEscrowBalance, err = wallet.GetFrozenCollateral(ownerAddress)
 
 		var taskData [][]string
 		taskData = append(taskData, []string{"Node ID:", chainNodeId})
@@ -429,7 +426,7 @@ var taskInfoCmd = &cli.Command{
 				defer client.Close()
 				receipt, err := client.TransactionReceipt(context.Background(), common.HexToHash(taskInfo.RewardTx))
 				if err == nil {
-					contractAbi, err := abi.JSON(strings.NewReader(swan_token.MainMetaData.ABI))
+					contractAbi, err := abi.JSON(strings.NewReader(token.MainMetaData.ABI))
 					if err == nil {
 						for _, l := range receipt.Logs {
 							event := struct {

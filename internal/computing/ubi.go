@@ -9,10 +9,12 @@ import (
 	"github.com/filswan/go-swan-lib/logs"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/swanchain/go-computing-provider/account"
 	"github.com/swanchain/go-computing-provider/build"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
+	"github.com/swanchain/go-computing-provider/internal/contract"
+	account2 "github.com/swanchain/go-computing-provider/internal/contract/account"
+	"github.com/swanchain/go-computing-provider/internal/contract/ecp"
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"github.com/swanchain/go-computing-provider/util"
 	"github.com/swanchain/go-computing-provider/wallet"
@@ -818,13 +820,13 @@ func submitUBIProof(c2Proof models.UbiC2Proof, task *models.TaskEntity) error {
 	var workerPrivateKey = ki.PrivateKey
 	ki = nil
 
-	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(task.Contract), account.WithTaskPrivateKey(workerPrivateKey))
+	taskStub, err := ecp.NewTaskStub(client, ecp.WithTaskContractAddress(task.Contract), ecp.WithTaskPrivateKey(workerPrivateKey))
 	if err != nil {
 		logs.GetLogger().Errorf("create ubi task client failed,  taskId: %s, contract: %s, error: %v", c2Proof.TaskId, task.Contract, err)
 		return err
 	}
 
-	var taskInfo account.ECPTaskTaskInfo
+	var taskInfo ecp.ECPTaskTaskInfo
 
 loopTask:
 	for {
@@ -868,8 +870,8 @@ loopTask:
 	return NewTaskService().SaveTaskEntity(task)
 }
 
-func GetTaskInfoOnChain(rpcName string, taskContract string) (account.ECPTaskTaskInfo, error) {
-	var taskInfo account.ECPTaskTaskInfo
+func GetTaskInfoOnChain(rpcName string, taskContract string) (ecp.ECPTaskTaskInfo, error) {
+	var taskInfo ecp.ECPTaskTaskInfo
 
 	chainRpc, err := conf.GetRpcByName(rpcName)
 	if err != nil {
@@ -881,7 +883,7 @@ func GetTaskInfoOnChain(rpcName string, taskContract string) (account.ECPTaskTas
 	}
 	defer client.Close()
 
-	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(taskContract))
+	taskStub, err := ecp.NewTaskStub(client, ecp.WithTaskContractAddress(taskContract))
 	if err != nil {
 		logs.GetLogger().Errorf("create ubi task client failed, error: %v", err)
 		return taskInfo, err
@@ -1003,7 +1005,7 @@ func CronTaskForEcp() {
 }
 
 func SyncCpAccountInfo() {
-	cpAccountAddress, err := account.GetCpAccountAddress()
+	cpAccountAddress, err := contract.GetCpAccountAddress()
 	if err != nil {
 		logs.GetLogger().Errorf("get cp account contract address failed, error: %v", err)
 		return
@@ -1022,7 +1024,7 @@ func SyncCpAccountInfo() {
 	}
 	defer client.Close()
 
-	cpStub, err := account.NewAccountStub(client)
+	cpStub, err := account2.NewAccountStub(client)
 	if err != nil {
 		logs.GetLogger().Errorf("create account client failed, error: %v", err)
 		return
@@ -1084,7 +1086,7 @@ func getReward(task *models.TaskEntity) error {
 	}
 	defer client.Close()
 
-	taskStub, err := account.NewTaskStub(client, account.WithTaskContractAddress(task.Contract))
+	taskStub, err := ecp.NewTaskStub(client, ecp.WithTaskContractAddress(task.Contract))
 	if err != nil {
 		return fmt.Errorf("create ubi task client failed, error: %s", err.Error())
 	}
