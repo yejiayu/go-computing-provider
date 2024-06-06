@@ -102,19 +102,19 @@ func (s *Stub) Withdraw(cpAccountAddress string, amount *big.Int) (string, error
 	return transaction.Hash().String(), nil
 }
 
-func (s *Stub) CpInfo() (models.CpCollateralInfo, error) {
-	var cpInfo models.CpCollateralInfo
+func (s *Stub) CpInfo() (models.EcpCollateralInfo, error) {
+	var cpInfo models.EcpCollateralInfo
 
 	cpAccountAddress, err := GetCpAccountAddress()
 	if err != nil {
-		return models.CpCollateralInfo{}, fmt.Errorf("get cp account contract address failed, error: %v", err)
+		return models.EcpCollateralInfo{}, fmt.Errorf("get cp account contract address failed, error: %v", err)
 	}
 	cpCollateralInfo, err := s.collateral.CpInfo(&bind.CallOpts{}, common.HexToAddress(cpAccountAddress))
 	if err != nil {
 		return cpInfo, fmt.Errorf("address: %s, collateral client cpInfo tx error: %+v", cpAccountAddress, err)
 	}
 
-	cpInfo.Address = cpCollateralInfo.Cp.Hex()
+	cpInfo.CpAddress = cpCollateralInfo.Cp.Hex()
 	cpInfo.CollateralBalance = balanceToStr(cpCollateralInfo.Balance)
 	cpInfo.FrozenBalance = balanceToStr(cpCollateralInfo.FrozenBalance)
 	cpInfo.Status = cpCollateralInfo.Status

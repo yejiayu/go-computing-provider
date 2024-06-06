@@ -152,11 +152,18 @@ type Account struct {
 	Contract       string
 }
 
-type CpCollateralInfo struct {
-	Address           string
+type EcpCollateralInfo struct {
+	CpAddress         string
 	CollateralBalance string
 	FrozenBalance     string
 	Status            string
+}
+
+type FcpCollateralInfo struct {
+	CpAddress        string
+	AvailableBalance string
+	LockedCollateral string
+	Status           string
 }
 
 type TaskList []CacheUbiTaskDetail

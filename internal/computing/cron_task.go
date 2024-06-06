@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/robfig/cron/v3"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
 	"github.com/swanchain/go-computing-provider/internal/models"
+	"github.com/swanchain/go-computing-provider/wallet/contract/collateral"
 	"io"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -192,56 +193,27 @@ func (task *CronTask) watchExpiredTask() {
 
 func (task *CronTask) checkCollateralBalance() {
 	c := cron.New(cron.WithSeconds())
-	c.AddFunc("0/15 * * * * ?", func() {
+	c.AddFunc("0 0/10 * * * * ?", func() {
 		defer func() {
 			if err := recover(); err != nil {
 				logs.GetLogger().Errorf("task job: [checkCollateralBalance], error: %+v", err)
 			}
 		}()
 
-		url := fmt.Sprintf("%s/cp/collateral/%s", conf.GetConfig().HUB.ServerUrl, task.ownerAddress)
-		req, err := http.NewRequest("GET", url, nil)
+		result, err := checkFcpCollateralBalance()
 		if err != nil {
-			logs.GetLogger().Errorf("create req failed: %+v", err)
-			return
-		}
-		req.Header.Set("Authorization", "Bearer "+conf.GetConfig().HUB.AccessToken)
-
-		client := http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			logs.GetLogger().Errorf("send req failed: %+v", err)
-			return
-		}
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			logs.GetLogger().Errorf("read response failed: %+v", err)
-			return
-		}
-		var collateral struct {
-			Data struct {
-				Balance float64 `json:"balance"`
-			} `json:"data"`
-			Message string `json:"message"`
-			Status  string `json:"status"`
-		}
-		err = json.Unmarshal(body, &collateral)
-		if err != nil {
-			logs.GetLogger().Errorf("json conversion failed: %+v", err)
+			logs.GetLogger().Errorf("check collateral balance failed, error: %+v", err)
 			return
 		}
 
-		if collateral.Status != "success" {
-			logs.GetLogger().Errorf("check collateral balance failed. status: %s, message: %s", collateral.Status, collateral.Message)
+		floatResult, err := strconv.ParseFloat(result, 64)
+		if err != nil {
+			logs.GetLogger().Errorf("parse collateral balance failed, error: %+v", err)
 			return
 		}
 
-		result := collateral.Data.Balance / 1e18
-		result = math.Round(result*1000) / 1000
-		if result <= conf.GetConfig().HUB.BalanceThreshold {
-			logs.GetLogger().Warnf("No sufficient collateral Balance, the current collateral balance is: %0.3f. Please run: computing-provider collateral [fromWalletAddress] [amount]", result)
+		if floatResult <= conf.GetConfig().HUB.BalanceThreshold {
+			logs.GetLogger().Warnf("No sufficient collateral Balance, the current collateral balance is: %0.3f. Please run: computing-provider collateral [fromWalletAddress] [amount]", floatResult)
 		}
 	})
 	c.Start()
@@ -445,4 +417,33 @@ func reportJobStatus(jobUuid string, deployStatus int) bool {
 		logs.GetLogger().Errorf("update job info by jobUuid failed, error: %v", err)
 	}
 	return true
+}
+
+func checkFcpCollateralBalance() (string, error) {
+	ownerAddress, _, err := GetOwnerAddressAndWorkerAddress()
+	if err != nil {
+		logs.GetLogger().Errorf("check the collateral balance of fcp get owner address failed, error: %v", err)
+		return "", err
+	}
+
+	chainRpc, err := conf.GetRpcByName(conf.DefaultRpc)
+	if err != nil {
+		return "", err
+	}
+	client, err := ethclient.Dial(chainRpc)
+	if err != nil {
+		return "", err
+	}
+	defer client.Close()
+
+	fcpCollateralStub, err := collateral.NewCollateralStub(client, collateral.WithPublicKey(ownerAddress))
+	if err != nil {
+		return "", err
+	}
+
+	fcpCollateralInfo, err := fcpCollateralStub.CollateralInfo("")
+	if err != nil {
+		return "", err
+	}
+	return fcpCollateralInfo.AvailableBalance, nil
 }

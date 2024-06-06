@@ -9,6 +9,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/swanchain/go-computing-provider/conf"
+	"github.com/swanchain/go-computing-provider/internal/computing"
+	"github.com/swanchain/go-computing-provider/internal/models"
 	"math/big"
 	"strings"
 )
@@ -69,27 +71,18 @@ func (s *Stub) Deposit(amount *big.Int) (string, error) {
 	return transaction.Hash().String(), nil
 }
 
-func (s *Stub) Balances() (string, error) {
-	if len(strings.TrimSpace(s.publicK)) == 0 {
-		return "", fmt.Errorf("wallet address must be not empty")
-	}
-
-	publicAddress := common.HexToAddress(s.publicK)
-	balance, err := s.collateral.Balances(&bind.CallOpts{}, publicAddress)
+func (s *Stub) CollateralInfo(cpAddress string) (models.FcpCollateralInfo, error) {
+	var cpInfo models.FcpCollateralInfo
+	collateralInfo, err := s.collateral.CpInfo(&bind.CallOpts{}, common.HexToAddress(s.publicK))
 	if err != nil {
-		return "", fmt.Errorf("address: %s, collateral client create deposit tx error: %+v", publicAddress, err)
+		return cpInfo, fmt.Errorf("address: %s, get fpc collateral info error: %+v", cpAddress, err)
 	}
 
-	var ethValue string
-	if balance.String() == "0" {
-		ethValue = "0.000"
-	} else {
-		fbalance := new(big.Float)
-		fbalance.SetString(balance.String())
-		etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
-		ethValue = etherQuotient.Text('f', 3)
-	}
-	return ethValue, nil
+	cpInfo.CpAddress = collateralInfo.CpAccount.Hex()
+	cpInfo.AvailableBalance = balanceToStr(collateralInfo.AvailableBalance)
+	cpInfo.LockedCollateral = balanceToStr(collateralInfo.LockedCollateral)
+	cpInfo.Status = collateralInfo.Status
+	return cpInfo, nil
 }
 
 func (s *Stub) Withdraw(amount *big.Int) (string, error) {
@@ -103,9 +96,19 @@ func (s *Stub) Withdraw(amount *big.Int) (string, error) {
 		return "", fmt.Errorf("address: %s, collateral client create transaction, error: %+v", publicAddress, err)
 	}
 
-	transaction, err := s.collateral.Withdraw(txOptions, amount)
+	ownerAddress, _, err := computing.GetOwnerAddressAndWorkerAddress()
 	if err != nil {
-		return "", fmt.Errorf("address: %s, collateral client create withdraw tx error: %+v", publicAddress, err)
+		return "", fmt.Errorf("check the collateral balance of fcp get owner address failed, error: %v", err)
+	}
+
+	//cpAccountAddress, err := account.GetCpAccountAddress()
+	//if err != nil {
+	//	return "", fmt.Errorf("get cp account contract address failed, error: %v", err)
+	//}
+
+	transaction, err := s.collateral.Withdraw(txOptions, common.HexToAddress(ownerAddress), amount)
+	if err != nil {
+		return "", fmt.Errorf("address: %s, fcp collateral withdraw tx error: %+v", publicAddress, err)
 	}
 	return transaction.Hash().String(), nil
 }
@@ -168,4 +171,17 @@ func (s *Stub) createTransactOpts(amount *big.Int, isDeposit bool) (*bind.Transa
 	txOptions.GasFeeCap = suggestGasPrice
 	txOptions.Context = context.Background()
 	return txOptions, nil
+}
+
+func balanceToStr(balance *big.Int) string {
+	var ethValue string
+	if balance.String() == "0" {
+		ethValue = "0.000"
+	} else {
+		fbalance := new(big.Float)
+		fbalance.SetString(balance.String())
+		etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
+		ethValue = etherQuotient.Text('f', 3)
+	}
+	return ethValue
 }
