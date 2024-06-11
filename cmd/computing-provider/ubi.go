@@ -83,7 +83,7 @@ var listCmd = &cli.Command{
 
 				var rowColor []tablewriter.Colors
 				if task.Status == models.TASK_RECEIVED_STATUS {
-					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgWhiteColor}}
+					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgYellowColor}}
 				} else if task.Status == models.TASK_RUNNING_STATUS {
 					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgCyanColor}}
 				} else if task.Status == models.TASK_SUCCESS_STATUS {
@@ -115,7 +115,7 @@ var listCmd = &cli.Command{
 
 				var rowColor []tablewriter.Colors
 				if task.Status == models.TASK_RECEIVED_STATUS {
-					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgWhiteColor}}
+					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgYellowColor}}
 				} else if task.Status == models.TASK_RUNNING_STATUS {
 					rowColor = []tablewriter.Colors{{tablewriter.Bold, tablewriter.FgCyanColor}}
 				} else if task.Status == models.TASK_SUCCESS_STATUS {
