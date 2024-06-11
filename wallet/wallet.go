@@ -50,11 +50,12 @@ func SetupWallet(dir string) (*LocalWallet, error) {
 	for {
 		select {
 		case <-time.After(10 * time.Second):
-			return nil, fmt.Errorf("open wallet timeout")
+			return nil, fmt.Errorf("open wallet timeout, retry again")
 		default:
+			println("retrying...")
 			kstore, err := OpenOrInitKeystore(filepath.Join(cpPath, dir))
 			if err != nil {
-				time.Sleep(time.Second)
+				time.Sleep(2 * time.Second)
 				continue
 			}
 			return NewWallet(kstore), nil
