@@ -120,8 +120,12 @@ var infoCmd = &cli.Command{
 		}
 		defer client.Close()
 
-		var ecpCollateralBalance, ecpEscrowBalance, ownerBalance, workerBalance string
-		var fcpCollateralBalance, fcpEscrowBalance string
+		var fcpCollateralBalance = "0.000"
+		var fcpEscrowBalance = "0.000"
+		var ecpCollateralBalance = "0.000"
+		var ecpEscrowBalance = "0.000"
+		var ownerBalance = "0.000"
+		var workerBalance = "0.000"
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 		var cpAccount models.Account
 
@@ -262,8 +266,13 @@ var stateInfoCmd = &cli.Command{
 		}
 		defer client.Close()
 
-		var ecpCollateralBalance, ecpEscrowBalance, ownerBalance, workerBalance string
-		var fcpCollateralBalance, fcpEscrowBalance, chainMultiAddress string
+		var fcpCollateralBalance = "0.000"
+		var fcpEscrowBalance = "0.000"
+		var ecpCollateralBalance = "0.000"
+		var ecpEscrowBalance = "0.000"
+		var ownerBalance = "0.000"
+		var workerBalance = "0.000"
+		var chainMultiAddress string
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 
 		cpStub, err := account2.NewAccountStub(client, account2.WithContractAddress(cctx.Args().Get(0)))

@@ -1056,7 +1056,7 @@ func SyncCpAccountInfo() {
 func RestartResourceExporter() error {
 	resourceExporterContainerName := "resource-exporter"
 	dockerService := NewDockerService()
-	dockerService.RemoveImageByName(resourceExporterContainerName)
+	dockerService.RemoveContainerByName(resourceExporterContainerName)
 	err := dockerService.PullImage(build.UBIResourceExporterDockerImage)
 	if err != nil {
 		return fmt.Errorf("pull %s image failed, error: %v", build.UBIResourceExporterDockerImage, err)

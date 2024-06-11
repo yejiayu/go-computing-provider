@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/registry"
 	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
+	"github.com/swanchain/go-computing-provider/build"
 	"io"
 	"log"
 	"os"
@@ -295,7 +296,7 @@ func (ds *DockerService) RemoveImage(imageId string) error {
 	return err
 }
 
-func (ds *DockerService) RemoveImageByName(containerName string) error {
+func (ds *DockerService) RemoveContainerByName(containerName string) error {
 	containerList, err := ds.c.ContainerList(context.Background(), container.ListOptions{})
 	if err != nil {
 		return err
@@ -314,24 +315,35 @@ func (ds *DockerService) RemoveImageByName(containerName string) error {
 }
 
 func (ds *DockerService) CleanResource() {
-	images, err := ds.c.ImageList(context.Background(), types.ImageListOptions{})
+	imagesToKeep := []string{
+		build.UBITaskImageIntelCpu,
+		build.UBITaskImageIntelGpu,
+		build.UBITaskImageAmdCpu,
+		build.UBITaskImageAmdGpu,
+		build.UBIResourceExporterDockerImage,
+	}
+
+	keepSet := make(map[string]struct{})
+	for _, imageName := range imagesToKeep {
+		keepSet[imageName] = struct{}{}
+	}
+
+	allImages, err := ds.c.ImageList(context.Background(), image.ListOptions{})
 	if err != nil {
 		logs.GetLogger().Errorf("Failed get image list, error: %+v", err)
 		return
 	}
-
-	for _, img := range images {
-		var specialImage bool
+	for _, img := range allImages {
 		for _, tag := range img.RepoTags {
-			if strings.HasPrefix(tag, "filswan/ubi-worker") || strings.HasPrefix(tag, "filswan/cpu-model-collector") ||
-				strings.HasPrefix(tag, "filswan/hardware-exporter") {
-				specialImage = true
-				break
+			if _, found := keepSet[tag]; !found {
+				_, err := ds.c.ImageRemove(context.Background(), tag, image.RemoveOptions{
+					Force:         true,
+					PruneChildren: true,
+				})
+				if err != nil {
+					logs.GetLogger().Errorf("delete %s image failed, error: %v", tag, err)
+				}
 			}
-		}
-
-		if !specialImage {
-			ds.RemoveImage(img.ID)
 		}
 	}
 
@@ -342,14 +354,28 @@ func (ds *DockerService) CleanResource() {
 	ds.c.ContainersPrune(ctx, filters.NewArgs())
 }
 
-func (ds *DockerService) PullImage(imagesName string) error {
-	resp, err := ds.c.ImagePull(context.TODO(), imagesName, image.PullOptions{})
+func (ds *DockerService) PullImage(imageName string) error {
+	filterArgs := filters.NewArgs()
+	filterArgs.Add("reference", imageName)
+
+	images, err := ds.c.ImageList(context.Background(), image.ListOptions{
+		Filters: filterArgs,
+	})
 	if err != nil {
+		logs.GetLogger().Errorf("get %s image failed, error: %+v", imageName, err)
 		return err
 	}
-	defer resp.Close()
-	printOut(resp)
-	return nil
+	if len(images) > 0 {
+		return nil
+	} else {
+		resp, err := ds.c.ImagePull(context.TODO(), imageName, image.PullOptions{})
+		if err != nil {
+			return err
+		}
+		defer resp.Close()
+		printOut(resp)
+		return nil
+	}
 }
 
 func (ds *DockerService) CheckRunningContainer(containerName string) (bool, error) {
@@ -414,4 +440,17 @@ func (ds *DockerService) GetContainerLogStream(containerName string) (io.ReadClo
 		Follow:     true,
 		Timestamps: true,
 	})
+}
+
+func (ds *DockerService) checkImageExists(imageName string) bool {
+	filterArgs := filters.NewArgs()
+	filterArgs.Add("reference", imageName)
+
+	images, err := ds.c.ImageList(context.Background(), image.ListOptions{
+		Filters: filterArgs,
+	})
+	if err != nil {
+		return false
+	}
+	return len(images) > 0
 }
