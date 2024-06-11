@@ -171,7 +171,7 @@ func (task *CronTask) watchExpiredTask() {
 
 			if time.Now().Unix() > job.ExpireTime {
 				expireTimeStr := time.Unix(job.ExpireTime, 0).Format("2006-01-02 15:04:05")
-				logs.GetLogger().Infof("<timer-task> spaceUuid: %s, expireTime: %s. the job starting terminated", job.SpaceUuid, expireTimeStr)
+				logs.GetLogger().Infof("<timer-task> space_uuid: %s, expire_time: %s. the job starting terminated", job.SpaceUuid, expireTimeStr)
 				if err = deleteJob(namespace, job.SpaceUuid); err == nil {
 					deleteSpaceIds = append(deleteSpaceIds, job.SpaceUuid)
 					continue
