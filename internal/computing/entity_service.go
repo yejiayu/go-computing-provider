@@ -22,7 +22,7 @@ func (taskServ TaskService) GetAllTask(tailNum int) (list []*models.TaskEntity, 
 			list[i], list[j] = list[j], list[i]
 		}
 	} else {
-		err = taskServ.Model(&models.TaskEntity{}).Order("create_time desc").Find(&list).Error
+		err = taskServ.Model(&models.TaskEntity{}).Order("create_time").Find(&list).Error
 		if err != nil {
 			return nil, err
 		}
@@ -40,7 +40,7 @@ func (taskServ TaskService) GetTaskList(taskStatus, tailNum int) (list []*models
 			list[i], list[j] = list[j], list[i]
 		}
 	} else {
-		err = taskServ.Where(&models.TaskEntity{Status: taskStatus}).Order("create_time desc").Find(&list).Error
+		err = taskServ.Where(&models.TaskEntity{Status: taskStatus}).Order("create_time").Find(&list).Error
 		if err != nil {
 			return nil, err
 		}
