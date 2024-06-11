@@ -54,7 +54,7 @@ func SetupWallet(dir string) (*LocalWallet, error) {
 		default:
 			kstore, err := OpenOrInitKeystore(filepath.Join(cpPath, dir))
 			if err != nil {
-				println("retrying...")
+				fmt.Printf("open keystore failed, error: %v", err)
 				time.Sleep(2 * time.Second)
 				continue
 			}
@@ -388,73 +388,6 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 		}
 		return collateralTxHash, nil
 	}
-}
-
-func (w *LocalWallet) CollateralInfo(ctx context.Context, chainName string, collateralType string) error {
-	defer w.keystore.Close()
-	addrs, err := w.addressList(ctx)
-	if err != nil {
-		return err
-	}
-
-	addressKey := "Address"
-	balanceKey := "Balance"
-	collateralKey := "Collateral"
-	frozenKey := "Escrow"
-	errorKey := "Error"
-
-	chainRpc, err := conf.GetRpcByName(chainName)
-	if err != nil {
-		return err
-	}
-	client, err := ethclient.Dial(chainRpc)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-
-	var wallets []map[string]interface{}
-	for _, addr := range addrs {
-		var balance, collateralBalance, frozenCollateral string
-		balance, err = Balance(ctx, client, addr)
-
-		if collateralType == "fcp" {
-			collateralStub, err := fcp.NewCollateralStub(client)
-			if err == nil {
-				fcpCollateralInfo, err := collateralStub.CollateralInfo()
-				if err == nil {
-					collateralBalance = fcpCollateralInfo.AvailableBalance
-					frozenCollateral = fcpCollateralInfo.LockedCollateral
-				}
-			}
-		}
-
-		var errmsg string
-		if err != nil {
-			errmsg = err.Error()
-		}
-
-		wallet := map[string]interface{}{
-			addressKey:    addr,
-			balanceKey:    balance,
-			collateralKey: collateralBalance,
-			frozenKey:     frozenCollateral,
-			errorKey:      errmsg,
-		}
-		wallets = append(wallets, wallet)
-	}
-
-	tw := tablewriter.New(
-		tablewriter.Col(addressKey),
-		tablewriter.Col(balanceKey),
-		tablewriter.Col(collateralKey),
-		tablewriter.Col(frozenKey),
-		tablewriter.NewLineCol(errorKey))
-
-	for _, wallet := range wallets {
-		tw.Write(wallet)
-	}
-	return tw.Flush(os.Stdout)
 }
 
 func (w *LocalWallet) CollateralWithdraw(ctx context.Context, chainName string, address string, amount string, cpAccountAddress string, collateralType string) (string, error) {

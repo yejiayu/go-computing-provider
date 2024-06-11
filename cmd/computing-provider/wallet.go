@@ -317,7 +317,6 @@ var collateralCmd = &cli.Command{
 		},
 	},
 	Subcommands: []*cli.Command{
-		collateralInfoCmd,
 		collateralAddCmd,
 		collateralSendCmd,
 		collateralWithdrawCmd,
@@ -388,32 +387,6 @@ var collateralAddCmd = &cli.Command{
 		}
 		fmt.Println(txHash)
 		return nil
-	},
-}
-
-var collateralInfoCmd = &cli.Command{
-	Name:  "info",
-	Usage: "View staking wallet details",
-	Flags: []cli.Flag{
-		&cli.BoolFlag{
-			Name:     "fcp",
-			Usage:    "Check the fcp collateral",
-			Required: true,
-		},
-	},
-	Action: func(cctx *cli.Context) error {
-		ctx := reqContext(cctx)
-		chain := cctx.String("chain")
-		if strings.TrimSpace(chain) == "" {
-			return fmt.Errorf("failed to parse chain: %s", chain)
-		}
-
-		localWallet, err := wallet.SetupWallet(wallet.WalletRepo)
-		if err != nil {
-			return err
-		}
-
-		return localWallet.CollateralInfo(ctx, chain, "fcp")
 	},
 }
 
