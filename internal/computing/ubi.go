@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -1091,10 +1092,18 @@ func getReward(task *models.TaskEntity) error {
 		return fmt.Errorf("create ubi task client failed, error: %s", err.Error())
 	}
 
-	status, rewardTx, challengeTx, slashTx, reward, err := taskStub.GetReward()
-	if err != nil {
-		return fmt.Errorf("use task contract to get reward failed, error: %s", err.Error())
+	var status int
+	var rewardTx, challengeTx, slashTx, reward string
+	for i := 0; i < 5; i++ {
+		status, rewardTx, challengeTx, slashTx, reward, err = taskStub.GetReward()
+		if err != nil {
+			logs.GetLogger().Errorf("use task contract to get reward failed, error: %s", ecp.ParseError(err))
+			rand.Seed(time.Now().UnixNano())
+			time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
+			continue
+		}
 	}
+
 	if status != models.REWARD_UNCLAIMED {
 		task.Reward = reward
 		task.RewardStatus = status

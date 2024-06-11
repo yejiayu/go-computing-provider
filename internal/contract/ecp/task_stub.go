@@ -81,14 +81,14 @@ outerLoop:
 			if !flag {
 				err = s.getNonce()
 				if err != nil {
-					logs.GetLogger().Warnf("taskId: %s, get nonce: %s, retrying", taskId, parseError(err))
+					logs.GetLogger().Warnf("taskId: %s, get nonce: %s, retrying", taskId, ParseError(err))
 					continue
 				}
 			}
 
 			txOptions, err := s.createTransactOpts(int64(s.nonceX))
 			if err != nil {
-				logs.GetLogger().Warnf("taskId: %s, create transaction opts failed, error: %s", taskId, parseError(err))
+				logs.GetLogger().Warnf("taskId: %s, create transaction opts failed, error: %s", taskId, ParseError(err))
 				continue
 			}
 			transaction, err := s.task.SubmitProof(txOptions, proof)
@@ -99,12 +99,12 @@ outerLoop:
 				} else if strings.Contains(err.Error(), "next nonce") {
 					err = s.getNonce()
 					if err != nil {
-						logs.GetLogger().Warnf("taskId: %s, get nonce: %s, retrying", taskId, parseError(err))
+						logs.GetLogger().Warnf("taskId: %s, get nonce: %s, retrying", taskId, ParseError(err))
 						flag = false
 						continue
 					}
 				} else {
-					logs.GetLogger().Warnf("taskId: %s SubmitUBIProof failed, error: %s", taskId, parseError(err))
+					logs.GetLogger().Warnf("taskId: %s SubmitUBIProof failed, error: %s", taskId, ParseError(err))
 					continue
 				}
 			}
@@ -177,7 +177,7 @@ func (s *TaskStub) getNonce() error {
 	}
 	nonce, err := s.client.NonceAt(context.Background(), publicAddress, nil)
 	if err != nil {
-		return fmt.Errorf("address: %s, collateral client get nonce error: %s", publicAddress, parseError(err))
+		return fmt.Errorf("address: %s, collateral client get nonce error: %s", publicAddress, ParseError(err))
 	}
 	s.taskL.Lock()
 	defer s.taskL.Unlock()
@@ -236,7 +236,7 @@ func (s *TaskStub) GetReward() (status int, rewardTx string, challengeTx string,
 	return 0, "", "", "", reward, nil
 }
 
-func parseError(err error) string {
+func ParseError(err error) string {
 	if strings.Contains(err.Error(), "503") {
 		return "503 Service Temporarily Unavailable"
 	}
