@@ -189,6 +189,10 @@ func submitJob(jobData *models.JobData) error {
 			continue
 		}
 
+		if mcsOssFile == nil || mcsOssFile.PayloadCid == "" {
+			continue
+		}
+
 		gatewayUrl, err := storageService.GetGatewayUrl()
 		if err != nil {
 			logs.GetLogger().Errorf("get mcs ipfs gatewayUrl failed, error: %v", err)
