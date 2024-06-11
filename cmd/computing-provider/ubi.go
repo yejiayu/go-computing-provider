@@ -40,6 +40,10 @@ var listCmd = &cli.Command{
 			Usage:   "--verbose",
 			Aliases: []string{"v"},
 		},
+		&cli.IntFlag{
+			Name:  "tail",
+			Usage: "Show the last number of lines. If not specified, all are displayed by default",
+		},
 	},
 	Action: func(cctx *cli.Context) error {
 		fullFlag := cctx.Bool("verbose")
@@ -49,18 +53,18 @@ var listCmd = &cli.Command{
 		}
 
 		showFailed := cctx.Bool("show-failed")
-
+		tailNum := cctx.Int("tail")
 		var taskData [][]string
 		var rowColorList []RowColor
 		var taskList []*models.TaskEntity
 		var err error
 		if showFailed {
-			taskList, err = computing.NewTaskService().GetAllTask()
+			taskList, err = computing.NewTaskService().GetAllTask(tailNum)
 			if err != nil {
 				return fmt.Errorf("failed get ubi task, error: %+v", err)
 			}
 		} else {
-			taskList, err = computing.NewTaskService().GetTaskList(models.TASK_SUCCESS_STATUS)
+			taskList, err = computing.NewTaskService().GetTaskList(models.TASK_SUCCESS_STATUS, tailNum)
 			if err != nil {
 				return fmt.Errorf("failed get ubi task, error: %+v", err)
 			}
