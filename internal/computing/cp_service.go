@@ -818,7 +818,7 @@ func deleteJob(namespace, spaceUuid string) error {
 	serviceName := constants.K8S_SERVICE_NAME_PREFIX + spaceUuid
 	ingressName := constants.K8S_INGRESS_NAME_PREFIX + spaceUuid
 
-	logs.GetLogger().Infof("Start deleting space service, space_uuid: %s", spaceUuid)
+	logs.GetLogger().Infof("deleting space service, space_uuid: %s", spaceUuid)
 	k8sService := NewK8sService()
 	if err := k8sService.DeleteIngress(context.TODO(), namespace, ingressName); err != nil && !errors.IsNotFound(err) {
 		logs.GetLogger().Errorf("Failed delete ingress, ingressName: %s, error: %+v", ingressName, err)
