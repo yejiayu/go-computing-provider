@@ -20,17 +20,14 @@ type ComputingProvider struct {
 type JobData struct {
 	UUID                        string `json:"uuid"`
 	Name                        string `json:"name"`
-	Status                      string `json:"status"`
 	Duration                    int    `json:"duration"`
 	JobSourceURI                string `json:"job_source_uri"`
 	JobResultURI                string `json:"job_result_uri,omitempty"`
 	StorageSource               string `json:"storage_source,omitempty"`
 	TaskUUID                    string `json:"task_uuid"`
-	CreatedAt                   string `json:"created_at"`
-	UpdatedAt                   string `json:"updated_at,omitempty"`
 	BuildLog                    string `json:"build_log,omitempty"`
 	ContainerLog                string `json:"container_log"`
-	NodeIdJobSourceUriSignature string `json:"node_id_job_source_uri_signature"`
+	NodeIdJobSourceUriSignature string `json:"node_id_job_source_uri_signature,omitempty"`
 	JobRealUri                  string `json:"job_real_uri,omitempty"`
 }
 

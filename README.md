@@ -415,7 +415,7 @@ Transaction hash: 0xb8fd9cc9bfac2b2890230b4f14999b9d449e050339b252273379ab11fac1
 
 ## Collateral Swan-ETH for FCP
 ```bash
- computing-provider collateral add --fcp --from <YOUR_OWNER_WALLET_ADDRESS>  <amount>
+ computing-provider collateral add --fcp --from <YOUR_WALLET_ADDRESS>  <amount>
 ```
 
 ## Start the Computing Provider

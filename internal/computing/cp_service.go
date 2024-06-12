@@ -115,7 +115,7 @@ func ReceiveJob(c *gin.Context) {
 	jobData.BuildLog = wsUrl + "&type=build"
 	jobData.ContainerLog = wsUrl + "&type=container"
 	jobData.JobRealUri = fmt.Sprintf("https://%s", hostName)
-
+	jobData.NodeIdJobSourceUriSignature = ""
 	go func() {
 		job, err := NewJobService().GetJobEntityBySpaceUuid(spaceUuid)
 		if err != nil {
@@ -150,6 +150,7 @@ func ReceiveJob(c *gin.Context) {
 
 		DeploySpaceTask(jobData.JobSourceURI, hostName, jobData.Duration, jobData.UUID, jobData.TaskUUID, gpuProductName)
 	}()
+
 	c.JSON(http.StatusOK, util.CreateSuccessResponse(jobData))
 }
 

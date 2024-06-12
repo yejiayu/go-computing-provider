@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/log"
-	"github.com/filswan/go-mcs-sdk/mcs/api/common/logs"
 	"github.com/swanchain/go-computing-provider/conf"
 	account2 "github.com/swanchain/go-computing-provider/internal/contract/account"
 	"github.com/swanchain/go-computing-provider/internal/contract/ecp"
@@ -48,24 +47,25 @@ func SetupWallet(dir string) (*LocalWallet, error) {
 		return nil, fmt.Errorf("load config file failed, error: %+v", err)
 	}
 
-	var errorCount int
+	timeOutCh := time.After(10 * time.Second)
+loop:
 	for {
 		select {
-		case <-time.After(10 * time.Second):
+		case <-timeOutCh:
 			return nil, fmt.Errorf("open wallet timeout, retry again")
 		default:
 			kstore, err := OpenOrInitKeystore(filepath.Join(cpPath, dir))
 			if err != nil {
-				if errorCount == 0 {
-					logs.GetLogger().Errorf("%v", err)
+				if strings.Contains(err.Error(), "permission denied") {
+					break loop
 				}
-				time.Sleep(2 * time.Second)
-				errorCount++
+				time.Sleep(time.Second)
 				continue
 			}
 			return NewWallet(kstore), nil
 		}
 	}
+	return nil, nil
 }
 
 type LocalWallet struct {
