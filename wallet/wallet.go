@@ -47,6 +47,7 @@ func SetupWallet(dir string) (*LocalWallet, error) {
 		return nil, fmt.Errorf("load config file failed, error: %+v", err)
 	}
 
+	var resultErr error
 	timeOutCh := time.After(10 * time.Second)
 loop:
 	for {
@@ -57,6 +58,7 @@ loop:
 			kstore, err := OpenOrInitKeystore(filepath.Join(cpPath, dir))
 			if err != nil {
 				if strings.Contains(err.Error(), "permission denied") {
+					resultErr = err
 					break loop
 				}
 				time.Sleep(time.Second)
@@ -65,7 +67,7 @@ loop:
 			return NewWallet(kstore), nil
 		}
 	}
-	return nil, nil
+	return nil, resultErr
 }
 
 type LocalWallet struct {
