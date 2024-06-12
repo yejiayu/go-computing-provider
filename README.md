@@ -339,7 +339,7 @@ KeyFile = "/YOUR_DOMAIN_NAME_KEY_PATH/server.key"              # Your domain nam
 
 [HUB]
 ServerUrl = "https://orchestrator-api.swanchain.io"            # The Orchestrator's API address
-AccessToken = ""                                               # The Orchestrator's access token, Acquired from "https://orchestrator.swanchain.io"
+AccessToken = ""                                               # The Orchestrator's access token, Use the owner address Acquired from "https://orchestrator.swanchain.io"
 BalanceThreshold= 1                                            # The cp’s collateral balance threshold
 OrchestratorPk = "0x29eD49c8E973696D07E7927f748F6E5Eacd5516D"  # Orchestrator's public key, CP only accept the task from this Orchestrator
 VerifySign = true                                              # Verify that the task signature is from Orchestrator
@@ -360,7 +360,7 @@ SWAN_MAINNET= ""	                          # Swan mainnet RPC
 
 [CONTRACT]
 SWAN_CONTRACT = "0x91B25A65b295F0405552A4bbB77879ab5e38166c"              # Swan token's contract address
-SWAN_COLLATERAL_CONTRACT = "0xfD9190027cd42Fc4f653Dfd9c4c45aeBAf0ae063"   # Swan's collateral address
+SWAN_COLLATERAL_CONTRACT = "0xC7980d5a69e8AA9797934aCf18e483EB4C986e01"   # Swan's collateral address
 REGISTER_CP_CONTRACT = "0x6EDf891B53ba2c6Fade6Ae373682ED48dEa5AF48"       # The CP registration contract address
 ZK_COLLATERAL_CONTRACT = "0x1d2557C9d14882D9eE291BB66eaC6c1C4a587054"     # The ZK task's collateral contract address
 ```

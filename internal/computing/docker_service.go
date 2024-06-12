@@ -340,29 +340,27 @@ func (ds *DockerService) CleanResource() {
 		keepSet[imageName] = true
 	}
 
-	imagesPruneReport, err := ds.c.ImagesPrune(context.Background(), filters.Args{})
+	allImages, err := ds.c.ImageList(context.Background(), image.ListOptions{})
 	if err != nil {
-		logs.GetLogger().Errorf("get all image failed, error: %v", err)
+		logs.GetLogger().Errorf("Failed get image list, error: %+v", err)
 		return
 	}
-
-	for _, img := range imagesPruneReport.ImagesDeleted {
-		imageID := img.Deleted
-		imageInspect, _, err := ds.c.ImageInspectWithRaw(context.Background(), imageID)
-		if err != nil {
-			continue
-		}
-		exclude := false
-		for _, tag := range imageInspect.RepoTags {
-			if keepSet[tag] {
-				exclude = true
-				break
+	for _, img := range allImages {
+		for _, tag := range img.RepoTags {
+			if !keepSet[tag] {
+				ds.c.ImageRemove(context.Background(), tag, image.RemoveOptions{
+					Force:         false,
+					PruneChildren: true,
+				})
 			}
 		}
-		if !exclude {
-			ds.c.ImageRemove(context.Background(), imageID, image.RemoveOptions{Force: true})
-		}
 	}
+
+	ctx := context.Background()
+	danglingFilters := filters.NewArgs()
+	danglingFilters.Add("dangling", "true")
+	ds.c.ImagesPrune(ctx, danglingFilters)
+	ds.c.ContainersPrune(ctx, filters.NewArgs())
 }
 
 func (ds *DockerService) PullImage(imageName string) error {
