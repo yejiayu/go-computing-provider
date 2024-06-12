@@ -1008,7 +1008,7 @@ func CronTaskForEcp() {
 func SyncCpAccountInfo() {
 	cpAccountAddress, err := contract.GetCpAccountAddress()
 	if err != nil {
-		logs.GetLogger().Errorf("get cp account contract address failed, error: %v", err)
+		logs.GetLogger().Fatalf("get cp account contract address failed, error: %v", err)
 		return
 	}
 
