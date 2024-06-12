@@ -405,7 +405,7 @@ computing-provider account create --ownerAddress <YOUR_OWNER_WALLET_ADDRESS> \
 	--beneficiaryAddress <YOUR_BENEFICIARY_WALLET_ADDRESS>  \
 	--task-types 3
 ```
-
+**Note:** `--task-types`: Supports 4 task types (1: Fil-C2-512M, 2: Aleo, 3: AI, 4: Fil-C2-32G), separated by commas. For FCP, it needs to be set to 3.
 _Output:_
 
 ```
@@ -417,6 +417,7 @@ Transaction hash: 0xb8fd9cc9bfac2b2890230b4f14999b9d449e050339b252273379ab11fac1
 ```bash
  computing-provider collateral add --fcp --from <YOUR_WALLET_ADDRESS>  <amount>
 ```
+**Note:** Currently one AI task requires 0.01 Swan-ETH.
 
 ## Start the Computing Provider
 You can run `computing-provider` using the following command
@@ -460,6 +461,7 @@ export CP_PATH=<YOUR_CP_PATH>
 ```bash
 computing-provider collateral add --ecp --from <YOUR_WALLET_ADDRESS>  <amount>
 ```
+**Note:** Currently one zk-task requires 0.0005 Swan-ETH.
 
 Example output:
 
@@ -471,6 +473,7 @@ Example output:
 ```bash
 computing-provider account changeTaskTypes --ownerAddress <YOUR_OWNER_WALLET_ADDRESS> 1,2,3,4
 ```
+**Note:** `--task-types`: Supports 4 task types (1: Fil-C2-512M, 2: Aleo, 3: AI, 4: Fil-C2-32G), separated by commas. If you need to run FCP and ECP at the same time, you need to set it to 1,2,3,4 
 
 ### **Step 4: Account Management**
 
