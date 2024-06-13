@@ -779,12 +779,19 @@ func GetCpResource(c *gin.Context) {
 		return
 	}
 
+	cpAccountAddress, err := contract.GetCpAccountAddress()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.GetCpAccountError))
+		return
+	}
+
 	cpRepo, _ := os.LookupEnv("CP_PATH")
 	c.JSON(http.StatusOK, models.ClusterResource{
-		Region:      location,
-		ClusterInfo: []*models.NodeResource{&nodeResource},
-		NodeName:    conf.GetConfig().API.NodeName,
-		NodeId:      GetNodeId(cpRepo),
+		Region:           location,
+		ClusterInfo:      []*models.NodeResource{&nodeResource},
+		NodeName:         conf.GetConfig().API.NodeName,
+		NodeId:           GetNodeId(cpRepo),
+		CpAccountAddress: cpAccountAddress,
 	})
 }
 

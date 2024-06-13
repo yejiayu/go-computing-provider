@@ -37,6 +37,9 @@ const (
 	SuccessCode = 200
 	ServerError = 500
 
+	GetLocationError           = 3000
+	GetCpAccountError          = 3001
+	GeResourceError            = 3002
 	JsonError                  = 4000
 	BadParamError              = 4001
 	SignatureError             = 4002
@@ -62,6 +65,9 @@ const (
 
 var codeMsg = map[int]string{
 	ServerError:                "Service failed",
+	GetLocationError:           "An error occurred while get location of cp",
+	GetCpAccountError:          "An error occurred while get cp account address",
+	GeResourceError:            "An error occurred while get cp account resource",
 	JsonError:                  "An error occurred while converting to json",
 	BadParamError:              "The request parameter is not valid",
 	SignatureError:             "Verify signature failed",

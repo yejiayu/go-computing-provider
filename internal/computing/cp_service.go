@@ -14,6 +14,7 @@ import (
 	"github.com/swanchain/go-computing-provider/build"
 	"github.com/swanchain/go-computing-provider/conf"
 	"github.com/swanchain/go-computing-provider/constants"
+	"github.com/swanchain/go-computing-provider/internal/contract"
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"github.com/swanchain/go-computing-provider/util"
 	"io"
@@ -478,23 +479,30 @@ func StatisticalSources(c *gin.Context) {
 	location, err := getLocation()
 	if err != nil {
 		logs.GetLogger().Error(err)
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.BadParamError, "get location info failed"))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.GetLocationError))
 		return
 	}
 
 	k8sService := NewK8sService()
 	statisticalSources, err := k8sService.StatisticalSources(context.TODO())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.BadParamError, err.Error()))
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.GeResourceError))
+		return
+	}
+
+	cpAccountAddress, err := contract.GetCpAccountAddress()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, util.CreateErrorResponse(util.GetCpAccountError))
 		return
 	}
 
 	cpRepo, _ := os.LookupEnv("CP_PATH")
 	c.JSON(http.StatusOK, models.ClusterResource{
-		Region:      location,
-		ClusterInfo: statisticalSources,
-		NodeName:    conf.GetConfig().API.NodeName,
-		NodeId:      GetNodeId(cpRepo),
+		Region:           location,
+		ClusterInfo:      statisticalSources,
+		NodeName:         conf.GetConfig().API.NodeName,
+		NodeId:           GetNodeId(cpRepo),
+		CpAccountAddress: cpAccountAddress,
 	})
 }
 
