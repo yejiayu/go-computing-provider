@@ -365,7 +365,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 				}
 
 				if receipt != nil && receipt.Status == types.ReceiptStatusSuccessful {
-					collateralStub, err := fcp.NewCollateralStub(client, fcp.WithPrivateKey(ki.PrivateKey))
+					collateralStub, err := fcp.NewCollateralStub(client, fcp.WithPrivateKey(ki.PrivateKey), fcp.WithCpAccountAddress(cpAccountAddress))
 					if err != nil {
 						return "", err
 					}
