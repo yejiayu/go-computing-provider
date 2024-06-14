@@ -120,12 +120,12 @@ var infoCmd = &cli.Command{
 		}
 		defer client.Close()
 
-		var fcpCollateralBalance = "0.000"
-		var fcpEscrowBalance = "0.000"
-		var ecpCollateralBalance = "0.000"
-		var ecpEscrowBalance = "0.000"
-		var ownerBalance = "0.000"
-		var workerBalance = "0.000"
+		var fcpCollateralBalance = "0.0000"
+		var fcpEscrowBalance = "0.0000"
+		var ecpCollateralBalance = "0.0000"
+		var ecpEscrowBalance = "0.0000"
+		var ownerBalance = "0.0000"
+		var workerBalance = "0.0000"
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 		var cpAccount models.Account
 
@@ -266,12 +266,12 @@ var stateInfoCmd = &cli.Command{
 		}
 		defer client.Close()
 
-		var fcpCollateralBalance = "0.000"
-		var fcpEscrowBalance = "0.000"
-		var ecpCollateralBalance = "0.000"
-		var ecpEscrowBalance = "0.000"
-		var ownerBalance = "0.000"
-		var workerBalance = "0.000"
+		var fcpCollateralBalance = "0.0000"
+		var fcpEscrowBalance = "0.0000"
+		var ecpCollateralBalance = "0.0000"
+		var ecpEscrowBalance = "0.0000"
+		var ownerBalance = "0.0000"
+		var workerBalance = "0.0000"
 		var chainMultiAddress string
 		var contractAddress, ownerAddress, workerAddress, beneficiaryAddress, taskTypes, chainNodeId, version string
 
@@ -304,7 +304,7 @@ var stateInfoCmd = &cli.Command{
 
 		ownerBalance, err = wallet.Balance(context.TODO(), client, ownerAddress)
 		workerBalance, err = wallet.Balance(context.TODO(), client, workerAddress)
-		fcpCollateralStub, err := fcp.NewCollateralStub(client, fcp.WithPublicKey(ownerAddress))
+		fcpCollateralStub, err := fcp.NewCollateralStub(client, fcp.WithCpAccountAddress(contractAddress))
 		if err == nil {
 			fcpCollateralInfo, err := fcpCollateralStub.CollateralInfo()
 			if err == nil {
@@ -313,7 +313,7 @@ var stateInfoCmd = &cli.Command{
 			}
 		}
 
-		ecpCollateral, err := ecp.NewCollateralStub(client, ecp.WithPublicKey(ownerAddress))
+		ecpCollateral, err := ecp.NewCollateralStub(client, ecp.WithCpAccountAddress(contractAddress))
 		if err == nil {
 			cpCollateralInfo, err := ecpCollateral.CpInfo()
 			if err == nil {
@@ -450,12 +450,12 @@ var taskInfoCmd = &cli.Command{
 							if len(l.Topics) == 3 && l.Topics[0] == contractAbi.Events["Transfer"].ID {
 								balance := event.Value
 								if balance.String() == "0" {
-									reward = "0.000"
+									reward = "0.0000"
 								} else {
 									fbalance := new(big.Float)
 									fbalance.SetString(balance.String())
 									etherQuotient := new(big.Float).Quo(fbalance, new(big.Float).SetInt(big.NewInt(1e18)))
-									reward = etherQuotient.Text('f', 3)
+									reward = etherQuotient.Text('f', 4)
 								}
 							}
 						}

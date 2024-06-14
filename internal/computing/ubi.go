@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/filswan/go-swan-lib/logs"
 	"github.com/gin-gonic/gin"
@@ -576,8 +577,7 @@ func DoUbiTaskForDocker(c *gin.Context) {
 			return
 		}
 
-		multiAddressSplit := strings.Split(conf.GetConfig().API.MultiAddress, "/")
-		receiveUrl := fmt.Sprintf("http://%s:%s/api/v1/computing/cp/docker/receive/ubi", multiAddressSplit[2], multiAddressSplit[4])
+		receiveUrl := fmt.Sprintf("http://127.0.0.1:%d/api/v1/computing/cp/docker/receive/ubi", conf.GetConfig().API.Port)
 		execCommand := []string{"ubi-bench", "c2"}
 		JobName := strings.ToLower(models.UbiTaskTypeStr(ubiTask.Type)) + "-" + strconv.Itoa(ubiTask.ID)
 
@@ -615,8 +615,9 @@ func DoUbiTaskForDocker(c *gin.Context) {
 		}
 
 		hostConfig := &container.HostConfig{
-			Binds:     []string{fmt.Sprintf("%s:/var/tmp/filecoin-proof-parameters", filC2Param)},
-			Resources: needResource,
+			Binds:       []string{fmt.Sprintf("%s:/var/tmp/filecoin-proof-parameters", filC2Param)},
+			Resources:   needResource,
+			NetworkMode: network.NetworkHost,
 		}
 		containerConfig := &container.Config{
 			Image:        ubiTaskImage,

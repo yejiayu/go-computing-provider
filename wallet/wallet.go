@@ -269,9 +269,14 @@ func (w *LocalWallet) walletDelete(ctx context.Context, addr string) error {
 
 func (w *LocalWallet) WalletDelete(ctx context.Context, addr string) error {
 	defer w.keystore.Close()
-	if err := w.walletDelete(ctx, addr); err != nil {
-		return xerrors.Errorf("wallet delete: %w", err)
+
+	w.lk.Lock()
+	defer w.lk.Unlock()
+
+	if err := w.keystore.Delete(KNamePrefix + addr); err != nil {
+		return xerrors.Errorf("failed to delete key %s: %w", addr, err)
 	}
+
 	fmt.Printf("%s has been deleted from the local success \n", addr)
 	return nil
 }
@@ -360,7 +365,7 @@ func (w *LocalWallet) WalletCollateral(ctx context.Context, chainName string, fr
 				}
 
 				if receipt != nil && receipt.Status == types.ReceiptStatusSuccessful {
-					collateralStub, err := fcp.NewCollateralStub(client, fcp.WithPrivateKey(ki.PrivateKey))
+					collateralStub, err := fcp.NewCollateralStub(client, fcp.WithPrivateKey(ki.PrivateKey), fcp.WithCpAccountAddress(cpAccountAddress))
 					if err != nil {
 						return "", err
 					}
