@@ -4,6 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"math/rand"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -19,7 +28,6 @@ import (
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"github.com/swanchain/go-computing-provider/util"
 	"github.com/swanchain/go-computing-provider/wallet"
-	"io"
 	batchv1 "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -27,13 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"math/rand"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func DoUbiTaskForK8s(c *gin.Context) {
@@ -340,11 +341,15 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			return
 		}
 
-		err = wait.PollImmediate(2*time.Second, 60*time.Second, func() (bool, error) {
+		err = wait.PollUntilContextTimeout(context.TODO(), 2*time.Second, 60*time.Second, false, func(context.Context) (bool, error) {
 			pods, err := k8sService.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
 				LabelSelector: fmt.Sprintf("job-name=%s", JobName),
 			})
 			if err != nil {
+				return false, err
+			}
+
+			if len(pods.Items) == 0 {
 				return false, err
 			}
 
