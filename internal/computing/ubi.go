@@ -4,6 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"math/rand"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -19,7 +28,6 @@ import (
 	"github.com/swanchain/go-computing-provider/internal/models"
 	"github.com/swanchain/go-computing-provider/util"
 	"github.com/swanchain/go-computing-provider/wallet"
-	"io"
 	batchv1 "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -27,13 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"math/rand"
-	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func DoUbiTaskForK8s(c *gin.Context) {
@@ -370,9 +371,12 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			return
 		}
 
+		fmt.Printf("doubik8s: jobName = %s", JobName)
+		fmt.Printf("doubik8s: pods.len = %d", len(pods.Items))
 		var podName string
 		for _, pod := range pods.Items {
 			podName = pod.Name
+			fmt.Printf("doubik8s: podName = %s", podName)
 			break
 		}
 
@@ -382,7 +386,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			Timestamps: true,
 		})
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(60 * time.Second)
 		podLogs, err := req.Stream(context.Background())
 		if err != nil {
 			logs.GetLogger().Errorf("Error opening log stream: %v", err)
