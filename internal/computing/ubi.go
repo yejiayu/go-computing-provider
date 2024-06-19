@@ -357,6 +357,10 @@ func DoUbiTaskForK8s(c *gin.Context) {
 				return false, err
 			}
 
+			if len(pods.Items) == 0 {
+				return false, nil
+			}
+
 			for _, p := range pods.Items {
 				for _, condition := range p.Status.Conditions {
 					if condition.Type != coreV1.PodReady && condition.Status != coreV1.ConditionTrue {
