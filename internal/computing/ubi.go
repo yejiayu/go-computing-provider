@@ -293,9 +293,17 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			ObjectMeta: metaV1.ObjectMeta{
 				Name:      JobName,
 				Namespace: namespace,
+				Labels: map[string]string{
+					"job-name": JobName,
+				},
 			},
 			Spec: batchv1.JobSpec{
 				Template: v1.PodTemplateSpec{
+					ObjectMeta: metaV1.ObjectMeta{
+						Labels: map[string]string{
+							"job-name": JobName,
+						},
+					},
 					Spec: v1.PodSpec{
 						NodeName:     nodeName,
 						NodeSelector: generateLabel(strings.ReplaceAll(c2GpuName, " ", "-")),
