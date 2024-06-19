@@ -371,6 +371,17 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			return
 		}
 
+		pl, err := k8sService.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{})
+		if err != nil {
+			logs.GetLogger().Errorf("Failed plplpl: %v", err)
+			return
+		}
+
+		fmt.Printf("doubik8s: pl.len = %d\n", len(pl.Items))
+		for _, pod := range pl.Items {
+			fmt.Printf("doubik8s: plName = %s\n", pod.Name)
+		}
+
 		pods, err := k8sService.k8sClient.CoreV1().Pods(namespace).List(context.TODO(), metaV1.ListOptions{
 			LabelSelector: fmt.Sprintf("job-name=%s", JobName),
 		})
@@ -379,12 +390,12 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			return
 		}
 
-		fmt.Printf("doubik8s: jobName = %s", JobName)
-		fmt.Printf("doubik8s: pods.len = %d", len(pods.Items))
+		fmt.Printf("doubik8s: jobName = %s\n", JobName)
+		fmt.Printf("doubik8s: pods.len = %d\n", len(pods.Items))
 		var podName string
 		for _, pod := range pods.Items {
 			podName = pod.Name
-			fmt.Printf("doubik8s: podName = %s", podName)
+			fmt.Printf("doubik8s: podName = %s\n", podName)
 			break
 		}
 
