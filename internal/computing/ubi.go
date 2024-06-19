@@ -350,7 +350,7 @@ func DoUbiTaskForK8s(c *gin.Context) {
 			}
 
 			if len(pods.Items) == 0 {
-				return false, err
+				return false, nil
 			}
 
 			for _, p := range pods.Items {
